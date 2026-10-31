@@ -1,12 +1,11 @@
 {
-	"name": "Rubio Dev Container",
-	"image": "ghcr.io/rubio-enterprises/aw-webui/devcontainer:main",
-	"mounts": [
-		"source=${devcontainerId}-node-modules,target=${containerWorkspaceFolder}/node_modules,type=volume"
-	],
-	"containerEnv": {
-		"STANDARDS_DEVCONTAINER": "1"
-	},
-	"onCreateCommand": "sudo chown vscode:vscode node_modules && bash -c 'source scripts/common/standards-pin.sh && standards_devcontainer_setup \"$PWD\" --check-only'",
-	"updateContentCommand": "bash -c 'source scripts/common/standards-pin.sh && standards_devcontainer_setup \"$PWD\"'"
+  "name": "Rubio Dev Container",
+  "image": "ghcr.io/rubio-enterprises/aw-webui/devcontainer:main",
+  "mounts": [
+    "source=${devcontainerId}-node-modules,target=${containerWorkspaceFolder}/node_modules,type=volume"
+  ],
+  "onCreateCommand": "mise run setup",
+  "remoteEnv": {
+    "NODE_AUTH_TOKEN": "${localEnv:NODE_AUTH_TOKEN}"
+  }
 }
