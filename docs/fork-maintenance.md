@@ -49,6 +49,13 @@ Rust setup/tests do not need the UI. This repository's own Repository Image uses
 its committed media files and `npm ci`; `mise run build` invokes upstream's
 `make build` and `make build-vite`, including their logo prebuild steps.
 
+## Native hook setup
+
+Run `mise bootstrap --only repos,tools --yes` and `mise run setup` before local
+hooks. Tool bootstrap alone does not install the repository's locked ESLint in
+`node_modules`. The shared lint gate installs `npm ci` on its plain-runner path;
+Repository Image setup supplies those dependencies for image-mode execution.
+
 ## Onboarding validation limitation
 
 The owner explicitly deferred the legacy upstream server-integration/TestCafe
