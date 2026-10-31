@@ -51,10 +51,10 @@ its committed media files and `npm ci`; `mise run build` invokes upstream's
 
 ## Native hook setup
 
-Run `mise bootstrap --only repos,tools --yes` and `mise run setup` before local
-hooks. Tool bootstrap alone does not install the repository's locked ESLint in
-`node_modules`. The shared lint gate installs `npm ci` on its plain-runner path;
-Repository Image setup supplies those dependencies for image-mode execution.
+Run `mise run setup` before local hooks (with `NODE_AUTH_TOKEN` able to read GitHub
+Packages). It installs the standards package and tools, then `setup:deps` runs
+`npm ci`, which provides the locked ESLint that the repository's Lefthook jobs call.
+The required `standards` and `test-gate` checks run the same setup in CI.
 
 ## Onboarding validation limitation
 
@@ -69,5 +69,5 @@ of upstream's mutable actions, nightly downloads or global pip installs.
 
 The canonical Jest task sets `TZ=UTC`, matching Linux CI and upstream's February
 month-boundary fixture. A non-UTC local run crosses January for that fixed UTC
-input. The task records Jest's positive test count without adding a reporter
-package or changing/skipping tests.
+input. The task writes Jest's results through the `jest-junit` reporter (a carried
+devDependency) to `reports/test/junit.xml`, the Test Gate's proof.

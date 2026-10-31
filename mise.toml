@@ -1,0 +1,49 @@
+# This repository's tools and tasks. The Checks, their tool pins and the Conformance Tasks (check,
+# check:pr, fmt) come from @rubio-enterprises/standards, which `mise run setup` installs into
+# .standards/ and mise loads through .config/mise/conf.d/standards.toml.
+min_version = "2026.10.19"
+
+[env]
+# STANDARDS_VERSION = "1.4.2"  # Release Pin: hold this release while the latest breaks the repository; <issue link>
+# STANDARDS_TEST_GATE = "off"  # Opt-out of the Test Gate; <reason>
+
+[tools]
+node = "24.21.0"
+
+[tasks.typecheck]
+description = "tsc, no emit"
+run = "npx --no-install tsc --noEmit"
+
+# Upstream ActivityWatch tests with Jest; jest-junit writes the report the Test Gate checks.
+# The locale check runs first, as the old test:locales did.
+[tasks.test]
+description = "Locale check, then Jest, with the JUnit report the Test Gate checks"
+env = { TZ = "UTC", JEST_JUNIT_OUTPUT_DIR = "reports/test", JEST_JUNIT_OUTPUT_NAME = "junit.xml" }
+run = ["npm run check:locales", "npx --no-install jest --ci --reporters=default --reporters=jest-junit"]
+
+[tasks.build]
+description = "Production builds through upstream's Makefile (vue-cli and Vite)"
+run = ["make build", "make build-vite"]
+
+[tasks."setup:deps"]
+description = "Install the npm dependencies the Lifecycle Tasks and the ESLint hook need"
+run = "npm ci --no-audit --no-fund"
+
+[tasks.setup]
+description = "Install the standards package, its tools and the git hooks, then every setup:* task"
+depends = ["standards:install"]
+# `mise install` only when something is missing: on a machine with many tracked configs a no-op
+# install still rebuilds every shim.
+run = ['test -z "$(mise ls --missing)" || mise install', "mise exec -- lefthook install"]
+# This repository's own setup steps (dependencies the Checks or Lifecycle Tasks need) are setup:*
+# tasks; none is fine.
+depends_post = [{ task = "setup:*", optional = true }]
+
+[tasks."standards:install"]
+description = "Install the latest Standards Release (or the STANDARDS_VERSION Release Pin) into .standards/"
+run = '''npm install --prefix .standards --no-save --prefer-online --fetch-retries=0 --no-audit --no-fund --ignore-scripts --loglevel=error "--@rubio-enterprises:registry=${STANDARDS_REGISTRY:-https://npm.pkg.github.com}" '--//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}' "@rubio-enterprises/standards@${STANDARDS_VERSION:-latest}"'''
+
+# Lifecycle Tasks (test, typecheck, build, e2e) are this repository's own. `test` and `e2e` write
+# reports/test/junit.xml; the Test Gate runs each one that exists.
+[hooks]
+enter = "test -f .standards/node_modules/@rubio-enterprises/standards/mise/standards.toml || echo 'standards: not installed; run mise run setup' >&2"
