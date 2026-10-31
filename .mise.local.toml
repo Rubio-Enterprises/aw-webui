@@ -10,4 +10,4 @@ run = [
 run = ["npm run check:locales"]
 
 [tasks."build:ts"]
-run = ["make build"]
+run = ["make build", "make build-vite"]
