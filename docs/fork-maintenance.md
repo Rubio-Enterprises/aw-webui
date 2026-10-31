@@ -47,7 +47,25 @@ The server's service image still builds the UI through recursive checkout. Its
 Repository/CI image intentionally omits this organization-owned submodule because
 Rust setup/tests do not need the UI. This repository's own Repository Image uses
 its committed media files and `npm ci`; `mise run build` invokes upstream's
-`make build`, including its logo prebuild steps.
+`make build` and `make build-vite`, including their logo prebuild steps.
+
+## Native hook setup
+
+Run `mise bootstrap --only repos,tools --yes` and `mise run setup` before local
+hooks. Tool bootstrap alone does not install the repository's locked ESLint in
+`node_modules`. The shared lint gate installs `npm ci` on its plain-runner path;
+Repository Image setup supplies those dependencies for image-mode execution.
+
+## Onboarding validation limitation
+
+The owner explicitly deferred the legacy upstream server-integration/TestCafe
+matrix during onboarding. Canonical gates currently cover Jest without external
+servers, locales, TypeScript, ESLint and both Webpack/Vite builds. The 30
+server-backed Jest tests remain skipped without `AW_QUERY_TEST_SERVER_URL`;
+TestCafe's browser/server matrix is not run. These are known coverage gaps, not
+proof of server interoperability. Porting that matrix is follow-up work using
+supported pinned actions/tools and reproducible server fixtures, not restoration
+of upstream's mutable actions, nightly downloads or global pip installs.
 
 The canonical Jest task sets `TZ=UTC`, matching Linux CI and upstream's February
 month-boundary fixture. A non-UTC local run crosses January for that fixed UTC
