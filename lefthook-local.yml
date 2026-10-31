@@ -1,0 +1,21 @@
+pre-commit:
+  jobs:
+    - name: fixers
+      group:
+        jobs:
+          - name: repo-scope
+            exclude:
+              - media/**
+            group:
+              jobs:
+                - name: repo-eslint
+                  glob: '{src,test}/*.{js,ts,vue}'
+                  run: mise exec -- node_modules/.bin/eslint --fix {staged_files}
+          - name: stage
+            stage_fixed: false
+  commands:
+    repo-eslint:
+      glob: '{src,test}/*.{js,ts,vue}'
+      run: mise exec -- node_modules/.bin/eslint --max-warnings=0 {staged_files}
+    shellcheck:
+      exclude: media/**
