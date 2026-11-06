@@ -1,11 +1,8 @@
 {
-  "name": "Rubio Dev Container",
-  "image": "ghcr.io/rubio-enterprises/aw-webui/devcontainer:main",
-  "mounts": [
-    "source=${devcontainerId}-node-modules,target=${containerWorkspaceFolder}/node_modules,type=volume"
-  ],
-  "onCreateCommand": "mise run setup",
-  "remoteEnv": {
-    "NODE_AUTH_TOKEN": "${localEnv:NODE_AUTH_TOKEN}"
-  }
+  "name": "aw-webui",
+  "dockerComposeFile": ["../compose.yaml"],
+  "service": "dev",
+  "workspaceFolder": "${localWorkspaceFolder}",
+  "remoteUser": "vscode",
+  "updateRemoteUserUID": false
 }

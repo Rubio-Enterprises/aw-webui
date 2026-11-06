@@ -1,10 +1,23 @@
 # Agent context
 
-This fork follows the Rubio-Enterprises standards package (`@rubio-enterprises/standards`).
-`mise run setup` installs it, the tools, the git hooks and the npm dependencies;
-`mise run check` runs every Check on the files this fork changed against `upstream`;
-`mise run typecheck`, `mise run build` and `mise run test` (Jest) are the Lifecycle
-Tasks the Test Gate runs. Fork maintenance: `docs/fork-maintenance.md`.
+First command in a fresh checkout: `just build`.
+Never install toolchains on the host — all project commands run in the dev image through `just`.
+
+```bash
+just build
+just setup
+just check
+just fmt
+just check-pr
+just typecheck
+just test
+just package
+just setup-deps
+just shell
+just exec <cmd...>
+```
+
+Single test: `just exec uv run pytest path::test` (Python); otherwise prefix the underlying runner with `just exec`.
 
 Repo-specific context (in-progress migrations, gotchas, agent guidance):
 
