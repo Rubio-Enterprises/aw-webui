@@ -1,6 +1,9 @@
 FROM ghcr.io/rubio-enterprises/base:main AS dev
 
 USER root
+RUN apt-get update -qq \
+    && apt-get install -y -qq --no-install-recommends make \
+    && rm -rf /var/lib/apt/lists/*
 # Mise 2026.11.1 reads the system config's lock at /etc/mise/mise.lock
 # Native dependency sidecars under image/.mise/ are part of the lock
 COPY image/ /etc/mise/
