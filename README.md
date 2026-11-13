@@ -17,16 +17,15 @@ aw-qt --testing
 # or, to run without watchers:
 aw-server --testing
 
-# Install dependencies
-npm install
-# or, to get exact versions of dependencies:
-npm ci
+# Build the dev image and install locked dependencies
+just build
+just setup
 
 # start aw-webui in dev mode
-npm run serve
+just exec npm run serve
 ```
 
-Alternatively, you can run `make dev` to install dependencies and serve the application locally.
+Alternatively, you can run `just exec make dev` after setup to serve the application. Forward port 27180 from the dev container in your editor.
 
 You might have to configure CORS for it to work, see the CORS section below.
 
@@ -37,11 +36,12 @@ You may also want to generate fake data so you have something to test with, see:
 To build the production bundle, simply run the following:
 
 ```bash
-# Install dependencies
-npm ci
+# Build the dev image and install locked dependencies
+just build
+just setup
 
-# Build for production
-npm run build
+# Build both production bundles
+just package
 ```
 
 ## Using a pre-release with your main install
@@ -54,10 +54,10 @@ You can run a development version of aw-webui with your main version of Activity
 
 The assets are stored in the following directories (relative to your installation directory), depending on if you use aw-server-python (default) or aw-server-rust:
 
- - aw-server-python: `activitywatch/aw-server/aw_server/static/`
- - aw-server-rust: `activitywatch/aw-server-rust/static/`
+- aw-server-python: `activitywatch/aw-server/aw_server/static/`
+- aw-server-rust: `activitywatch/aw-server-rust/static/`
 
-You can copy the assets manually from your `make build` or `npm run build` output to the above locations.
+You can copy the assets manually from your `just package` output to the above locations.
 
 Once you've put the files in the directories, you may have to do a hard refresh in your browser to invalidate any stale caches.
 
@@ -77,15 +77,10 @@ This avoids having to copy files and makes it easy to switch between development
 If you want to actively iterate on `aw-webui` with your local production data (with your production server running), you'll want to use a development build, automatically update it, and connect to your production data. To do this, in `aw-webui` source directory, in one terminal window run:
 
 ```bash
-AW_SERVER_URL="'http://localhost:5600'" npx vue-cli-service build --watch --dest=../aw-server/static
+just exec env AW_SERVER_URL="'http://localhost:5600'" npm run serve
 ```
 
-If you want to add `debugger` statements in your code and otherwise break linting rules, you'll need to add a `--skip-plugins=no-debugger` to that command.
-Then, in another terminal (with your venv activated) run:
-
-```shell
-python3 -m http.server --bind 127.0.0.1 27180 --directory ../aw-server/static
-```
+Forward port 27180 from the dev container in your editor. The browser connects to your host's production server on port 5600; that server stays outside the dev image.
 
 ### Shipping preset categories in a build
 
@@ -94,7 +89,7 @@ company-wide deployment, ...) can ship one or more *preset category sets* with
 the bundle, instead of patching the built-in defaults:
 
 ```bash
-AW_PRESET_CATEGORY_SETS="$(cat mypreset.json)" npm run build
+just exec env AW_PRESET_CATEGORY_SETS="$(cat mypreset.json)" npm run build
 ```
 
 where `mypreset.json` holds a list of category sets (the same shape the
@@ -141,13 +136,13 @@ See `src/util/presetCategories.ts`.
 Tests can be run with:
 
 ```bash
-npm test
+just test
 ```
 
-There are also E2E tests. You need to have an aw-server and the web UI running in development mode (with `npm run serve`, as instructed above). After you have that setup, you can run the tests with:
+There are also legacy E2E tests, not run by the central Test Gate. They require TestCafe and Chrome, which the dev image does not install, plus an aw-server and the web UI running in development mode (with `just exec npm run serve`, as instructed above). On an environment with those prerequisites, the existing target is:
 
 ```bash
-make test-e2e
+just exec make test-e2e
 ```
 
 ## Development

@@ -8,7 +8,7 @@ merge commits, not squash or rebase. See the
 ## Carried changes
 
 - Organization standards/configuration, canonical Jest test gate, image caller,
-  ESLint hook integration and the `mise` task interface. Upstream application
+  ESLint hook integration and the `just` task interface. Upstream application
   code, ESLint configuration, package versions and build implementation remain
   upstream-owned. Keep inherited dependency bots and publishing workflows
   removed; Renovate is centrally managed.
@@ -46,15 +46,16 @@ never replace a pinned server gitlink with an automatic `--remote` update.
 The server's service image still builds the UI through recursive checkout. Its
 Repository/CI image intentionally omits this organization-owned submodule because
 Rust setup/tests do not need the UI. This repository's own Repository Image uses
-its committed media files and `npm ci`; `mise run build` invokes upstream's
-`make build` and `make build-vite`, including their logo prebuild steps.
+its committed media files and `just setup`; `just package` invokes upstream's
+`make build` and `make build-vite` inside the dev image, including their logo prebuild steps.
 
-## Native hook setup
+## Hook setup
 
-Run `mise run setup` before local hooks (with `NODE_AUTH_TOKEN` able to read GitHub
-Packages). It installs the standards package and tools, then `setup:deps` runs
-`npm ci`, which provides the locked ESLint that the repository's Lefthook jobs call.
-The required `standards` and `test-gate` checks run the same setup in CI.
+Run `just build`, then `just setup` before local hooks. Setup installs locked
+project dependencies into named volumes and installs thin container-dispatch hooks.
+The base image supplies the Checks; the repository supplies the locked ESLint that
+its Lefthook jobs call. The central Standards Check and Test Gate run the same
+Lifecycle Scripts in CI.
 
 ## Onboarding validation limitation
 
