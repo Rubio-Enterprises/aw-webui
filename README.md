@@ -21,11 +21,14 @@ aw-server --testing
 just build
 just setup
 
-# start aw-webui in dev mode
-just exec npm run serve
+# Install host dependencies for the host development server
+npm ci
+
+# start aw-webui in dev mode on the host
+npm run serve
 ```
 
-Alternatively, you can run `just exec make dev` after setup to serve the application. Forward port 27180 from the dev container in your editor.
+Alternatively, you can run `make dev` on the host to install dependencies and serve the application. The dev server can also run from a terminal in the editor attached to the dev container, with port 27180 forwarded.
 
 You might have to configure CORS for it to work, see the CORS section below.
 
@@ -77,10 +80,15 @@ This avoids having to copy files and makes it easy to switch between development
 If you want to actively iterate on `aw-webui` with your local production data (with your production server running), you'll want to use a development build, automatically update it, and connect to your production data. To do this, in `aw-webui` source directory, in one terminal window run:
 
 ```bash
-just exec env AW_SERVER_URL="'http://localhost:5600'" npm run serve
+AW_SERVER_URL="'http://localhost:5600'" npx vue-cli-service build --watch --dest=../aw-server/static
 ```
 
-Forward port 27180 from the dev container in your editor. The browser connects to your host's production server on port 5600; that server stays outside the dev image.
+If you want to add `debugger` statements in your code and otherwise break linting rules, you'll need to add a `--skip-plugins=no-debugger` to that command.
+Then, in another terminal (with your venv activated) run:
+
+```shell
+python3 -m http.server --bind 127.0.0.1 27180 --directory ../aw-server/static
+```
 
 ### Shipping preset categories in a build
 
@@ -139,10 +147,10 @@ Tests can be run with:
 just test
 ```
 
-There are also legacy E2E tests, not run by the central Test Gate. They require TestCafe and Chrome, which the dev image does not install, plus an aw-server and the web UI running in development mode (with `just exec npm run serve`, as instructed above). On an environment with those prerequisites, the existing target is:
+There are also legacy E2E tests, not run by the central Test Gate. On the host, they require Node, TestCafe and Chrome, plus an aw-server and the web UI running in development mode (with `npm run serve`, as instructed above). The dev image does not install TestCafe or Chrome. With those prerequisites, run:
 
 ```bash
-just exec make test-e2e
+make test-e2e
 ```
 
 ## Development
