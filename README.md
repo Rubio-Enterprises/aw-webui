@@ -17,16 +17,18 @@ aw-qt --testing
 # or, to run without watchers:
 aw-server --testing
 
-# Install dependencies
-npm install
-# or, to get exact versions of dependencies:
+# Build the dev image and install locked dependencies
+just build
+just setup
+
+# Install host dependencies for the host development server
 npm ci
 
-# start aw-webui in dev mode
+# start aw-webui in dev mode on the host
 npm run serve
 ```
 
-Alternatively, you can run `make dev` to install dependencies and serve the application locally.
+Alternatively, you can run `make dev` on the host to install dependencies and serve the application. The dev server can also run from a terminal in the editor attached to the dev container, with port 27180 forwarded.
 
 You might have to configure CORS for it to work, see the CORS section below.
 
@@ -37,11 +39,12 @@ You may also want to generate fake data so you have something to test with, see:
 To build the production bundle, simply run the following:
 
 ```bash
-# Install dependencies
-npm ci
+# Build the dev image and install locked dependencies
+just build
+just setup
 
-# Build for production
-npm run build
+# Build both production bundles
+just package
 ```
 
 ## Using a pre-release with your main install
@@ -54,10 +57,10 @@ You can run a development version of aw-webui with your main version of Activity
 
 The assets are stored in the following directories (relative to your installation directory), depending on if you use aw-server-python (default) or aw-server-rust:
 
- - aw-server-python: `activitywatch/aw-server/aw_server/static/`
- - aw-server-rust: `activitywatch/aw-server-rust/static/`
+- aw-server-python: `activitywatch/aw-server/aw_server/static/`
+- aw-server-rust: `activitywatch/aw-server-rust/static/`
 
-You can copy the assets manually from your `make build` or `npm run build` output to the above locations.
+You can copy the assets manually from your `just package` output to the above locations.
 
 Once you've put the files in the directories, you may have to do a hard refresh in your browser to invalidate any stale caches.
 
@@ -94,7 +97,7 @@ company-wide deployment, ...) can ship one or more *preset category sets* with
 the bundle, instead of patching the built-in defaults:
 
 ```bash
-AW_PRESET_CATEGORY_SETS="$(cat mypreset.json)" npm run build
+just exec env AW_PRESET_CATEGORY_SETS="$(cat mypreset.json)" npm run build
 ```
 
 where `mypreset.json` holds a list of category sets (the same shape the
@@ -141,10 +144,10 @@ See `src/util/presetCategories.ts`.
 Tests can be run with:
 
 ```bash
-npm test
+just test
 ```
 
-There are also E2E tests. You need to have an aw-server and the web UI running in development mode (with `npm run serve`, as instructed above). After you have that setup, you can run the tests with:
+There are also legacy E2E tests, not run by the central Test Gate. On the host, they require Node, TestCafe and Chrome, plus an aw-server and the web UI running in development mode (with `npm run serve`, as instructed above). The dev image does not install TestCafe or Chrome. With those prerequisites, run:
 
 ```bash
 make test-e2e

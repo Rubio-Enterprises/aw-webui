@@ -27,6 +27,7 @@ test/e2e/reports
 # python
 __pycache__
 
+.env
 .envrc.local
 *.log
 dist/

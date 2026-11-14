@@ -2,6 +2,8 @@
   "name": "aw-webui",
   "dockerComposeFile": ["../compose.yaml"],
   "service": "dev",
+  "initializeCommand": ["sh", "bin/dev-environment.sh"],
+  "forwardPorts": [27180],
   "workspaceFolder": "${localWorkspaceFolder}",
   "remoteUser": "vscode",
   "updateRemoteUserUID": false
