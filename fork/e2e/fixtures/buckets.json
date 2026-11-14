@@ -1,0 +1,13 @@
+{
+  "aw-watcher-window_fixture-host": {
+    "id": "aw-watcher-window_fixture-host",
+    "type": "currentwindow",
+    "client": "aw-watcher-window",
+    "hostname": "fixture-host",
+    "created": "2026-11-14T21:17:32.581138607Z",
+    "data": {},
+    "metadata": { "start": null, "end": null },
+    "events": null,
+    "last_updated": null
+  }
+}

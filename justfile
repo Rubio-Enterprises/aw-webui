@@ -49,6 +49,9 @@ typecheck *args:
 test *args:
     {{_run}} bin/test.sh "$@" </dev/null
 
+e2e *args:
+    {{_run}} bin/e2e.sh "$@" </dev/null
+
 package *args:
     {{_run}} bin/package.sh "$@" </dev/null
 
