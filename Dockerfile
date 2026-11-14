@@ -2,7 +2,7 @@ FROM ghcr.io/rubio-enterprises/base:main AS dev
 
 USER root
 RUN apt-get update -qq \
-    && apt-get install -y -qq --no-install-recommends make \
+    && apt-get install -y -qq --no-install-recommends make libnss3 libnspr4 libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2t64 libglib2.0-0t64 libpango-1.0-0 libcairo2 fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
 # Mise 2026.11.1 reads the system config's lock at /etc/mise/mise.lock
 # Native dependency sidecars under image/.mise/ are part of the lock
