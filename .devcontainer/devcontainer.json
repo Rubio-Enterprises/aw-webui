@@ -4,7 +4,7 @@
   "service": "dev",
   "initializeCommand": ["sh", "bin/dev-environment.sh"],
   "forwardPorts": [27180],
-  "workspaceFolder": "${localWorkspaceFolder}",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "remoteUser": "vscode",
   "updateRemoteUserUID": false
 }
