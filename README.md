@@ -2,9 +2,7 @@
 
 A web-based UI for ActivityWatch, built with Vue.js
 
-[![Build Status](https://github.com/ActivityWatch/aw-webui/workflows/Build/badge.svg)](https://github.com/ActivityWatch/aw-webui/actions)
-[![Coverage Status](https://codecov.io/gh/ActivityWatch/aw-webui/branch/master/graph/badge.svg)](https://codecov.io/gh/ActivityWatch/aw-webui)
-[![Known Vulnerabilities](https://snyk.io/test/github/ActivityWatch/aw-webui/badge.svg)](https://snyk.io/test/github/ActivityWatch/aw-webui)
+Rubio Enterprises maintains this repository independently of [ActivityWatch/aw-webui](https://github.com/ActivityWatch/aw-webui). See [repository maintenance](docs/fork-maintenance.md) for build and test coverage.
 
 ## Getting started
 
