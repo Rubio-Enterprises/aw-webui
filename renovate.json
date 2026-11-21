@@ -1,5 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "forkProcessing": "enabled",
   "extends": ["github>Rubio-Enterprises/.github"],
   "devcontainer": {
     "managerFilePatterns": ["/(^|/)\\.devcontainer/devcontainer\\.json$/"]

@@ -8,7 +8,7 @@ In a fresh checkout: `just build`, then `just setup`. `just --list` shows the re
 
 Single Jest test: `just exec env TZ=UTC npx --no-install jest --runTestsByPath test/unit/BucketMerge.test.js`.
 Tests write JUnit reports under `reports/test/`; both package builds write to `dist/`, with Vite last.
-For setup prerequisites and deferred server-integration coverage, read [fork maintenance](docs/fork-maintenance.md).
+For setup prerequisites and deferred server-integration coverage, read [repository maintenance](docs/fork-maintenance.md).
 
 ## Architecture decisions
 
