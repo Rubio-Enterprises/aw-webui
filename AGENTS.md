@@ -4,7 +4,7 @@
 
 Run every project command through `just`, which runs it in this repository's dev image; the host carries no project toolchain.
 
-In a fresh checkout: `just build`, then `just setup`. `just --list` shows the recipes.
+In a fresh checkout: `just build-dev`, then `just setup`. `just --list` shows the recipes.
 
 Single Jest test: `just exec env TZ=UTC npx --no-install jest --runTestsByPath test/unit/BucketMerge.test.js`.
 Tests write JUnit reports under `reports/test/`; both package builds write to `dist/`, with Vite last.

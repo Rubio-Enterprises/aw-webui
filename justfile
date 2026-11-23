@@ -14,12 +14,12 @@ interactive := if path_exists('/opt/standards') == 'true' { '' } else { 'docker 
 _default:
     @just --list
 
-# Build dev container image
-build:
-    @if [ ! -d /opt/standards ]; then bin/build.sh; fi
+# Build the dev image
+build-dev:
+    @if [ ! -d /opt/standards ]; then bin/build-dev.sh; fi
 
 # Build the dev image, sync dependencies into volumes, and install git hooks
-setup: build
+setup: build-dev
     {{_run}} bin/setup.sh </dev/null
     {{_run}} /opt/standards/bin/install-hooks </dev/null
 
@@ -35,6 +35,12 @@ fmt:
 check-pr:
     {{_run}} standards check-pr </dev/null
 
+# Regenerate the mise lock and every generated file
+generate *args:
+    @if [ -d /opt/standards ]; then standards lock; else docker run --rm -v "$PWD:$PWD" -w "$PWD" -e MISE_GITHUB_TOKEN -e GH_TOKEN "$(awk '/^FROM ghcr.io\/rubio-enterprises\/base:/ { print $2; exit }' Dockerfile)" standards lock </dev/null; fi
+    @if [ ! -d /opt/standards ]; then bin/build-dev.sh; fi
+    {{_run}} standards generate "$@" </dev/null
+
 # Open interactive shell inside the dev container
 shell:
     {{interactive}} bash
@@ -43,14 +49,18 @@ shell:
 exec *args:
     {{_run}} "$@" </dev/null
 
+# Run a command that reads its request from a pipe or heredoc
+pipe *args:
+    {{_run}} "$@"
+
 typecheck *args:
     {{_run}} bin/typecheck.sh "$@" </dev/null
 
 test *args:
     {{_run}} bin/test.sh "$@" </dev/null
 
-e2e *args:
-    {{_run}} bin/e2e.sh "$@" </dev/null
+test-e2e *args:
+    {{_run}} bin/test-e2e.sh "$@" </dev/null
 
 package *args:
     {{_run}} bin/package.sh "$@" </dev/null

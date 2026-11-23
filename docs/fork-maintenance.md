@@ -20,7 +20,7 @@ its committed media files and `just setup`; `just package` invokes
 
 ## Hook setup
 
-Run `just build`, then `just setup` before local hooks. Setup installs locked
+Run `just build-dev`, then `just setup` before local hooks. Setup installs locked
 project dependencies into named volumes and installs thin container-dispatch hooks.
 The base image supplies the Checks; the repository supplies the locked ESLint that
 its Lefthook jobs call. The central Standards Check and Test Gate run the same
