@@ -16,7 +16,7 @@ aw-qt --testing
 aw-server --testing
 
 # Build the dev image and install locked dependencies
-just build
+just build-dev
 just setup
 
 # Install host dependencies for the host development server
@@ -38,7 +38,7 @@ To build the production bundle, simply run the following:
 
 ```bash
 # Build the dev image and install locked dependencies
-just build
+just build-dev
 just setup
 
 # Build both production bundles

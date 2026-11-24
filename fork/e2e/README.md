@@ -24,4 +24,4 @@ docker stop aw-fixture
 ```
 
 Wait for the server to start before sending requests. Review the responses for
-personal data before committing. Run `just e2e` to check the new recording.
+personal data before committing. Run `just test-e2e` to check the new recording.
