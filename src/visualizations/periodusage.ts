@@ -46,7 +46,7 @@ function update(
   svg_elem.innerHTML = '';
   const svg = d3.select(svg_elem);
 
-  function get_usage_time(day_events) {
+  function get_usage_time(day_events: IEvent[]) {
     return _.sumBy(
       day_events.filter((e) => e.data.status === 'not-afk'),
       'duration',
@@ -68,9 +68,9 @@ function update(
   _.each(usage_arr, ({ period, events }, i: number) => {
     const usage_time = get_usage_time(events);
     const height = 85 * (usage_time / longest_usage);
-    const [start, end] = timeperiodToStr(period)
-      .split('/')
-      .map((value) => moment(value));
+    const [startStr = '', endStr = ''] = timeperiodToStr(period).split('/');
+    const start = moment(startStr);
+    const end = moment(endStr);
     const date = start.format(dateformat);
     const label =
       period.length[0] === 1 && period.length[1].startsWith('day')

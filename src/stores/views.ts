@@ -132,6 +132,7 @@ function sameLayout(a: View[], b: View[]): boolean {
     a.length === b.length &&
     a.every((view, i) => {
       const other = b[i];
+      if (!other) return false;
       return (
         view.id === other.id &&
         view.name === other.name &&
@@ -139,8 +140,8 @@ function sameLayout(a: View[], b: View[]): boolean {
         view.elements.length === other.elements.length &&
         view.elements.every(
           (el, j) =>
-            el.type === other.elements[j].type &&
-            el.size === other.elements[j].size &&
+            el.type === other.elements[j]?.type &&
+            el.size === other.elements[j]?.size &&
             el.props === undefined,
         )
       );
@@ -167,6 +168,12 @@ interface State {
   views: View[];
 }
 
+function viewById(views: View[], id: string): View {
+  const view = views.find((v) => v.id === id);
+  if (!view) throw new Error(`Unknown view: ${id}`);
+  return view;
+}
+
 export const useViewsStore = defineStore('views', {
   state: (): State => ({
     views: [],
@@ -187,14 +194,16 @@ export const useViewsStore = defineStore('views', {
       await this.load();
     },
     loadViews(views: View[]) {
-      this.$patch({ views });
+      this.$patch((state) => {
+        state.views = views;
+      });
       console.log('Loaded views:', this.views);
     },
     clearViews(this: State) {
       this.views = [];
     },
     setElements(this: State, { view_id, elements }: { view_id: string; elements: IElement[] }) {
-      this.views.find((v) => v.id === view_id).elements = elements;
+      viewById(this.views, view_id).elements = elements;
     },
     restoreDefaults(this: State) {
       this.views = defaultViews;
@@ -205,7 +214,7 @@ export const useViewsStore = defineStore('views', {
     addView(this: State, view: View) {
       this.views.push({ ...view, elements: [] });
     },
-    removeView(this: State, { view_id }) {
+    removeView(this: State, { view_id }: { view_id: string }) {
       const idx = this.views.map((v) => v.id).indexOf(view_id);
       this.views.splice(idx, 1);
     },
@@ -216,19 +225,20 @@ export const useViewsStore = defineStore('views', {
         el_id,
         type,
         props,
-      }: { view_id: string; el_id: string; type: string; props: Record<string, unknown> },
+      }: { view_id: string; el_id: number; type: string; props: Record<string, unknown> },
     ) {
       console.log(view_id, el_id, type, props);
       console.log(this.views);
-      const element = this.views.find((v) => v.id === view_id).elements[el_id];
+      const element = viewById(this.views, view_id).elements[el_id];
+      if (!element) throw new Error(`Unknown element ${el_id} in view ${view_id}`);
       element.type = type;
       element.props = props;
     },
-    addVisualization(this: State, { view_id, type }) {
-      this.views.find((v) => v.id === view_id).elements.push({ type: type });
+    addVisualization(this: State, { view_id, type }: { view_id: string; type: string }) {
+      viewById(this.views, view_id).elements.push({ type: type });
     },
-    removeVisualization(this: State, { view_id, el_id }) {
-      this.views.find((v) => v.id === view_id).elements.splice(el_id, 1);
+    removeVisualization(this: State, { view_id, el_id }: { view_id: string; el_id: number }) {
+      viewById(this.views, view_id).elements.splice(el_id, 1);
     },
   },
 });

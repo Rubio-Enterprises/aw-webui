@@ -9,17 +9,19 @@ import { useSettingsStore } from '~/stores/settings';
 import { activeHistoryCacheKey, selectPeriodsToQuery } from '~/util/activeHistory';
 import { getClient } from '~/util/awclient';
 import {
+  type BrowserQueryResult,
   categoryByPeriodFromChunks,
   DESKTOP_QUERY_EVENT_LIMIT,
   type FullDesktopQueryResult,
   mergeEventsByKeys,
   mergeFullDesktopResults,
   periodsForFullDesktopQuery,
+  type StopwatchQueryResult,
   type WindowQueryResult,
 } from '~/util/desktopQuerySplit';
 import { earliestEventInBuckets } from '~/util/earliestEvent';
 import { window_events } from '~/util/fakedata';
-import type { IEvent } from '~/util/interfaces';
+import type { IBucket, IEvent } from '~/util/interfaces';
 import {
   buildMultideviceHostParams,
   eligibleMultideviceHosts,
@@ -43,6 +45,12 @@ import {
 // The history request started by ensure_category_history, shared so that
 // switching views back and forth doesn't repeat it.
 let historyRequest: { query_options: QueryOptions; promise: Promise<void> } | null = null;
+
+function firstBucket(ids: string[], kind: string): string {
+  const id = ids[0];
+  if (id === undefined) throw new Error(`No ${kind} bucket available`);
+  return id;
+}
 
 function timeperiodStrsAroundTimeperiod(timeperiod: TimePeriod): string[] {
   return timeperiodsAroundTimeperiod(timeperiod).map(timeperiodToStr);
@@ -133,7 +141,7 @@ export function chunkPeriodsBySpan(periods: string[], maxDays = 366): string[][]
 export function screentimeNameMap(events: IEvent[]): Record<string, string> {
   const names: Record<string, string> = {};
   events.forEach((e) => {
-    if (e.data.title && !names[e.data.app]) {
+    if (e.data.title && e.data.app && !names[e.data.app]) {
       names[e.data.app] = e.data.title;
     }
   });
@@ -147,12 +155,15 @@ export function screentimeNameMap(events: IEvent[]): Record<string, string> {
  * categorized by title or URL, such as browsers, which were always shown as
  * Uncategorized. Apps without app_cat_events keep their old (name-based) color.
  */
-export function withDominantCategory(appEvents: IEvent[], appCatEvents?: IEvent[]): IEvent[] {
+export function withDominantCategory(
+  appEvents: IEvent[] | undefined,
+  appCatEvents?: IEvent[],
+): IEvent[] | undefined {
   if (!(appEvents && appCatEvents) || appCatEvents.length === 0) return appEvents;
   // ScreenTime remaps set classname to the bundle ID on both lists, so two
   // bundle IDs that share a display name are kept apart.
-  const appKey = (e: IEvent): string => e.data.classname ?? e.data.app;
-  const dominant = new Map<string, { duration: number; category: string[] }>();
+  const appKey = (e: IEvent): string => e.data.classname ?? e.data.app ?? '';
+  const dominant = new Map<string, { duration: number; category: string[] | undefined }>();
   for (const e of appCatEvents) {
     const best = dominant.get(appKey(e));
     if (!best || e.duration > best.duration) {
@@ -168,9 +179,10 @@ export function withDominantCategory(appEvents: IEvent[], appCatEvents?: IEvent[
 /** Show ScreenTime apps by name, keeping the bundle ID as classname (in place). */
 export function applyScreentimeNames(events: IEvent[], bundleIdToName: Record<string, string>) {
   events.forEach((e) => {
-    const name = bundleIdToName[e.data.app];
-    if (name) {
-      e.data.classname = e.data.app;
+    const app = e.data.app;
+    const name = app === undefined ? undefined : bundleIdToName[app];
+    if (app !== undefined && name) {
+      e.data.classname = app;
       e.data.app = name;
     }
   });
@@ -215,7 +227,8 @@ export function mergeAppQueryResults(
   results: WindowQueryResult[],
   isIos: boolean,
 ): WindowQueryResult {
-  if (results.length === 1) return results[0];
+  const [only] = results;
+  if (results.length === 1 && only) return only;
   const all = (key: 'app_events' | 'app_cat_events' | 'title_events' | 'cat_events') =>
     results.flatMap((result) => result[key] || []);
   const titleKeys = isIos ? ['app', 'classname', 'title'] : ['app', 'classname'];
@@ -253,13 +266,24 @@ export interface QueryOptions {
   always_active_pattern?: string;
 }
 
+// Result lists: null while a query is in flight (see start_loading), undefined when the
+// query completed without data for them.
+type Loadable<T> = T | null | undefined;
+
+// QueryOptions once `load` has filled in the period.
+type ResolvedQueryOptions = QueryOptions & { timeperiod: TimePeriod };
+
+function hasTimeperiod(options: QueryOptions): options is ResolvedQueryOptions {
+  return options.timeperiod !== undefined;
+}
+
 interface State {
   loaded: boolean;
 
   window: {
     available: boolean;
-    top_apps: IEvent[];
-    top_titles: IEvent[];
+    top_apps: Loadable<IEvent[]>;
+    top_titles: Loadable<IEvent[]>;
     // Unfiltered window-bucket activity (see queries.ts). Zero when no events
     // exist for the period, whatever the AFK/category filters did.
     raw_duration: number;
@@ -269,31 +293,31 @@ interface State {
 
   browser: {
     available: boolean;
-    duration: number;
-    top_urls: IEvent[];
-    top_domains: IEvent[];
-    top_titles: IEvent[];
+    duration: number | undefined;
+    top_urls: Loadable<IEvent[]>;
+    top_domains: Loadable<IEvent[]>;
+    top_titles: Loadable<IEvent[]>;
   };
 
   editor: {
     available: boolean;
-    duration: number;
-    top_files: IEvent[];
-    top_projects: IEvent[];
-    top_languages: IEvent[];
+    duration: number | undefined;
+    top_files: Loadable<IEvent[]>;
+    top_projects: Loadable<IEvent[]>;
+    top_languages: Loadable<IEvent[]>;
   };
 
   category: {
     available: boolean;
-    by_period: IEvent[];
-    top: IEvent[];
+    by_period: Loadable<Record<string, { cat_events: IEvent[] }>>;
+    top: Loadable<IEvent[]>;
   };
 
   active: {
     available: boolean;
-    duration: number;
+    duration: number | null | undefined;
     // non-afk events (no detail data) for the current period
-    events: IEvent[];
+    events: IEvent[] | undefined;
     // Aggregated events for current and past periods
     history: Record<string, IEvent[]>;
     // Identity of the context `history` was fetched for. Cached periods are
@@ -314,10 +338,10 @@ interface State {
 
   stopwatch: {
     available: boolean;
-    top_stopwatches: IEvent[];
+    top_stopwatches: IEvent[] | undefined;
   };
 
-  query_options?: QueryOptions;
+  query_options: QueryOptions | null;
 
   // Hosts included in the current query: a single host, or several when the
   // route selects multiple devices / "all devices" (see util/multidevice.ts).
@@ -369,7 +393,7 @@ export const useActivityStore = defineStore('activity', {
 
     category: {
       available: false,
-      by_period: [],
+      by_period: {},
       top: [],
     },
 
@@ -429,7 +453,7 @@ export const useActivityStore = defineStore('activity', {
       const uncategorized = this.category.top.filter((e) => {
         return _.isEqual(e.data['$category'], ['Uncategorized']);
       });
-      const uncategorized_duration = uncategorized.length > 0 ? uncategorized[0].duration : 0;
+      const uncategorized_duration = uncategorized[0]?.duration ?? 0;
       const total_duration = this.category.top.reduce((acc, e) => {
         return acc + e.duration;
       }, 0);
@@ -462,13 +486,16 @@ export const useActivityStore = defineStore('activity', {
       }
     },
 
-    async load(query_options: QueryOptions) {
+    async load(initial_options: QueryOptions) {
       const settingsStore = useSettingsStore();
       const bucketsStore = useBucketsStore();
-      this.start_loading(query_options);
-      if (!query_options.timeperiod) {
-        query_options.timeperiod = dateToTimeperiod(query_options.date, settingsStore.startOfDay);
-      }
+      this.start_loading(initial_options);
+      // Filled in on the same object that start_loading stored in state.
+      let query_options: ResolvedQueryOptions = Object.assign(initial_options, {
+        timeperiod:
+          initial_options.timeperiod ??
+          dateToTimeperiod(initial_options.date, settingsStore.startOfDay),
+      });
 
       await bucketsStore.ensureLoaded();
 
@@ -481,8 +508,9 @@ export const useActivityStore = defineStore('activity', {
       }
       // A selection that resolves to a single device (e.g. "all devices"
       // when only one host has data) uses the full single-device view.
-      if (multiHosts.length === 1) {
-        query_options = { ...query_options, host: multiHosts[0] };
+      const [onlyHost] = multiHosts;
+      if (onlyHost !== undefined) {
+        query_options = { ...query_options, host: onlyHost };
       }
       this.query_hosts = [query_options.host];
 
@@ -542,7 +570,7 @@ export const useActivityStore = defineStore('activity', {
 
     // Whether category.by_period is queried separately. Long ranges (and Year)
     // derive it from the chunk results of the full query instead.
-    queries_category_history(query_options: QueryOptions): boolean {
+    queries_category_history(query_options: ResolvedQueryOptions): boolean {
       const monthly = usesMonthlyBuckets(query_options.timeperiod);
       if (this.query_hosts.length > 1 || this.window.available) return !monthly;
       return this.android.available;
@@ -553,7 +581,7 @@ export const useActivityStore = defineStore('activity', {
     async ensure_category_history() {
       const query_options = this.query_options;
       if (
-        !query_options?.timeperiod ||
+        !(query_options && hasTimeperiod(query_options)) ||
         this.category.by_period ||
         !this.queries_category_history(query_options)
       ) {
@@ -562,7 +590,7 @@ export const useActivityStore = defineStore('activity', {
       if (historyRequest?.query_options === query_options) {
         return historyRequest.promise;
       }
-      const promise = (async () => {
+      const run = async () => {
         try {
           await this.query_category_time_by_period(query_options);
         } finally {
@@ -572,7 +600,8 @@ export const useActivityStore = defineStore('activity', {
           }
           if (historyRequest?.promise === promise) historyRequest = null;
         }
-      })();
+      };
+      const promise = run();
       historyRequest = { query_options, promise };
       return promise;
     },
@@ -599,7 +628,7 @@ export const useActivityStore = defineStore('activity', {
       return resolveHostSelection(selection, eligible);
     },
 
-    async ensure_loaded_multidevice(query_options: QueryOptions, hosts: string[]) {
+    async ensure_loaded_multidevice(query_options: ResolvedQueryOptions, hosts: string[]) {
       console.info('Querying multiple devices: ', hosts);
       this.query_hosts = hosts;
       this.get_buckets_multidevice(hosts);
@@ -682,7 +711,7 @@ export const useActivityStore = defineStore('activity', {
       };
     },
 
-    async query_android({ timeperiod, filter_categories }: QueryOptions) {
+    async query_android({ timeperiod, filter_categories }: ResolvedQueryOptions) {
       // One aggregate per request; long periods (All time) are split so each
       // request stays well under the request timeout, then merged.
       const periods = splitTimeperiodStrs(timeperiod, ANDROID_MAX_DAYS_PER_REQUEST);
@@ -695,6 +724,7 @@ export const useActivityStore = defineStore('activity', {
         id.startsWith('aw-import-screentime'),
       );
       const selectedBucket = iosBucket || this.buckets.android[0];
+      if (selectedBucket === undefined) throw new Error('No Android bucket available');
 
       const isIos = !!iosBucket;
       const q = queries.appQuery(
@@ -705,9 +735,10 @@ export const useActivityStore = defineStore('activity', {
         periods.length > 1 ? CHUNKED_QUERY_LIMIT : undefined,
       );
       this.progress_add(periods.length);
-      const chunks = [];
+      const chunks: WindowQueryResult[] = [];
       for (const period of periods) {
-        const result = await getClient().query([period], q).catch(this.errorHandler);
+        // (the old `.catch(this.errorHandler)` was a no-op: the store has no such method)
+        const result = await getClient().query([period], q);
         this.progress_tick();
         if (!result?.[0]) {
           // Don't show partial totals as if they covered the whole period
@@ -728,7 +759,7 @@ export const useActivityStore = defineStore('activity', {
         // raw bundle ID via the `|| bundleId` guard below.
         const bundleIdToName: Record<string, string> = {};
         data[0].title_events.forEach((e: IEvent) => {
-          if (e.data.title && !bundleIdToName[e.data.app]) {
+          if (e.data.title && e.data.app && !bundleIdToName[e.data.app]) {
             bundleIdToName[e.data.app] = e.data.title;
           }
         });
@@ -747,6 +778,7 @@ export const useActivityStore = defineStore('activity', {
         [data[0].app_events, data[0].app_cat_events].forEach((events?: IEvent[]) => {
           (events || []).forEach((e: IEvent) => {
             const bundleId = e.data.app;
+            if (bundleId === undefined) return;
             e.data.classname = bundleId;
             e.data.app = bundleIdToName[bundleId] || bundleId;
           });
@@ -780,9 +812,7 @@ export const useActivityStore = defineStore('activity', {
         this.progress_add(periods.length);
         const bChunks = [];
         for (const period of periods) {
-          const bResult = await getClient()
-            .query([period], bq, { name: 'androidBrowserQuery' })
-            .catch(this.errorHandler);
+          const bResult = await getClient().query([period], bq, { name: 'androidBrowserQuery' });
           this.progress_tick();
           if (!bResult?.[0]?.browser) {
             // Don't show partial browser totals as if they covered the whole period
@@ -798,12 +828,12 @@ export const useActivityStore = defineStore('activity', {
       }
     },
 
-    async query_browser_only({ timeperiod }: Pick<QueryOptions, 'timeperiod'>) {
+    async query_browser_only({ timeperiod }: Pick<ResolvedQueryOptions, 'timeperiod'>) {
       const q = queries.browserOnlyQuery(this.buckets.browser);
       this.progress_add(1);
-      const result = await getClient()
-        .query([timeperiodToStr(timeperiod)], q, { name: 'browserOnlyQuery' })
-        .catch(this.errorHandler);
+      const result = await getClient().query([timeperiodToStr(timeperiod)], q, {
+        name: 'browserOnlyQuery',
+      });
       this.progress_tick();
       if (result?.[0]?.browser) {
         this.query_browser_completed(result[0].browser);
@@ -820,7 +850,7 @@ export const useActivityStore = defineStore('activity', {
       this.query_category_time_by_period_completed({});
     },
 
-    async query_multidevice_full(query_options: QueryOptions, hosts: string[]) {
+    async query_multidevice_full(query_options: ResolvedQueryOptions, hosts: string[]) {
       const periods = periodsForFullDesktopQuery(query_options.timeperiod);
       this.progress_add(periods.length);
       const params: MultiQueryParams = this.multidevice_params(query_options, hosts);
@@ -883,14 +913,14 @@ export const useActivityStore = defineStore('activity', {
       include_audible,
       include_stopwatch,
       always_active_pattern,
-    }: QueryOptions) {
+    }: ResolvedQueryOptions) {
       const periods = periodsForFullDesktopQuery(timeperiod);
       this.progress_add(periods.length);
       const categories = useCategoryStore().classes_for_query;
 
       const q = queries.fullDesktopQuery({
-        bid_window: this.buckets.window[0],
-        bid_afk: this.buckets.afk[0],
+        bid_window: firstBucket(this.buckets.window, 'window'),
+        bid_afk: firstBucket(this.buckets.afk, 'AFK'),
         bid_browsers: this.buckets.browser,
         bid_stopwatch:
           include_stopwatch && this.buckets.stopwatch.length > 0
@@ -926,14 +956,14 @@ export const useActivityStore = defineStore('activity', {
       }
     },
 
-    async query_editor({ timeperiod }) {
+    async query_editor({ timeperiod }: Pick<ResolvedQueryOptions, 'timeperiod'>) {
       const periods = splitTimeperiodStrs(timeperiod, EDITOR_MAX_DAYS_PER_REQUEST);
       const q = queries.editorActivityQuery(
         this.buckets.editor,
         periods.length > 1 ? CHUNKED_QUERY_LIMIT : undefined,
       );
       this.progress_add(periods.length);
-      const chunks = [];
+      const chunks: EditorQueryResult[] = [];
       for (const period of periods) {
         const data = await getClient().query([period], q, {
           name: 'editorActivityQuery',
@@ -942,7 +972,8 @@ export const useActivityStore = defineStore('activity', {
         this.progress_tick();
         if (data?.[0]) chunks.push(data[0]);
       }
-      this.query_editor_completed(chunks.length === 1 ? chunks[0] : mergeEditorResults(chunks));
+      const [only] = chunks;
+      this.query_editor_completed(chunks.length === 1 && only ? only : mergeEditorResults(chunks));
     },
 
     /**
@@ -974,11 +1005,14 @@ export const useActivityStore = defineStore('activity', {
       // Keyed on the bucket IDs too, so e.g. importing a bucket with older
       // events (which reloads the buckets store) is picked up.
       const key = JSON.stringify([hosts, settingsStore.startOfDay, [...ids].sort()]);
-      if (!force && earliestDateCache.has(key)) {
-        return { date: earliestDateCache.get(key), approximate: false };
+      const cached = earliestDateCache.get(key);
+      if (!force && cached !== undefined) {
+        return { date: cached, approximate: false };
       }
 
-      const buckets = ids.map((id) => bucketsStore.getBucket(id)).filter((b) => b);
+      const buckets = ids
+        .map((id) => bucketsStore.getBucket(id))
+        .filter((b): b is IBucket => b !== undefined);
       const client = getClient();
       let earliest: Date | null;
       try {
@@ -988,7 +1022,9 @@ export const useActivityStore = defineStore('activity', {
       } catch (e) {
         // Fall back to bucket creation dates (not cached, so a refresh retries)
         console.warn('Failed to find earliest event, using bucket creation dates', e);
-        const created = buckets.map((b) => b.first_seen).filter((d) => d);
+        const created = buckets
+          .map((b) => b.first_seen)
+          .filter((d): d is string | Date => d !== undefined && d !== '');
         const date =
           created.length > 0
             ? moment(_.min(created.map((d) => new Date(d).getTime())))
@@ -1006,7 +1042,7 @@ export const useActivityStore = defineStore('activity', {
       return { date, approximate: false };
     },
 
-    async query_active_history({ timeperiod, ...query_options }: QueryOptions) {
+    async query_active_history({ timeperiod, ...query_options }: ResolvedQueryOptions) {
       const settingsStore = useSettingsStore();
       const sources = activeHistorySources(this);
 
@@ -1060,7 +1096,7 @@ export const useActivityStore = defineStore('activity', {
     },
 
     async query_category_time_by_period(
-      query_options: QueryOptions & { dontQueryInactive?: boolean },
+      query_options: ResolvedQueryOptions & { dontQueryInactive?: boolean },
     ) {
       const {
         timeperiod,
@@ -1081,7 +1117,7 @@ export const useActivityStore = defineStore('activity', {
       let periods: string[] = timeperiodsForBarchart(timeperiod).map(timeperiodToStr);
 
       // Filter out periods that start in the future
-      periods = periods.filter((period) => new Date(period.split('/')[0]) < new Date());
+      periods = periods.filter((period) => new Date(period.split('/')[0] ?? '') < new Date());
       this.progress_add(periods.length);
 
       const loading = this.query_options;
@@ -1093,7 +1129,7 @@ export const useActivityStore = defineStore('activity', {
       };
 
       // Query one period at a time, to avoid timeout on slow queries
-      let data = [];
+      let data: { cat_events: IEvent[] }[] = [];
       for (const period of periods) {
         // Not stable
         //signal.throwIfAborted();
@@ -1103,12 +1139,14 @@ export const useActivityStore = defineStore('activity', {
         this.progress_tick();
 
         // Only query periods with known data from AFK bucket
-        if (dontQueryInactive && this.active.events.length > 0) {
-          const start = new Date(period.split('/')[0]);
-          const end = new Date(period.split('/')[1]);
+        const activeEvents = this.active.events ?? [];
+        if (dontQueryInactive && activeEvents.length > 0) {
+          const [startStr = '', endStr = ''] = period.split('/');
+          const start = new Date(startStr);
+          const end = new Date(endStr);
 
           // Retrieve active time in period
-          const period_activity = this.active.events.find((e: IEvent) => {
+          const period_activity = activeEvents.find((e: IEvent) => {
             return start < new Date(e.timestamp) && new Date(e.timestamp) < end;
           });
 
@@ -1149,8 +1187,8 @@ export const useActivityStore = defineStore('activity', {
                     isIos: isIosForCategory,
                   }
                 : {
-                    bid_afk: this.buckets.afk[0],
-                    bid_window: this.buckets.window[0],
+                    bid_afk: firstBucket(this.buckets.afk, 'AFK'),
+                    bid_window: firstBucket(this.buckets.window, 'window'),
                   }),
             });
         const result = await getClient().query([period], query, {
@@ -1161,7 +1199,7 @@ export const useActivityStore = defineStore('activity', {
       }
 
       // Zip periods
-      let by_period = _.zipObject(periods, data);
+      let by_period: Record<string, { cat_events: IEvent[] }> = _.zipObject(periods, data);
       // Filter out values that are undefined (no longer needed, only used when visualization was progressive (looks buggy))
       by_period = _.fromPairs(_.toPairs(by_period).filter((o) => o[1]));
 
@@ -1171,12 +1209,15 @@ export const useActivityStore = defineStore('activity', {
     },
 
     async query_active_history_multidevice(
-      { timeperiod, ...query_options }: QueryOptions,
+      { timeperiod, ...query_options }: ResolvedQueryOptions,
       hosts: string[],
     ) {
       const settingsStore = useSettingsStore();
       const { host_params, hosts: resolvedHosts } = this.multidevice_params(query_options, hosts);
-      const sources: ActivityQuerySource[] = resolvedHosts.map((host) => host_params[host]);
+      const sources: ActivityQuerySource[] = resolvedHosts.flatMap((host) => {
+        const params = host_params[host];
+        return params ? [params] : [];
+      });
       const generation = this.invalidate_active_history({
         cache_key: activeHistoryCacheKey(
           {
@@ -1228,12 +1269,13 @@ export const useActivityStore = defineStore('activity', {
       this.query_active_history_completed({ active_history });
     },
 
-    async query_active_history_android({ timeperiod, ...query_options }: QueryOptions) {
+    async query_active_history_android({ timeperiod, ...query_options }: ResolvedQueryOptions) {
       const settingsStore = useSettingsStore();
       // Prefer ScreenTime bucket over Android watcher for consistency with query_android
       const iosOrAndroidBucket =
         this.buckets.android.find((id: string) => id.startsWith('aw-import-screentime')) ||
         this.buckets.android[0];
+      if (iosOrAndroidBucket === undefined) return;
 
       const generation = this.invalidate_active_history({
         cache_key: activeHistoryCacheKey(
@@ -1260,13 +1302,13 @@ export const useActivityStore = defineStore('activity', {
         queries.activityQueryAndroid(iosOrAndroidBucket),
       );
       if (this.active.history_generation !== generation) return;
-      const active_history = _.zipObject(periods, data);
-      const active_history_events = _.mapValues(
-        active_history,
-        (duration: number, key): [IEvent] => {
-          return [{ timestamp: key.split('/')[0], duration, data: { status: 'not-afk' } }];
-        },
-      );
+      const active_history_events: Record<string, IEvent[]> = {};
+      periods.forEach((period, i) => {
+        const duration: number = data[i];
+        active_history_events[period] = [
+          { timestamp: period.split('/')[0] ?? '', duration, data: { status: 'not-afk' } },
+        ];
+      });
       this.query_active_history_completed({ active_history: active_history_events });
     },
 
@@ -1282,7 +1324,7 @@ export const useActivityStore = defineStore('activity', {
       this.stopwatch.available = this.buckets.stopwatch.length > 0;
     },
 
-    async get_buckets(this: State, { host }) {
+    async get_buckets(this: State, { host }: { host: string }) {
       // TODO: Move to bucketStore on a per-host basis?
       const bucketsStore = useBucketsStore();
       this.buckets.afk = bucketsStore.bucketsAFK(host);
@@ -1299,7 +1341,7 @@ export const useActivityStore = defineStore('activity', {
     async load_demo() {
       // A function to load some demo data (for screenshots and stuff)
 
-      this.start_loading({});
+      this.start_loading({ host: '' });
 
       type DemoEvent = (typeof window_events)[number];
       function groupSumEventsBy(
@@ -1312,7 +1354,11 @@ export const useActivityStore = defineStore('activity', {
           groupBy(f),
           values,
           map((es: DemoEvent[]) => {
-            return { duration: _.sumBy(es, 'duration'), data: { [key]: f(es[0]) } };
+            const [first] = es;
+            return {
+              duration: _.sumBy(es, 'duration'),
+              data: { [key]: first === undefined ? undefined : f(first) },
+            };
           }),
           sortBy('duration'),
           reverse,
@@ -1356,11 +1402,12 @@ export const useActivityStore = defineStore('activity', {
       });
 
       this.buckets.editor = ['aw-watcher-vim'];
+      const timestamp = new Date().toISOString();
       this.query_editor_completed({
         duration: 30,
-        files: [{ duration: 10, data: { file: 'test.py' } }],
-        languages: [{ duration: 10, data: { language: 'python' } }],
-        projects: [{ duration: 10, data: { project: 'aw-core' } }],
+        files: [{ timestamp, duration: 10, data: { file: 'test.py' } }],
+        languages: [{ timestamp, duration: 10, data: { language: 'python' } }],
+        projects: [{ timestamp, duration: 10, data: { project: 'aw-core' } }],
       });
 
       this.buckets.loaded = true;
@@ -1370,7 +1417,7 @@ export const useActivityStore = defineStore('activity', {
       const startOfDay = settingsStore.startOfDay;
 
       function build_active_history() {
-        const active_history = {};
+        const active_history: Record<string, IEvent[]> = {};
         let current_day = moment(get_day_start_with_offset(null, startOfDay));
         _.map(_.range(0, 30), () => {
           const current_day_end = moment(current_day).add(1, 'day');
@@ -1447,7 +1494,7 @@ export const useActivityStore = defineStore('activity', {
 
     query_browser_completed(
       this: State,
-      data = { domains: [], urls: [], titles: [], duration: 0 },
+      data: BrowserQueryResult = { domains: [], urls: [], titles: [], duration: 0 },
     ) {
       this.browser.top_domains = data.domains;
       this.browser.top_urls = data.urls;
@@ -1455,13 +1502,13 @@ export const useActivityStore = defineStore('activity', {
       this.browser.duration = data.duration;
     },
 
-    query_stopwatch_completed(this: State, data = { stopwatch_events: [] }) {
+    query_stopwatch_completed(this: State, data: StopwatchQueryResult = { stopwatch_events: [] }) {
       this.stopwatch.top_stopwatches = data.stopwatch_events;
     },
 
     query_editor_completed(
       this: State,
-      data = { duration: 0, files: [], languages: [], projects: [] },
+      data: EditorQueryResult = { duration: 0, files: [], languages: [], projects: [] },
     ) {
       this.editor.duration = data.duration;
       this.editor.top_files = data.files;
@@ -1486,7 +1533,10 @@ export const useActivityStore = defineStore('activity', {
     // Clears cached periods when they belong to a different question, or when
     // the user explicitly asked for fresh data. Returns the generation that a
     // response must still match to be accepted.
-    invalidate_active_history(this: State, { cache_key, force = false }) {
+    invalidate_active_history(
+      this: State,
+      { cache_key, force = false }: { cache_key: string | null; force?: boolean },
+    ) {
       if (force || this.active.history_key !== cache_key) {
         this.active.history = {};
         this.active.history_key = cache_key;
@@ -1495,15 +1545,21 @@ export const useActivityStore = defineStore('activity', {
       return this.active.history_generation;
     },
 
-    query_active_history_completed(this: State, { active_history } = { active_history: {} }) {
+    query_active_history_completed(
+      this: State,
+      { active_history }: { active_history: Record<string, IEvent[]> } = { active_history: {} },
+    ) {
       this.active.history = {
         ...this.active.history,
         ...active_history,
       };
     },
 
-    query_category_time_by_period_completed(this: State, { by_period } = { by_period: [] }) {
-      this.category.by_period = by_period;
+    query_category_time_by_period_completed(
+      this: State,
+      arg: { by_period?: Record<string, { cat_events: IEvent[] }> } = { by_period: {} },
+    ) {
+      this.category.by_period = arg.by_period;
     },
   },
 });

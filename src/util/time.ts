@@ -53,15 +53,16 @@ export function compact_relative_time(
   now = new Date(),
 ) {
   const seconds = (new Date(timestamp).getTime() - now.getTime()) / 1000;
+  const second: [Intl.RelativeTimeFormatUnit, string, number] = ['second', 's', 1];
   const units: [Intl.RelativeTimeFormatUnit, string, number][] = [
     ['year', 'y', 365 * 86400],
     ['month', 'mo', 30 * 86400],
     ['day', 'd', 86400],
     ['hour', 'h', 3600],
     ['minute', 'min', 60],
-    ['second', 's', 1],
+    second,
   ];
-  const [unit, label, divisor] = units.find(([, , size]) => Math.abs(seconds) >= size) || units[5];
+  const [unit, label, divisor] = units.find(([, , size]) => Math.abs(seconds) >= size) ?? second;
   const value = Math.trunc(seconds / divisor);
   if (unitOnly) {
     return `${value > 0 ? '+' : ''}${Math.abs(value)}${label}`;
@@ -76,13 +77,21 @@ export function compact_relative_time(
   );
 }
 
-export function get_day_start_with_offset(dateParam: Moment | string, offset?: string) {
+/** Splits an "HH:MM" start-of-day offset; a missing part parses as NaN. */
+function parseOffset(offset: string): [number, number] {
+  const [hours = '', minutes = ''] = offset.split(':');
+  return [Number.parseInt(hours, 10), Number.parseInt(minutes, 10)];
+}
+
+export function get_day_start_with_offset(
+  dateParam: Moment | string | null | undefined,
+  offset?: string,
+) {
   if (!offset) {
     offset = getStartOfDayOffset();
   }
   const dateMoment = dateParam ? moment(dateParam) : moment().startOf('day');
-  const start_of_day_hours = parseInt(offset.split(':')[0]);
-  const start_of_day_minutes = parseInt(offset.split(':')[1]);
+  const [start_of_day_hours, start_of_day_minutes] = parseOffset(offset);
   // Zero seconds/ms too: callers pass "now"-derived Moments, and a boundary that
   // inherits the refresh instant's seconds shifts every report day by up to 59 s.
   return dateMoment
@@ -98,8 +107,7 @@ export function get_hour_offset(offset?: string): number {
   if (!offset) {
     offset = getStartOfDayOffset();
   }
-  const start_of_day_hours = parseInt(offset.split(':')[0]);
-  const start_of_day_minutes = parseInt(offset.split(':')[1]);
+  const [start_of_day_hours, start_of_day_minutes] = parseOffset(offset);
   return start_of_day_hours + start_of_day_minutes / 60;
 }
 

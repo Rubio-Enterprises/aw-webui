@@ -2,12 +2,12 @@ import { defineStore } from 'pinia';
 import { getClient } from '~/util/awclient';
 
 interface State {
-  info?: {
+  info: {
     hostname: string;
     device_id: string;
     version: string;
     testing: boolean;
-  };
+  } | null;
 }
 
 export const useServerStore = defineStore('server', {

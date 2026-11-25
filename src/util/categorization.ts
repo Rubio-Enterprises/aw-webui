@@ -54,6 +54,7 @@ export function findCommonPhrases(
     for (let i = 0; i < parts.length - 1; i++) {
       const w1 = parts[i];
       const w2 = parts[i + 1];
+      if (w1 === undefined || w2 === undefined) continue;
       if (w1.length <= 2 || ignored_words.includes(w1)) continue;
       if (w2.length <= 2 || ignored_words.includes(w2)) continue;
       const bigram = `${w1} ${w2}`;

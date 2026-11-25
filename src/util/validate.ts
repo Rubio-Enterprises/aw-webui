@@ -44,7 +44,11 @@ function hasJavaScriptNamedGroup(re: string): boolean {
       inClass = true;
     } else if (char === ']' && inClass) {
       inClass = false;
-    } else if (!inClass && re.startsWith('(?<', index) && !['=', '!'].includes(re[index + 3])) {
+    } else if (
+      !inClass &&
+      re.startsWith('(?<', index) &&
+      !['=', '!'].includes(re.charAt(index + 3))
+    ) {
       return true;
     }
   }
@@ -73,7 +77,7 @@ function hasPythonInvalidEscape(re: string): boolean {
     return /\\N\{[^}]+\}/.test(escapes);
   }
   return [...escapes.matchAll(/\\N\{([^}]+)\}/g)].some(
-    (match) => !PYTHON_UNICODE_NAMES.has(match[1]),
+    (match) => !PYTHON_UNICODE_NAMES.has(match[1] ?? ''),
   );
 }
 
@@ -138,7 +142,7 @@ function applyQuantifier(
       let newI = closeBrace + 1;
       if (newI < s.length && s[newI] === '?') newI++; // skip lazy modifier
       if (inner.includes(',')) {
-        const [lo, hi] = inner.split(',', 2);
+        const [lo = '', hi] = inner.split(',', 2);
         if (hi === '' || lo !== hi) return { added: null, newI };
         const n = parseInt(lo, 10);
         return isNaN(n) ? { added: null, newI } : { added: baseWidth * n, newI };

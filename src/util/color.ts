@@ -18,7 +18,7 @@ scale.domain(
   '0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20'.split(/, /),
 );
 
-const customColors = {
+const customColors: Record<string, string> = {
   afk: '#EEE',
   'not-afk': '#7F6',
   hibernating: '#DD6',
@@ -36,14 +36,14 @@ const customColors = {
   // Developer domains
   localhost: '#CCC',
   'github.com': '#EBF',
-  'stackoverflow.com': Color('#F48024').lighten(0.3),
+  'stackoverflow.com': Color('#F48024').lighten(0.3).string(),
 
   'google.com': '#0AF',
   'google.se': '#0AF',
 
   // Social media sites
-  'messenger.com': Color('#3b5998').lighten(0.5),
-  'facebook.com': Color('#3b5998').lighten(0.5),
+  'messenger.com': Color('#3b5998').lighten(0.5).string(),
+  'facebook.com': Color('#3b5998').lighten(0.5).string(),
 
   // Categories
   uncategorized: COLOR_UNCAT,
@@ -62,14 +62,14 @@ function hashcode(str: string): number {
   return hash;
 }
 
-export function getColorFromString(appname: string): string {
+export function getColorFromString(appname: string | undefined): string {
   appname = appname || '';
   appname = appname.toLowerCase();
   return customColors[appname] || scale(Math.abs(hashcode(appname) % 20).toString());
 }
 
 // TODO: Move into vuex?
-export function getColorFromCategory(c: Category, allCats: Category[]): string {
+export function getColorFromCategory(c: Category | undefined, allCats: Category[]): string {
   // Returns the color for a certain category, falling back to parents if none set
   if (c?.data?.color) {
     return c.data.color;
@@ -122,14 +122,15 @@ export function getTitleAttr(bucket: { type?: string }, e: IEvent) {
   }
   if (bucket.type === 'web.tab.current') {
     const domainRegex = /^.+:\/\/(?:www.)?([^/]+)/;
-    const match = e.data.url.match(domainRegex);
-    return match ? match[1] : e.data.url;
+    const url = e.data.url ?? '';
+    const match = url.match(domainRegex);
+    return match?.[1] ?? url;
   }
   if (bucket.type === 'afkstatus') {
     return e.data.status;
   }
   if (bucket.type?.startsWith('app.editor')) {
-    return _.last(e.data.file.split('/'));
+    return _.last((e.data.file ?? '').split('/'));
   }
   if (bucket.type?.startsWith('general.stopwatch')) {
     return e.data.label;
@@ -140,8 +141,9 @@ export function getTitleAttr(bucket: { type?: string }, e: IEvent) {
   }
 
   const keys = Object.keys(e.data);
-  if (keys.length === 1) {
-    const val = e.data[keys[0]];
+  const [onlyKey] = keys;
+  if (keys.length === 1 && onlyKey !== undefined) {
+    const val = e.data[onlyKey];
     if (typeof val === 'string') {
       return val.length > 50 ? val.slice(0, 50) : val;
     }
@@ -163,10 +165,10 @@ export function getCategorizationStringFromEvent(
     return `${e.data.title}\n${e.data.url}`;
   }
   if (bucket.type?.startsWith('app.editor')) {
-    return e.data.file;
+    return e.data.file ?? null;
   }
   if (bucket.type?.startsWith('general.stopwatch')) {
-    return e.data.label;
+    return e.data.label ?? null;
   }
 
   return null;

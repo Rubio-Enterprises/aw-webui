@@ -61,7 +61,7 @@ export function activeHistoryCacheKey(
 
 // Parses the "<start>/<end>" period strings the store works in.
 function periodBounds(period_str: string): { start: number; end: number } {
-  const [start, end] = period_str.split('/');
+  const [start = '', end = ''] = period_str.split('/');
   return { start: new Date(start).getTime(), end: new Date(end).getTime() };
 }
 

@@ -50,16 +50,15 @@ export function categoryTimelineQuery(
     queries.push(`events = union_no_overlap(events, events_timeline_${i});`);
   });
   // Filter after resolving overlap so a hidden category cannot reveal a lower-priority device.
-  if (params.filter_categories?.length) {
+  const filterCategories = params.filter_categories;
+  if (filterCategories?.length) {
     const selected = _.uniqWith(
       [
-        ...params.filter_categories,
-        ...params.categories
+        ...filterCategories,
+        ...(params.categories ?? [])
           .map(([name]) => name)
           .filter((name) =>
-            params.filter_categories.some((parent) =>
-              _.isEqual(name.slice(0, parent.length), parent),
-            ),
+            filterCategories.some((parent) => _.isEqual(name.slice(0, parent.length), parent)),
           ),
       ],
       _.isEqual,
@@ -82,8 +81,8 @@ export function mergeCategoryIntervals(events: IEvent[]): IEvent[] {
     const previous = merged[merged.length - 1];
     const start = +new Date(event.timestamp);
     const end = start + event.duration * 1000;
-    const previousStart = previous && +new Date(previous.timestamp);
-    const previousEnd = previous && previousStart + previous.duration * 1000;
+    const previousStart = previous ? +new Date(previous.timestamp) : 0;
+    const previousEnd = previousStart + (previous?.duration ?? 0) * 1000;
     if (previous && start <= previousEnd && _.isEqual(previous.data.$category, category)) {
       previous.duration = (Math.max(previousEnd, end) - previousStart) / 1000;
     } else {

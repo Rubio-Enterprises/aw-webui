@@ -346,8 +346,8 @@ export function computeFocusStats(events: ContextEvent[]): FocusStats {
   const sorted = [...blocks].sort((a, b) => a - b);
   const median = sorted.length
     ? sorted.length % 2 === 1
-      ? sorted[(sorted.length - 1) / 2]
-      : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
+      ? (sorted[(sorted.length - 1) / 2] ?? 0)
+      : ((sorted[sorted.length / 2 - 1] ?? 0) + (sorted[sorted.length / 2] ?? 0)) / 2
     : 0;
 
   return {

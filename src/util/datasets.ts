@@ -5,7 +5,7 @@ import { getColorFromCategory } from '~/util/color';
 import { split_by_hour_into_data } from '~/util/transforms';
 import type { IEvent } from './interfaces';
 
-interface HourlyData {
+export interface HourlyData {
   cat_events: IEvent[];
 }
 
@@ -15,7 +15,11 @@ interface Dataset {
   data: (number | null)[];
 }
 
-export function buildBarchartDataset(data_by_hour: HourlyData[], classes: Category[]): Dataset[] {
+// Either a list of periods or a record keyed by period string.
+export function buildBarchartDataset(
+  data_by_hour: HourlyData[] | Record<string, HourlyData> | null,
+  classes: Category[],
+): Dataset[] {
   const data = data_by_hour;
   if (data) {
     const category_names: Set<string> = new Set(
@@ -69,7 +73,7 @@ export function groupDaysIntoWeeks(
     byWeek[key].cat_events = byWeek[key].cat_events.concat(entry?.cat_events || []);
   }
   const keys = Object.keys(byWeek);
-  return { firstWeekStart: keys.length ? keys[0] : null, byWeek };
+  return { firstWeekStart: keys[0] ?? null, byWeek };
 }
 
 export function buildBarchartDatasetActive(events_active: IEvent[]) {

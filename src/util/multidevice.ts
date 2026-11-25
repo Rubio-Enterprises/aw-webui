@@ -137,8 +137,8 @@ export function formatHostParam(selection: HostSelection | string[]): string {
   if (sel.all) {
     return ALL_DEVICES;
   }
-  if (sel.hosts.length === 1) {
-    const host = sel.hosts[0];
+  const [host] = sel.hosts;
+  if (sel.hosts.length === 1 && host !== undefined) {
     // Escape once more a real host that could be read as the ALL_DEVICES
     // token or as a list (see parseHostParam)
     return host === ALL_DEVICES || host.includes(HOST_SEPARATOR)

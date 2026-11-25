@@ -85,6 +85,11 @@ function update(
 
   const firstEvent = events[0];
   const lastEvent = events[events.length - 1];
+  if (!(firstEvent && lastEvent)) {
+    // Unreachable: empty lists returned above
+    set_status(container, noDataLabel);
+    return container;
+  }
 
   const timeStart = moment(firstEvent.timestamp);
   const timeEnd = moment(lastEvent.timestamp).add(lastEvent.duration, 'seconds');

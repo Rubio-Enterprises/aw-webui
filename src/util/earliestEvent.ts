@@ -30,19 +30,21 @@ export async function earliestEventInBucket(
   }
 
   const latest = await getEvents(bucket.id, { limit: 1 });
-  if (latest.length === 0) return null;
+  const [newest] = latest;
+  if (newest === undefined) return null;
 
   // Invariant: an event exists at or before `hi`, none before `lo`.
-  let hi = new Date(latest[0].timestamp).getTime();
+  let hi = new Date(newest.timestamp).getTime();
   let lo = SEARCH_FLOOR.getTime();
   for (let i = 0; i < 40 && hi - lo > DAY_MS; i++) {
     const mid = Math.floor((lo + hi) / 2);
     const events = await getEvents(bucket.id, { end: new Date(mid), limit: 1 });
-    if (events.length === 0) {
+    const [found] = events;
+    if (found === undefined) {
       lo = mid;
     } else {
       // The returned event may overlap `mid` rather than start before it.
-      hi = Math.min(mid, new Date(events[0].timestamp).getTime());
+      hi = Math.min(mid, new Date(found.timestamp).getTime());
     }
   }
   // `lo` has no event at or before it, so it's a conservative start (at most

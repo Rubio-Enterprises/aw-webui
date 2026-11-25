@@ -188,7 +188,7 @@ export const useSettingsStore = defineStore('settings', {
       const client = getClient();
 
       // Fetch from server, fall back to localStorage
-      const server_settings = await client.get_settings();
+      const server_settings = (await client.get_settings()) as Record<string, unknown>;
 
       // Build a unified map: server value wins, localStorage is fallback.
       // Skip keys that are missing from BOTH sources — otherwise `null` from
@@ -199,12 +199,12 @@ export const useSettingsStore = defineStore('settings', {
       // 1. Server settings take priority
       for (const key of Object.keys(server_settings)) {
         if (key.startsWith('_') || REMOVED_KEYS.has(key)) continue;
-        if (key === 'locale' && !isAppLocale(server_settings[key])) {
-          console.warn('Ignoring invalid locale from server:', server_settings[key]);
+        const serverValue = server_settings[key];
+        if (key === 'locale' && !(typeof serverValue === 'string' && isAppLocale(serverValue))) {
+          console.warn('Ignoring invalid locale from server:', serverValue);
           continue;
         }
-        storage[key] =
-          key === 'alerts' ? cleanAlertGoals(server_settings[key]) : server_settings[key];
+        storage[key] = key === 'alerts' ? cleanAlertGoals(serverValue) : serverValue;
         used.add(key);
       }
 
@@ -285,10 +285,11 @@ export const useSettingsStore = defineStore('settings', {
       const client = getClient();
 
       // Fetch current settings from server
-      const server_settings = await client.get_settings();
+      const server_settings = (await client.get_settings()) as Record<string, unknown>;
 
       // Save settings
-      for (const key of Object.keys(this.$state)) {
+      const currentState: Record<string, unknown> = { ...this.$state };
+      for (const key of Object.keys(currentState)) {
         // Skip keys starting with underscore, as they are local to the vuex store.
         if (key.startsWith('_')) {
           continue;
@@ -305,7 +306,7 @@ export const useSettingsStore = defineStore('settings', {
           continue;
         }
 
-        const value = this.$state[key];
+        const value = currentState[key];
 
         // Save to localStorage
         // NOTE: we always save the theme and landingpage to localStorage, since they are used before the settings are loaded
@@ -313,7 +314,7 @@ export const useSettingsStore = defineStore('settings', {
           if (typeof value === 'object') {
             localStorage.setItem(key, JSON.stringify(value));
           } else {
-            localStorage.setItem(key, value);
+            localStorage.setItem(key, String(value));
           }
         }
 
@@ -340,7 +341,10 @@ export const useSettingsStore = defineStore('settings', {
     async update(new_state: Partial<State>) {
       console.log('Updating state', new_state);
       await this.ensureLoaded();
-      this.$patch(new_state);
+      // pinia's _DeepPartial maps `unknown` values to `{}`, which rejects Record<string, unknown>
+      // fields such as Category.data; the object form (deep merge) is kept on purpose.
+      const patch = this.$patch as (partial: Partial<State>) => void;
+      patch.call(this, new_state);
       // Explicitly updated keys are saved even if never stored before. A
       // successful save reloads _storedKeys from the server.
       await this.save(Object.keys(new_state));

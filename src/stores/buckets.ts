@@ -3,7 +3,7 @@ import { defineStore } from 'pinia';
 import { useServerStore } from '~/stores/server';
 import { getClient } from '~/util/awclient';
 import { deviceHostnames } from '~/util/hostnames';
-import type { IBucket } from '~/util/interfaces';
+import type { IBucket, IEvent } from '~/util/interfaces';
 
 function select_buckets(
   buckets: IBucket[],
@@ -30,7 +30,9 @@ export const useBucketsStore = defineStore('buckets', {
   getters: {
     hosts(state: State): string[] {
       // TODO: Include consideration of device_id UUID
-      let hosts = _.uniq(_.map(state.buckets, (bucket) => bucket.hostname || bucket.data.hostname));
+      let hosts = _.uniq(
+        _.map(state.buckets, (bucket) => bucket.hostname || bucket.data.hostname),
+      ).filter((host): host is string => host !== undefined);
 
       // Sort priority:
       //   1. Host that matches the server's own hostname (the device the
@@ -51,7 +53,7 @@ export const useBucketsStore = defineStore('buckets', {
             const hasAfk = this.bucketsAFK(host).length > 0;
             return hasWindow && hasAfk ? 2 : hasWindow || hasAfk ? 1 : 0;
           },
-          (host) => _.max(_.map(this.bucketsByHostname[host], (b) => b.last_updated)) || '',
+          (host) => _.max(_.map(this.bucketsByHostname[host] ?? [], (b) => b.last_updated)) || '',
         ],
         ['desc', 'desc', 'desc'],
       );
@@ -62,7 +64,7 @@ export const useBucketsStore = defineStore('buckets', {
       return deviceHostnames(this.hosts);
     },
     // Uses device_id instead of hostname
-    devices(this: State): string[] {
+    devices(this: State): (string | undefined)[] {
       // TODO: Include consideration of device_id UUID
       return _.uniq(_.map(this.buckets, (bucket) => bucket.device_id || bucket.data.device_id));
     },
@@ -158,8 +160,8 @@ export const useBucketsStore = defineStore('buckets', {
       return (host: string) => this.bucketsByType(host, 'general.stopwatch', true);
     },
 
-    getBucket(this: State): (id: string) => IBucket {
-      return (id) => _.filter(this.buckets, (b) => b.id === id)[0];
+    getBucket(this: State): (id: string) => IBucket | undefined {
+      return (id) => this.buckets.find((b) => b.id === id);
     },
     bucketsByHostname(this: State): Record<string, IBucket[]> {
       return _.groupBy(this.buckets, 'hostname');
@@ -170,12 +172,14 @@ export const useBucketsStore = defineStore('buckets', {
     //
     // First element will be the current hostname/device, if present.
     // Others sorted by last_updated.
-    bucketsByDevice: function () {
+    bucketsByDevice(this: State) {
       let devices = _.mapValues(
         _.groupBy(this.buckets, (b) => b.hostname || b.device_id),
         (d) => {
           const hostnames = _.uniq(_.map(d, (b) => b.hostname || b.data.hostname));
-          const device_ids = _.uniq(_.map(d, (b) => b.data.device_id || b.hostname));
+          const device_ids = _.uniq(_.map(d, (b) => b.data.device_id || b.hostname)).filter(
+            (id): id is string => id !== undefined,
+          );
           // Prefer a real UUID over a hostname fallback: if any device_id in the
           // group differs from the hostname, use that one. A mixed group (some
           // buckets without data.device_id) would otherwise surface the hostname
@@ -234,7 +238,8 @@ export const useBucketsStore = defineStore('buckets', {
 
     async loadBuckets(): Promise<void> {
       const buckets = await getClient().getBuckets();
-      this.update_buckets(buckets);
+      // aw-client types buckets more narrowly than the server sends them.
+      this.update_buckets(Object.values(buckets) as unknown as IBucket[]);
     },
 
     async getBucketWithEvents({
@@ -249,12 +254,15 @@ export const useBucketsStore = defineStore('buckets', {
       limit?: number;
     }) {
       await this.ensureLoaded();
-      const bucket = _.cloneDeep(this.getBucket(id));
-      bucket.events = await getClient().getEvents(bucket.id, {
+      const found = this.getBucket(id);
+      if (!found) throw new Error(`Unknown bucket: ${id}`);
+      const bucket = _.cloneDeep(found);
+      // aw-client declares event timestamps as Date, but the JSON response carries ISO strings.
+      bucket.events = (await getClient().getEvents(bucket.id, {
         start,
         end,
         limit: limit || -1,
-      });
+      })) as unknown as IEvent[];
       return bucket;
     },
 

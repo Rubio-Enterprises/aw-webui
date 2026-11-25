@@ -25,7 +25,7 @@ interface State {
   active_set_ids: string[];
 }
 
-function getScoreFromCategory(c: Category, allCats: Category[]): number {
+function getScoreFromCategory(c: Category | undefined, allCats: Category[]): number {
   // Returns the score for a certain category, falling back to parents if none set
   // Very similar to getColorFromCategory
   if (c && c.data && c.data.score !== null && c.data.score !== undefined) {
@@ -42,7 +42,7 @@ function getScoreFromCategory(c: Category, allCats: Category[]): number {
 
 // Normalize URL-encoded category segments (e.g. "Work%20Project" → "Work Project").
 // Route query params can arrive encoded while category names are stored decoded.
-function normalizeSegments(cat: string[]): string[] {
+function normalizeSegments(cat: string[] | undefined): string[] {
   return (cat || []).map((segment) => {
     try {
       return decodeURIComponent(segment);
@@ -205,7 +205,7 @@ export const useCategoryStore = defineStore('categories', {
     allCategoriesSelect(): { value: string[]; text: string }[] {
       const categories = this.all_categories;
       const entries = categories.map((c) => {
-        return { text: c.join(' > '), value: c, id: c.id };
+        return { text: c.join(' > '), value: c };
       });
       return _.sortBy(entries, 'text');
     },
@@ -226,16 +226,17 @@ export const useCategoryStore = defineStore('categories', {
     },
     get_category_by_id(this: State) {
       return (id: number) => {
-        return annotate(_.cloneDeep(this.classes.find((c: Category) => c.id === id)));
+        const match = this.classes.find((c: Category) => c.id === id);
+        return match && annotate(_.cloneDeep(match));
       };
     },
     get_category_color() {
-      return (cat: string[]): string => {
+      return (cat: string[] | undefined): string => {
         return getColorFromCategory(this.get_category(normalizeSegments(cat)), this.classes);
       };
     },
     get_category_score() {
-      return (cat: string[]): number => {
+      return (cat: string[] | undefined): number => {
         return getScoreFromCategory(this.get_category(normalizeSegments(cat)), this.classes);
       };
     },
@@ -243,22 +244,23 @@ export const useCategoryStore = defineStore('categories', {
       return (
         insertMeta: boolean,
         translate?: (key: string) => string,
-      ): { text: string; value?: string[] }[] => {
+      ): { text: string; value: string[] | null }[] => {
         // Useful for <select> elements enumerating categories
-        let cats = this.all_categories;
-        cats = cats
-          .map((c: string[]) => {
+        const cats: { text: string; value: string[] | null }[] = _.sortBy(
+          this.all_categories.map((c: string[]) => {
             return { text: c.join(' > '), value: c };
-          })
-          .sort((a, b) => a.text > b.text);
+          }),
+          'text',
+        );
         if (insertMeta) {
-          cats = [
+          return [
             { text: translate?.('common.all') || 'All', value: null },
             {
               text: translate?.('common.uncategorized') || 'Uncategorized',
               value: ['Uncategorized'],
             },
-          ].concat(cats);
+            ...cats,
+          ];
         }
         return cats;
       };
@@ -334,7 +336,7 @@ export const useCategoryStore = defineStore('categories', {
       this.category_sets = this.category_sets.filter((s) => s.id !== id);
       this.active_set_ids = this.active_set_ids.filter((aid) => aid !== id);
       if (this.active_set_ids.length === 0) {
-        this.active_set_ids = [this.category_sets[0].id];
+        this.active_set_ids = this.category_sets.slice(0, 1).map((s) => s.id);
       }
       this.classes = computeEffectiveClasses(this.category_sets, this.active_set_ids);
       this.classes_unsaved_changes = true;
@@ -439,6 +441,7 @@ export const useCategoryStore = defineStore('categories', {
     updateClass(this: State, new_class: Category) {
       console.log('Updating class:', new_class);
       const old_class = this.classes.find((c: Category) => c.id === new_class.id);
+      if (!old_class) throw new Error(`Cannot update unknown category ${new_class.id}`);
       const old_name = old_class.name;
       const parent_depth = old_class.name.length;
 
@@ -477,6 +480,7 @@ export const useCategoryStore = defineStore('categories', {
     },
     appendClassRule(this: State, classId: number, pattern: string) {
       const cat = this.classes.find((c: Category) => c.id === classId);
+      if (!cat) throw new Error(`Cannot append a rule to unknown category ${classId}`);
       if (cat.rule.type === 'none' || cat.rule.type === null) {
         cat.rule.type = 'regex';
         cat.rule.regex = pattern;

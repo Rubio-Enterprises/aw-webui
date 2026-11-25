@@ -39,4 +39,6 @@ export interface IBucket {
   last_updated?: Date | string;
   first_seen?: Date | string;
   created?: Date | string;
+  // Filled in by the bucket store when a view loads a bucket's events.
+  events?: IEvent[];
 }

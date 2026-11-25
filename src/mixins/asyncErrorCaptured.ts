@@ -24,9 +24,10 @@ export default {
     const methods = this.$options.methods || {};
     for (const key in methods) {
       const original = methods[key];
-      methods[key] = function (...args: unknown[]) {
+      if (!original) continue;
+      methods[key] = function (this: Vue, ...args: unknown[]) {
         try {
-          const result = original.apply(this, args);
+          const result = Reflect.apply(original, this, args);
           // let's analyse what is returned from the method
           if (result && typeof result.then === 'function' && typeof result.catch === 'function') {
             // this looks like a Promise. let's handle it's errors:

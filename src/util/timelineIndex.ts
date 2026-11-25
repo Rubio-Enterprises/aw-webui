@@ -13,8 +13,9 @@ function groupTimelineEntries(entries: IndexedEvent[], threshold: number): Index
   const grouped: IndexedEvent[] = [];
   let members: IndexedEvent[] = [];
   const flush = () => {
-    if (members.length > 1) {
-      const first = members[0];
+    const [first] = members;
+    const last = members[members.length - 1];
+    if (first !== undefined && last !== undefined && members.length > 1) {
       grouped.push({
         ...first,
         id: JSON.stringify([first.bucket.id, 'group', members.map((item) => item.id)]),
@@ -23,11 +24,11 @@ function groupTimelineEntries(entries: IndexedEvent[], threshold: number): Index
           duration: members.reduce((total, item) => total + item.event.duration, 0),
           data: {},
         },
-        end: members[members.length - 1].end,
+        end: last.end,
         members,
       });
-    } else if (members.length) {
-      grouped.push(members[0]);
+    } else if (first !== undefined) {
+      grouped.push(first);
     }
     members = [];
   };
@@ -51,16 +52,17 @@ function groupTimelineEntries(entries: IndexedEvent[], threshold: number): Index
     }
     // Date truncates microsecond timestamps to milliseconds, while durations retain
     // their precision. Treat differences below that resolution as adjacent.
-    if (members.length && Math.abs(item.start - members[members.length - 1].end) >= 1) flush();
+    const lastMember = members[members.length - 1];
+    if (lastMember !== undefined && Math.abs(item.start - lastMember.end) >= 1) flush();
     members.push(item);
-    if (item.end - members[0].start >= threshold * 1000) flush();
+    if (item.end - (members[0] ?? item).start >= threshold * 1000) flush();
   }
   flush();
   return grouped;
 }
 
 export function indexTimelineEvents(
-  buckets,
+  buckets: IBucket[],
   filterShort: boolean | ((bucket: IBucket) => boolean) = true,
   displayEvent: (bucketId: string, event: IEvent) => IEvent = (_bucketId, event) => event,
   groupingSeconds: number | ((bucket: IBucket) => number) = 0,
@@ -120,19 +122,32 @@ export function visibleTimelineEvents(
   let high = index.ends.length;
   while (low < high) {
     const mid = (low + high) >>> 1;
-    if (index.ends[mid] < start) low = mid + 1;
+    const endAtMid = index.ends[mid];
+    if (endAtMid !== undefined && endAtMid < start) low = mid + 1;
     else high = mid;
   }
   const result: IndexedEvent[] = [];
-  for (let i = low; i < index.entries.length && index.entries[i].start <= end; i++) {
-    if (index.entries[i].end >= start) result.push(index.entries[i]);
+  for (let i = low; i < index.entries.length; i++) {
+    const entry = index.entries[i];
+    if (entry === undefined || entry.start > end) break;
+    if (entry.end >= start) result.push(entry);
   }
   return result;
 }
 
 // DataSet updates notify vis-timeline. Avoid notifications for unchanged items.
+type DatasetId = string | number;
+
+/** The part of a vis-data DataSet that syncTimelineData uses. */
+export interface SyncableDataset {
+  getIds(): DatasetId[];
+  get(id: DatasetId): Record<string, unknown> | null;
+  remove(ids: DatasetId[]): unknown;
+  update(items: { id: DatasetId; [key: string]: unknown }[]): unknown;
+}
+
 export function syncTimelineData(
-  dataset,
+  dataset: SyncableDataset,
   next: { id: string | number; [key: string]: unknown }[],
 ): void {
   const ids = new Set(next.map((item) => item.id));

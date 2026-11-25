@@ -1,13 +1,13 @@
-const d3 = require('d3');
-const Color = require('color');
-const _ = require('lodash');
-const moment = require('moment');
+import Color from 'color';
+import * as d3 from 'd3';
+import _ from 'lodash';
+import moment from 'moment';
 
 import { getColorFromString, getTitleAttr } from '../util/color';
+import type { IEvent } from '../util/interfaces';
+import * as time from '../util/time';
 
-const time = require('../util/time');
-
-function create(svg_el) {
+function create(svg_el: SVGElement) {
   // Clear element
   svg_el.innerHTML = '';
 
@@ -15,7 +15,7 @@ function create(svg_el) {
   d3.select(svg_el).attr('viewBox', '0 0 100 4').attr('width', '100%');
 }
 
-function set_status(svg_el, text) {
+function set_status(svg_el: SVGElement, text: string) {
   const timeline = d3.select(svg_el);
   timeline.selectAll('*').remove();
 
@@ -29,7 +29,7 @@ function set_status(svg_el, text) {
     .attr('fill', 'black');
 }
 
-function update(svg_el, events, event_type: string, noDataLabel = 'No data') {
+function update(svg_el: SVGElement, events: IEvent[], event_type: string, noDataLabel = 'No data') {
   const timeline = d3.select(svg_el);
   timeline.selectAll('*').remove();
 
@@ -40,24 +40,29 @@ function update(svg_el, events, event_type: string, noDataLabel = 'No data') {
 
   events = _.clone(events);
   _.reverse(events);
-  const e_first = _.first(events);
-  const e_last = _.last(events);
+  const e_first = events[0];
+  const e_last = events[events.length - 1];
+  if (!(e_first && e_last)) {
+    // Unreachable: empty lists returned above
+    set_status(svg_el, noDataLabel);
+    return;
+  }
   const m_first = moment(e_first.timestamp);
   const m_last = moment(e_last.timestamp);
-  const total_duration = (m_last - m_first) / 1000 + e_last.duration;
+  const total_duration = (m_last.valueOf() - m_first.valueOf()) / 1000 + e_last.duration;
   console.log(`First: ${m_first.format()}`);
   console.log(`Last: ${m_last.format()}`);
   console.log(`Duration: ${total_duration}`);
 
   // Iterate over each event and create interval boxes
-  _.each(events, (e, i) => {
+  _.each(events, (e: IEvent, i: number) => {
     const id = `timeline_event_${i}`;
     const timestamp = moment(e.timestamp);
 
     const color_base = getColorFromString(getTitleAttr({ type: event_type }, e));
     const color_hover = Color(color_base).darken(0.4).hex();
 
-    const x = (timestamp - m_first) / 1000 / total_duration;
+    const x = (timestamp.valueOf() - m_first.valueOf()) / 1000 / total_duration;
     const width = (100 * e.duration) / total_duration;
 
     const eg = timeline
@@ -70,13 +75,12 @@ function update(svg_el, events, event_type: string, noDataLabel = 'No data') {
       .attr('width', width)
       .attr('height', 4)
       .style('fill', color_base)
-      .on('mouseover', (_event, j, n) => {
-        const elem = n[j];
-        elem.style.fill = color_hover;
+      // (d3 v7 passes (event, datum): the old `n[j]` lookup threw on every hover)
+      .on('mouseover', () => {
+        rect.style('fill', color_hover);
       })
-      .on('mouseout', (_event, j, n) => {
-        const elem = n[j];
-        elem.style.fill = color_base;
+      .on('mouseout', () => {
+        rect.style('fill', color_base);
       });
 
     rect
@@ -96,7 +100,7 @@ function update(svg_el, events, event_type: string, noDataLabel = 'No data') {
         .attr('x', 1)
         .attr('y', 2.5)
         .attr('pointer-events', 'none')
-        .text(getTitleAttr({ type: event_type }, e));
+        .text(getTitleAttr({ type: event_type }, e) ?? '');
     }
   });
 

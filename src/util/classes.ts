@@ -14,7 +14,8 @@ export const CANONICAL_SELECT_KEYS = CLASSIFY_KEYS;
 export const DEFAULT_SET_ID = 'default';
 
 export interface Rule {
-  type: 'regex' | 'none';
+  // `null` is what the server returns for a category without a rule.
+  type: 'regex' | 'none' | null;
   regex?: string;
   ignore_case?: boolean;
   priority?: number;
@@ -50,7 +51,7 @@ export interface Category {
     private?: boolean;
   };
   depth?: number;
-  parent?: string[];
+  parent?: string[] | null;
   children?: Category[];
 }
 
@@ -219,7 +220,7 @@ export function getDefaultClasses(setId?: string): Category[] {
     return _.cloneDeep(defaultCategories);
   }
   if (setId === undefined) {
-    return presets[0].categories;
+    return presets.slice(0, 1).flatMap((preset) => preset.categories);
   }
   const preset = presets.find((p) => p.id === setId);
   return preset ? preset.categories : _.cloneDeep(defaultCategories);
@@ -243,7 +244,7 @@ export function createMissingParents(classes: Category[]): Category[] {
   function _createMissing(children: Category[]) {
     children
       .map((c) => c.parent)
-      .filter((p) => !!p)
+      .filter((p): p is string[] => !!p)
       .forEach((p) => {
         const name = p.join(level_sep);
         if (p && !all_full_names.has(name)) {
@@ -282,7 +283,7 @@ export function build_category_hierarchy(classes: Category[]): Category[] {
 export function flatten_category_hierarchy(hier: Category[]): Category[] {
   return _.flattenDeep(
     hier.map((h) => {
-      const level = [h, flatten_category_hierarchy(h.children)];
+      const level = [h, flatten_category_hierarchy(h.children ?? [])];
       h.children = [];
       return level;
     }),
@@ -505,7 +506,9 @@ export function loadCategories(): { sets: CategorySet[]; activeIds: string[] } {
   if (storedOwnSets) {
     sets = storedSets.map((s) => ({ ...s, categories: migrateLegacyDefaultColors(s.categories) }));
     activeIds =
-      storedActiveIds && storedActiveIds.length > 0 ? [...storedActiveIds] : [storedSets[0].id];
+      storedActiveIds && storedActiveIds.length > 0
+        ? [...storedActiveIds]
+        : storedSets.slice(0, 1).map((s) => s.id);
   } else if (presets.length > 0 && !storedCustomClasses) {
     // First run on a build that ships presets: activate the first preset only.
     //
@@ -518,7 +521,7 @@ export function loadCategories(): { sets: CategorySet[]; activeIds: string[] } {
     // The remaining presets are still appended below and are available in the UI
     // for the user to activate manually.
     sets = [];
-    activeIds = [presets[0].id];
+    activeIds = presets.slice(0, 1).map((p) => p.id);
   } else {
     // Migration path: no sets defined yet — wrap the existing flat classes into a "default" set
     const legacyClasses = settingsStore.classes || defaultCategories;
@@ -540,7 +543,7 @@ export function loadCategories(): { sets: CategorySet[]; activeIds: string[] } {
   }
   activeIds = activeIds.filter((id) => sets.some((s) => s.id === id));
   if (activeIds.length === 0) {
-    activeIds = [sets[0].id];
+    activeIds = sets.slice(0, 1).map((s) => s.id);
   }
 
   return { sets, activeIds };
@@ -563,18 +566,22 @@ function categoryRank(category: Category): number {
  * into a blank-regex category while server-categorized views (Sunburst,
  * Timeline, Top Categories) ignore it (#382).
  */
-export function hasMatchableRegex(c: Category): boolean {
+export type MatchableCategory = Category & { rule: Rule & { type: 'regex'; regex: string } };
+
+export function hasMatchableRegex(c: Category): c is MatchableCategory {
   return c.rule.type === 'regex' && !!c.rule.regex;
 }
 
-function pickHighestRanked(categories: Category[]) {
-  return _.maxBy(categories, categoryRank);
+function pickHighestRanked(categories: Category[]): Category {
+  const best = _.maxBy(categories, categoryRank);
+  if (best === undefined) throw new Error('pickHighestRanked needs at least one category');
+  return best;
 }
 
 // Rules can be edited in place by the category editor, so a cached regex is
 // only reused while the rule's pattern and flags are unchanged.
 const regexCache = new WeakMap<Rule, { source: string; flags: string; re: RegExp }>();
-function ruleRegExp(rule: Rule): RegExp {
+function ruleRegExp(rule: Rule & { regex: string }): RegExp {
   // using 'm' flag to make `$` and `^` in rules work
   const flags = rule.ignore_case ? 'im' : 'm';
   const cached = regexCache.get(rule);

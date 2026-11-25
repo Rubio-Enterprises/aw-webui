@@ -83,6 +83,7 @@
     "@babel/preset-env": "^7.21.4",
     "@babel/runtime": "^7.16.3",
     "@playwright/test": "1.63.0",
+    "@types/papaparse": "^5.5.2",
     "@vue/cli-plugin-babel": "^5.0",
     "@vue/cli-plugin-pwa": "^5.0",
     "@vue/cli-plugin-typescript": "^5.0",

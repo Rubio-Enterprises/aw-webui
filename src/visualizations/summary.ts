@@ -23,6 +23,12 @@ function inBarColors(barColor: string): { name: string; duration: string } {
     : { name: '#fff', duration: '#eee' };
 }
 
+function summaryElement(container: HTMLElement): Element {
+  const el = container.querySelector('.appsummary');
+  if (!el) throw new Error('Summary chart element is missing; call create() first');
+  return el;
+}
+
 function create(container: HTMLElement) {
   // Clear element
   container.innerHTML = '';
@@ -34,7 +40,7 @@ function create(container: HTMLElement) {
 
 function set_status(container: HTMLElement, msg: string) {
   // Select svg canvas
-  const svg_elem = container.querySelector('.appsummary');
+  const svg_elem = summaryElement(container);
   const svg = d3.select(svg_elem);
   svg_elem.innerHTML = '';
 
@@ -65,7 +71,7 @@ function update(container: HTMLElement, apps: Entry[], noDataLabel = 'No data') 
     return container;
   }
 
-  const svg_elem = container.querySelector('.appsummary');
+  const svg_elem = summaryElement(container);
   svg_elem.innerHTML = '';
   const svg = d3.select(svg_elem);
 
@@ -81,7 +87,8 @@ function update(container: HTMLElement, apps: Entry[], noDataLabel = 'No data') 
   const defs = svg.append('defs');
 
   let curr_y = 0;
-  const longest_duration = apps[0].duration;
+  // apps is non-empty here (checked above), and sorted so the first is the longest
+  const longest_duration = apps[0]?.duration ?? 1;
   _.each(apps, (app, i) => {
     // TODO: Expand on click and list titles
 
@@ -268,7 +275,7 @@ function updateSummedEvents(
   titleKeyFunc: (event: IEvent) => string,
   hoverKeyFunc: (event: IEvent) => string,
   colorKeyFunc: (event: IEvent) => string,
-  linkKeyFunc: (event: IEvent) => string = () => null,
+  linkKeyFunc: (event: IEvent) => string | undefined = () => undefined,
   noDataLabel = 'No data',
 ) {
   if (hoverKeyFunc == null) {

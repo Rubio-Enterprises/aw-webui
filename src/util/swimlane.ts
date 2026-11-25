@@ -23,7 +23,7 @@ export function getSwimlane(
       subgroup = escapeText(data.app);
     } else if (type === 'web.tab.current') {
       try {
-        const hostname = new URL(data.url).hostname;
+        const hostname = new URL(data.url ?? '').hostname;
         subgroup = hostname ? escapeText(hostname.replace(/^www\./, '')) : 'unknown';
       } catch {
         subgroup = 'unknown';

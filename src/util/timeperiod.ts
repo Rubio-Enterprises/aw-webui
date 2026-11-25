@@ -8,7 +8,7 @@ export interface TimePeriod {
 }
 
 export function dateToTimeperiod(
-  date: string,
+  date: string | undefined,
   offset: string,
   duration?: [number, string],
 ): TimePeriod {
@@ -74,7 +74,11 @@ export function periodLengthConvertMoment(periodLength: string) {
   return 'day';
 }
 
-const WEEKDAY_INDEX = { Sunday: 0, Monday: 1, Saturday: 6 };
+const WEEKDAY_INDEX: { [day: string]: number | undefined; Monday: number } = {
+  Sunday: 0,
+  Monday: 1,
+  Saturday: 6,
+};
 
 // Snaps a YYYY-MM-DD date to the first day of the day/week/month/year containing it.
 // Weeks start on the configured start of week, independent of moment's locale.
@@ -144,9 +148,10 @@ export function hourlyLabels(timeperiod: TimePeriod): string[] {
     acc[label] = (acc[label] || 0) + 1;
     return acc;
   }, {});
-  return periods.map((p, i) =>
-    counts[labels[i]] > 1 ? `${labels[i]} (${moment(p.start).format('Z')})` : labels[i],
-  );
+  return periods.map((p, i) => {
+    const label = labels[i] ?? '';
+    return (counts[label] ?? 0) > 1 ? `${label} (${moment(p.start).format('Z')})` : label;
+  });
 }
 
 export function timeperiodsDaysOfPeriod(timeperiod: TimePeriod): TimePeriod[] {
@@ -205,6 +210,7 @@ export function parseDateRange(str: string | undefined | null): DateRange | null
   const parts = str.split(DATE_RANGE_SEP);
   if (parts.length !== 2) return null;
   const [start, end] = parts;
+  if (start === undefined || end === undefined) return null;
   if (!(DATE_RE.test(start) && DATE_RE.test(end))) return null;
   const mStart = moment(start, 'YYYY-MM-DD', true);
   const mEnd = moment(end, 'YYYY-MM-DD', true);
@@ -378,8 +384,9 @@ export function parseExactInterval(str: string | undefined | null): ExactInterva
   if (!str) return null;
   const parts = str.split(DATE_RANGE_SEP);
   if (parts.length !== 2) return null;
-  const start = parseInstant(parts[0]);
-  const end = parseInstant(parts[1]);
+  const [startStr = '', endStr = ''] = parts;
+  const start = parseInstant(startStr);
+  const end = parseInstant(endStr);
   if (!(start && end)) return null;
   const span = end.valueOf() - start.valueOf();
   if (span <= 0 || span > MAX_INTERVAL_MS) return null;

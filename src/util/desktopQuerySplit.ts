@@ -111,7 +111,7 @@ export function periodsForFullDesktopQuery(
     periods = [timeperiodToStr(timeperiod)];
   }
 
-  return periods.filter((period) => new Date(period.split('/')[0]) < now);
+  return periods.filter((period) => new Date(period.split('/')[0] ?? '') < now);
 }
 
 export function mergeEventsByKeys(events: IEvent[], keys: string[], limit?: number): IEvent[] {
@@ -151,11 +151,13 @@ export function categoryByPeriodFromChunks(
   const now = new Date();
   for (const month of timeperiodsCalendarMonthsOfPeriod(timeperiod)) {
     const key = timeperiodToStr(month);
-    const [start, end] = key.split('/').map((d) => new Date(d));
+    const [startStr = '', endStr = ''] = key.split('/');
+    const start = new Date(startStr);
+    const end = new Date(endStr);
     if (start >= now) continue;
     const events = chunks
       .filter(([period]) => {
-        const chunkStart = new Date(period.split('/')[0]);
+        const chunkStart = new Date(period.split('/')[0] ?? '');
         return chunkStart >= start && chunkStart < end;
       })
       .flatMap(([, result]) => result.window?.cat_events || []);

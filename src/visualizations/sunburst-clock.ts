@@ -31,12 +31,10 @@ const legendData: Record<string, string> = {
   hibernating: getColorFromString('hibernating'),
 };
 
-interface ArcObject extends d3.DefaultArcObject, d3.HierarchyRectangularNode<IEvent> {}
-
 let rootEl: d3.Selection<HTMLElement, unknown, null, undefined>; // The root DOM node of the graph as a d3 object
 let vis: d3.Selection<SVGGElement, unknown, null, undefined>; // The root SVG node of the graph as a d3 object
 let partition_layout: d3.PartitionLayout<IEvent>; // The partition layout
-let arc: d3.Arc<unknown, ArcObject>;
+let arc: d3.Arc<unknown, d3.HierarchyRectangularNode<IEvent>>;
 
 function drawLegend() {
   // Dimensions of legend item: width, height, spacing, radius of rounded rect.
@@ -126,7 +124,7 @@ function showInfo(d: d3.HierarchyRectangularNode<IEvent>) {
   const durationString = seconds_to_duration(e.duration);
   hoverEl.select('.duration').text(durationString);
 
-  hoverEl.select('.title').text(e.data.app || e.data.status);
+  hoverEl.select('.title').text(e.data.app || e.data.status || '');
 
   hoverEl.select('.data').text(e.data.title || '');
 
@@ -159,12 +157,15 @@ function mouseleave() {
 
   // Transition each segment to full opacity and then reactivate it.
   rootEl
-    .selectAll('path')
+    .selectAll<SVGPathElement, d3.HierarchyRectangularNode<IEvent>>('path')
     .transition()
     .duration(100)
     .style('opacity', 1)
     .on('end', function () {
-      d3.select(this).on('mouseover', mouseover);
+      d3.select<SVGPathElement, d3.HierarchyRectangularNode<IEvent>>(this).on(
+        'mouseover',
+        mouseover,
+      );
     });
 
   rootEl.select('.explanation > .base').style('display', '');
@@ -189,28 +190,23 @@ function create(el: HTMLElement) {
   rootEl.selectAll('svg').remove();
 
   vis = rootEl
-    .append('svg:svg')
+    .append<SVGSVGElement>('svg:svg')
     .attr('width', width)
     .attr('height', height)
-    .append('svg:g')
+    .append<SVGGElement>('svg:g')
     .attr('id', 'container')
-    .attr('transform', `translate(${width / 2},${height / 2})`) as d3.Selection<
-    SVGGElement,
-    unknown,
-    null,
-    undefined
-  >;
+    .attr('transform', `translate(${width / 2},${height / 2})`);
 
   drawLegend();
 
   partition_layout = d3.partition<IEvent>().size([2 * Math.PI, radius * radius]);
 
   arc = d3
-    .arc<ArcObject>()
-    .startAngle((d: ArcObject) => d.x0)
-    .endAngle((d: ArcObject) => d.x1)
-    .innerRadius((d: ArcObject) => Math.sqrt(d.y0))
-    .outerRadius((d: ArcObject) => Math.sqrt(d.y1));
+    .arc<d3.HierarchyRectangularNode<IEvent>>()
+    .startAngle((d) => d.x0)
+    .endAngle((d) => d.x1)
+    .innerRadius((d) => Math.sqrt(d.y0))
+    .outerRadius((d) => Math.sqrt(d.y1));
 }
 
 // Main function to draw and set up the visualization, once we have the data.
@@ -222,7 +218,8 @@ function update(
   // Basic setup of page elements.
   initializeBreadcrumbTrail();
 
-  el.querySelector('#container').innerHTML = '';
+  const container = el.querySelector('#container');
+  if (container) container.innerHTML = '';
 
   // Bounding circle underneath the sunburst, to make it easier to detect
   // when the mouse leaves the parent g.

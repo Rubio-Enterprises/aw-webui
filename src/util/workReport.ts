@@ -95,6 +95,7 @@ export function buildWorkReportQuery(
   let query = '';
   for (let hi = 0; hi < hosts.length; hi++) {
     const bucketIds = hosts[hi];
+    if (bucketIds === undefined) continue;
     query += `
             events_${hi} = flood(query_bucket(${JSON.stringify(bucketIds.window)}));
             not_afk_${hi} = flood(query_bucket(${JSON.stringify(bucketIds.afk)}));
@@ -136,7 +137,8 @@ export function summarizeWorkSessions(
   events: { timestamp: string; duration: number }[],
   breakTimeSeconds: number,
 ): WorkSessionSummary {
-  if (!events || events.length === 0) return { bridgedSeconds: 0, sessions: 0 };
+  const [earliestEvent] = events ?? [];
+  if (!events || earliestEvent === undefined) return { bridgedSeconds: 0, sessions: 0 };
 
   const sorted = [...events].sort(
     (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
@@ -145,16 +147,17 @@ export function summarizeWorkSessions(
   let sessions = 1;
   // Track the latest end so far, so an event nested inside a longer one
   // doesn't make the following gap look bigger than it is.
-  let sessionEnd = new Date(sorted[0].timestamp).getTime() + sorted[0].duration * 1000;
-  for (let i = 1; i < sorted.length; i++) {
-    const start = new Date(sorted[i].timestamp).getTime();
+  const [firstEvent = earliestEvent] = sorted;
+  let sessionEnd = new Date(firstEvent.timestamp).getTime() + firstEvent.duration * 1000;
+  for (const event of sorted.slice(1)) {
+    const start = new Date(event.timestamp).getTime();
     const gap = (start - sessionEnd) / 1000;
     if (gap > breakTimeSeconds) {
       sessions++;
     } else if (gap > 0) {
       bridgedSeconds += gap;
     }
-    sessionEnd = Math.max(sessionEnd, start + sorted[i].duration * 1000);
+    sessionEnd = Math.max(sessionEnd, start + event.duration * 1000);
   }
   return { bridgedSeconds, sessions };
 }
