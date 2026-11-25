@@ -113,7 +113,7 @@ import {
   format_date_short,
   format_date_with_weekday,
 } from '~/util/time';
-import { buildBarchartDataset, groupDaysIntoWeeks } from '~/util/datasets';
+import { buildBarchartDataset, groupDaysIntoWeeks, type HourlyData } from '~/util/datasets';
 import { canonicalEvents, querystr_to_array } from '~/queries';
 import { getClient } from '~/util/awclient';
 import { useBucketsStore } from '~/stores/buckets';
@@ -153,7 +153,7 @@ export default defineComponent({
       refreshGeneration: 0,
 
       // Per-day events for the current period (used for the barchart).
-      byPeriod: null as Record<string, any> | null,
+      byPeriod: null as Record<string, HourlyData> | null,
 
       // Per-category totals for current and previous periods.
       currentTotals: {} as CategoryTotals,
@@ -164,16 +164,16 @@ export default defineComponent({
   computed: {
     periodOptions(): { value: number; text: string }[] {
       return [
-        { value: 7, text: this.$t('ui.trends.period7d') },
-        { value: 30, text: this.$t('ui.trends.period30d') },
-        { value: 90, text: this.$t('ui.trends.period90d') },
+        { value: 7, text: this.$t('ui.trends.period7d') as string },
+        { value: 30, text: this.$t('ui.trends.period30d') as string },
+        { value: 90, text: this.$t('ui.trends.period90d') as string },
       ];
     },
 
     groupByOptions(): { value: string; text: string }[] {
       return [
-        { value: 'day', text: this.$t('ui.trends.groupByDay') },
-        { value: 'week', text: this.$t('ui.trends.groupByWeek') },
+        { value: 'day', text: this.$t('ui.trends.groupByDay') as string },
+        { value: 'week', text: this.$t('ui.trends.groupByWeek') as string },
       ];
     },
 
@@ -299,17 +299,17 @@ export default defineComponent({
       if (!this.byPeriod) return null;
       let best: { label: string; duration: number } | null = null;
       for (const [period, entry] of Object.entries(this.byPeriod)) {
-        const evts: any[] = (entry as any)?.cat_events || [];
+        const evts = entry?.cat_events || [];
         const total = evts.reduce((a, e) => a + (e.duration || 0), 0);
         if (!best || total > best.duration) {
-          const start = period.split('/')[0];
+          const start = period.split('/')[0] ?? '';
           best = { label: format_date_with_weekday(new Date(start)), duration: total };
         }
       }
       return best && best.duration > 0 ? best : null;
     },
 
-    datasets(): any {
+    datasets(): ReturnType<typeof buildBarchartDataset> | null {
       if (this.loading) return [];
       if (!this.byPeriod) return null;
       const source = this.groupBy === 'week' && this.weekly ? this.weekly.byWeek : this.byPeriod;
@@ -374,7 +374,7 @@ export default defineComponent({
 
     formatDelta(current: number, previous: number): string {
       const delta = current - previous;
-      if (previous === 0) return delta > 0 ? this.$t('ui.trends.new') : '0';
+      if (previous === 0) return delta > 0 ? this.$t('ui.trends.new') as string : '0';
       const pct = (delta / previous) * 100;
       const sign = delta >= 0 ? '+' : '';
       return `${sign}${pct.toFixed(0)}%`;
