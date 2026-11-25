@@ -1,6 +1,7 @@
 import { createTestingPinia } from '@pinia/testing';
 import { shallowMount } from '@vue/test-utils';
 import NewReleaseNotification from '~/components/NewReleaseNotification.vue';
+import { useSettingsStore } from '~/stores/settings';
 import { createClient } from '~/util/awclient';
 import { withVm } from '../helpers/vue';
 
@@ -44,5 +45,27 @@ describe('hasNewRelease method', () => {
     // vm.currentVersion = vm.cleanVersionTag('v0.8.0b1');
     // vm.latestVersion = vm.cleanVersionTag('v0.9.2');
     // expect(vm.getHasNewRelease()).toBe(true);
+  });
+});
+
+describe('disabling the release check (strict-typing regression)', () => {
+  test('hides the reminder, shows the follow-up and saves the setting', async () => {
+    createTestingPinia();
+    const settingsStore = useSettingsStore();
+    const { vm } = withVm<{
+      isVisible: boolean;
+      isFollowUpVisible: boolean;
+      disableCheck: () => Promise<void> | void;
+    }>(shallowMount(NewReleaseNotification));
+    vm.isVisible = true;
+
+    // The handler used to call a saveData() method that no longer exists
+    await vm.disableCheck();
+
+    expect(vm.isVisible).toBe(false);
+    expect(vm.isFollowUpVisible).toBe(true);
+    expect(settingsStore.update).toHaveBeenCalledWith({
+      newReleaseCheckData: expect.objectContaining({ isEnabled: false }),
+    });
   });
 });
