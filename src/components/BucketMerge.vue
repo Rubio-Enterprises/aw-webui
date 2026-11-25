@@ -42,16 +42,18 @@ div
 import { defineComponent } from 'vue';
 import { getClient } from '~/util/awclient';
 import { overlappingEvents } from '~/util/transforms';
+import type { IEvent } from '~/util/interfaces';
+import type { IEvent as AWEvent } from 'aw-client';
 
 export default defineComponent({
   name: 'aw-bucket-merge',
   data() {
     return {
-      buckets: [],
-      bucket_from: null,
-      bucket_to: null,
-      events_from: null,
-      events_to: null,
+      buckets: [] as { value: string; text: string }[],
+      bucket_from: null as string | null,
+      bucket_to: null as string | null,
+      events_from: null as IEvent[] | null,
+      events_to: null as IEvent[] | null,
     };
   },
   computed: {
@@ -70,11 +72,11 @@ export default defineComponent({
     },
   },
   watch: {
-    bucket_from: async function (new_bucket_id) {
-      this.events_from = await this.getEvents(new_bucket_id);
+    bucket_from: async function (new_bucket_id: string | null) {
+      this.events_from = new_bucket_id === null ? null : await this.getEvents(new_bucket_id);
     },
-    bucket_to: async function (new_bucket_id) {
-      this.events_to = await this.getEvents(new_bucket_id);
+    bucket_to: async function (new_bucket_id: string | null) {
+      this.events_to = new_bucket_id === null ? null : await this.getEvents(new_bucket_id);
     },
   },
   mounted() {
@@ -85,7 +87,10 @@ export default defineComponent({
       const client = getClient();
       const events = this.events_from;
       const bucket_id = this.bucket_to;
-      const result = await client.insertEvents(bucket_id, events);
+      // The merge button is only enabled once both buckets are chosen and loaded
+      if (bucket_id === null || events === null) throw new Error('Choose both buckets to merge');
+      // The events came from the JSON API, whose timestamps are strings.
+      const result = await client.insertEvents(bucket_id, events as unknown as AWEvent[]);
       console.log('result', result);
     },
     getBuckets: async function () {
@@ -95,9 +100,10 @@ export default defineComponent({
         return { value: bucket_id, text: bucket_id };
       });
     },
-    getEvents: async function (bucket_id) {
+    getEvents: async function (bucket_id: string): Promise<IEvent[]> {
       const client = getClient();
-      return await client.getEvents(bucket_id);
+      // aw-client types event timestamps as Date, but the JSON response carries ISO strings.
+      return (await client.getEvents(bucket_id)) as unknown as IEvent[];
     },
   },
 });

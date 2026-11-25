@@ -133,7 +133,11 @@ export default defineComponent({
         // Android buckets so Android-only hosts are not offered: aw-watcher-android
         // uses the same 'currentwindow' type but its events would be intersected
         // with a desktop AFK bucket, yielding wrong or empty results.
-        if (b.type === 'currentwindow' && !b.id.startsWith('aw-watcher-android')) {
+        if (
+          b.type === 'currentwindow' &&
+          b.hostname !== undefined &&
+          !b.id.startsWith('aw-watcher-android')
+        ) {
           hosts.add(b.hostname);
         }
       }
@@ -166,8 +170,9 @@ export default defineComponent({
   async mounted() {
     await this.bucketsStore.ensureLoaded();
     await this.categoryStore.load();
-    if (this.hostOptions.length > 0 && !this.selectedHost) {
-      this.selectedHost = this.hostOptions[0].value;
+    const [firstHost] = this.hostOptions;
+    if (firstHost && !this.selectedHost) {
+      this.selectedHost = firstHost.value;
     }
     if (!this.model) {
       this.model = this.defaultModel;
@@ -197,11 +202,11 @@ export default defineComponent({
       this.aggregatedText = '';
 
       if (!this.selectedHost) {
-        this.error = this.$t('ui.aiSummary.noHost');
+        this.error = this.$t('ui.aiSummary.noHost') as string;
         return;
       }
       if (!this.apiKey.trim()) {
-        this.error = this.$t('ui.aiSummary.apiKeyRequired');
+        this.error = this.$t('ui.aiSummary.apiKeyRequired') as string;
         return;
       }
 
@@ -304,7 +309,7 @@ export default defineComponent({
           this.copied = false;
         }, 2000);
       } catch {
-        this.error = this.$t('ui.aiSummary.copyError');
+        this.error = this.$t('ui.aiSummary.copyError') as string;
       }
     },
   },
