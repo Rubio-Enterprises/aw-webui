@@ -1,5 +1,6 @@
 import { createTestingPinia } from '@pinia/testing';
 import { shallowMount } from '@vue/test-utils';
+import moment from 'moment';
 import NewReleaseNotification from '~/components/NewReleaseNotification.vue';
 import { useSettingsStore } from '~/stores/settings';
 import { createClient } from '~/util/awclient';
@@ -67,5 +68,32 @@ describe('disabling the release check (strict-typing regression)', () => {
     expect(settingsStore.update).toHaveBeenCalledWith({
       newReleaseCheckData: expect.objectContaining({ isEnabled: false }),
     });
+  });
+});
+
+describe('getReleaseIsReady (strict-typing regression)', () => {
+  function mountWithRelease(daysOld: number) {
+    createTestingPinia();
+    const { vm } = withVm<{
+      latestVersionDate: moment.Moment | null;
+      getReleaseIsReady: () => boolean;
+    }>(shallowMount(NewReleaseNotification));
+    vm.latestVersionDate = moment().subtract(daysOld, 'days');
+    return vm;
+  }
+
+  test('a release older than a week stays ready however often it is checked', () => {
+    const vm = mountWithRelease(8);
+
+    // The check used to add 7 days to the stored date each time it ran, so the
+    // second call saw a release dated in the future and answered false
+    expect(vm.getReleaseIsReady()).toBe(true);
+    expect(vm.getReleaseIsReady()).toBe(true);
+  });
+
+  test('a release younger than a week is not ready', () => {
+    const vm = mountWithRelease(3);
+
+    expect(vm.getReleaseIsReady()).toBe(false);
   });
 });
