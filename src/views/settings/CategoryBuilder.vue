@@ -131,11 +131,21 @@ import { useBucketsStore } from '~/stores/buckets';
 import { useSettingsStore } from '~/stores/settings';
 
 import { canonicalEvents } from '~/queries';
+import type { AndroidQueryParams, DesktopQueryParams } from '~/queries';
+import type { IEvent } from '~/util/interfaces';
 import { getClient } from '~/util/awclient';
 import CategoryEditModal from '~/components/CategoryEditModal.vue';
 import { isRegexBroad, validateRegex } from '~/util/validate';
 import { findCommonPhrases } from '~/util/categorization';
+import type { WordEntry } from '~/util/categorization';
 import { categoryBuilderHostnameEmptyKind, selectSoleKnownHostname } from '~/util/hostnames';
+
+// The word whose events are shown and the events (grouped by data); empty when hidden
+type ShownEvents = [word?: WordEntry, events?: IEvent[]];
+
+type BucketParams =
+  | Pick<DesktopQueryParams, 'bid_window' | 'bid_afk' | 'filter_afk'>
+  | Pick<AndroidQueryParams, 'bid_android' | 'isIos'>;
 
 export default defineComponent({
   name: 'CategoryBuilder',
@@ -144,11 +154,11 @@ export default defineComponent({
     const categoryStore = useCategoryStore();
     if (categoryStore.classes_unsaved_changes) {
       const confirmed = await this.$bvModal.msgBoxConfirm(
-        this.$t('settings.unsavedCategoriesLeave'),
+        this.$t('settings.unsavedCategoriesLeave') as string,
         {
-          title: this.$t('settings.unsavedCategoriesLeaveTitle'),
-          okTitle: this.$t('settings.unsavedCategoriesLeaveOk'),
-          cancelTitle: this.$t('settings.unsavedCategoriesLeaveCancel'),
+          title: this.$t('settings.unsavedCategoriesLeaveTitle') as string,
+          okTitle: this.$t('settings.unsavedCategoriesLeaveOk') as string,
+          cancelTitle: this.$t('settings.unsavedCategoriesLeaveCancel') as string,
           centered: true,
         }
       );
@@ -195,18 +205,22 @@ export default defineComponent({
       // TODO: Support inspecting a different category than Uncategorized (e.g. to make some category more precise)
       category: ['Uncategorized'],
 
-      words: new Map(),
-      showing_events: [],
+      words: new Map<string, WordEntry>(),
+      showing_events: [] as ShownEvents,
+
+      // Not reactive: the ignored-words save queue (see persistIgnoredWords)
+      _pending_ignored: null as string[] | null,
+      _persist_queue: null as Promise<unknown> | null,
 
       show_ignored: false,
 
       append: {
         word: '',
-        category: [],
+        category: [] as string[],
       },
       create: {
         word: '',
-        categoryId: null,
+        categoryId: null as number | null,
       },
     };
   },
@@ -263,14 +277,15 @@ export default defineComponent({
     this.requestId++;
   },
   methods: {
-    beforeUnload(e: BeforeUnloadEvent) {
+    beforeUnload(e: BeforeUnloadEvent): string | undefined {
       if (this.classes_unsaved_changes) {
-        const msg = this.$t('settings.unsavedCategoriesLeave');
+        const msg = this.$t('settings.unsavedCategoriesLeave') as string;
         e = e || window.event;
         e.preventDefault();
         e.returnValue = msg;
         return msg;
       }
+      return undefined;
     },
     async fetchWords() {
       const requestId = ++this.requestId;
@@ -303,13 +318,13 @@ export default defineComponent({
         const afkBuckets = bucketsStore.bucketsAFK(options.hostname);
         const windowAvail = windowBuckets.length > 0 && afkBuckets.length > 0;
         const androidBuckets = bucketsStore.bucketsAndroid(options.hostname);
-        let bucketParams;
+        let bucketParams: BucketParams;
         if (windowAvail) {
           bucketParams = {
             ...bucketsStore.desktopBucketIds(options.hostname),
             filter_afk: options.filter_afk,
           };
-        } else if (androidBuckets.length > 0) {
+        } else if (androidBuckets[0] !== undefined) {
           const screentimeBucket = androidBuckets.find(id => id.startsWith('aw-import-screentime'));
           bucketParams = {
             bid_android: screentimeBucket || androidBuckets[0],
@@ -344,29 +359,31 @@ export default defineComponent({
         if (requestId === this.requestId) this.loading = false;
       }
     },
-    showEvents(word) {
+    showEvents(word: WordEntry) {
       // If already showing events, hide them and return
       if (this.showing_events[0] == word) {
         this.showing_events = [];
         return;
       }
       // TODO: Group events by data
-      const grouped_events = {};
+      const grouped_events: Record<string, IEvent[]> = {};
       for (const event of word.events) {
         const key = JSON.stringify(event.data);
-        if (key in grouped_events) {
-          grouped_events[key].push(event);
+        const group = grouped_events[key];
+        if (group) {
+          group.push(event);
         } else {
           grouped_events[key] = [event];
         }
       }
 
       // Construct a new array of events with the grouped events
-      const events = [];
-      for (const key in grouped_events) {
-        const events_group = grouped_events[key];
+      const events: IEvent[] = [];
+      for (const events_group of Object.values(grouped_events)) {
+        const [first] = events_group;
+        if (!first) continue;
         const new_event = {
-          ...events_group[0],
+          ...first,
           duration: 0,
         };
         for (const event of events_group) {
@@ -386,9 +403,9 @@ export default defineComponent({
       this._pending_ignored = next;
       this._persist_queue = (this._persist_queue || Promise.resolve())
         // A failed save was already reported to its own caller; don't poison the queue.
-        .catch(e => console.warn('Previous ignored-words save failed', e))
+        .catch((e: unknown) => console.warn('Previous ignored-words save failed', e))
         .then(() =>
-          this.settingsStore.update({ category_builder_ignored_words: this._pending_ignored })
+          this.settingsStore.update({ category_builder_ignored_words: this._pending_ignored ?? next })
         );
       const queued = this._persist_queue;
       try {
@@ -406,7 +423,7 @@ export default defineComponent({
     },
     async unignoreWord(word: string) {
       const current = this._pending_ignored || this.ignored_words;
-      await this.persistIgnoredWords(current.filter(w => w !== word));
+      await this.persistIgnoredWords(current.filter((w: string) => w !== word));
       // findCommonPhrases skipped the word, so it needs a refetch to reappear.
       await this.fetchWords();
     },
@@ -434,7 +451,7 @@ export default defineComponent({
       this.create.categoryId = null;
       this.categoryStore.load(); // Restore categories to last saved
     },
-    appendRule(word) {
+    appendRule(word: string) {
       console.log('Opening modal to append rule with word: ' + word);
       this.append.word = _.escapeRegExp(word);
       this.$bvModal.show('appendRule');
@@ -442,18 +459,19 @@ export default defineComponent({
     async appendRuleOk() {
       console.log('Appending rule with word: ' + this.append.word);
       const cat = this.categoryStore.get_category(this.append.category);
+      if (cat.id === undefined) throw new Error('Cannot append a rule to a category without an id');
       this.categoryStore.appendClassRule(cat.id, this.append.word);
       await this.categoryStore.save();
       this.fetchWords();
     },
-    handleOk(bvModalEvent) {
+    handleOk(bvModalEvent: Event) {
       // Prevent modal from closing (to be closed later in handleSubmit, if validation passes)
       bvModalEvent.preventDefault();
 
       // Trigger submit handler
       this.handleSubmit(bvModalEvent);
     },
-    handleSubmit(e) {
+    handleSubmit(e: Event) {
       // Exit when the form isn't valid
       if (!this.valid) {
         //console.log(e);
