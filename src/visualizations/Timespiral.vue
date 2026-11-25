@@ -4,7 +4,7 @@ div
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
+import { defineComponent, type PropType } from 'vue';
 // This component renders an interactive "timespiral" where each turn of the "loop" is a 24h day.
 // The spiral can be zoomed in/out, to display different days.
 // Somewhat inspired by Apple's Time Machine UI.
@@ -17,7 +17,10 @@ import { defineComponent } from 'vue';
 import * as d3 from 'd3';
 import { PieArcDatum } from 'd3-shape';
 import moment from 'moment';
-import { IEvent } from '~/util/interfaces';
+import type { IEvent } from '~/util/interfaces';
+
+// An event with the angles of its arc on the spiral
+type SpiralEvent = IEvent & { startAngle: number; endAngle: number };
 
 function split_events_on_hours(events: IEvent[]): IEvent[] {
   // Takes a list of events, finds events that crosses hour-boundaries (e.g. 01:00, or 23:00)
@@ -92,12 +95,12 @@ function split_events_on_hours(events: IEvent[]): IEvent[] {
 
 export default defineComponent({
   name: 'Timespiral',
-  props: { events: { type: Array, default: () => [] } },
+  props: { events: { type: Array as PropType<IEvent[]>, default: () => [] } },
   data() {
-    return {};
+    return { resizeObserver: null as ResizeObserver | null };
   },
   computed: {
-    split_on_hour() {
+    split_on_hour(): IEvent[] {
       if (this.events && this.events.length > 0) {
         return split_events_on_hours(this.events);
       } else {
@@ -114,12 +117,16 @@ export default defineComponent({
     this.renderChart();
     // Keep the label size in step with the rendered width (e.g. window resize).
     if (typeof ResizeObserver !== 'undefined') {
-      this.resizeObserver = new ResizeObserver(() => this.updateTextScale());
-      this.resizeObserver.observe(this.$el.querySelector('svg#timespiral'));
+      const svg = this.$el.querySelector('svg#timespiral');
+      if (svg) {
+        const observer = new ResizeObserver(() => this.updateTextScale());
+        this.resizeObserver = observer;
+        observer.observe(svg);
+      }
     }
   },
   beforeDestroy() {
-    this.resizeObserver && this.resizeObserver.disconnect();
+    this.resizeObserver?.disconnect();
   },
   updated() {
     this.renderChart();
@@ -143,7 +150,13 @@ export default defineComponent({
       if (this.events.length == 0) return;
 
       // Gets a deepcopy of events
-      let events = this.split_on_hour;
+      // The arc angles are filled in below
+      let events: SpiralEvent[] = this.split_on_hour.map(e => ({ ...e, startAngle: 0, endAngle: 0 }));
+      const eventAt = (i: number): SpiralEvent => {
+        const e = events[i];
+        if (!e) throw new Error(`No event at index ${i}`);
+        return e;
+      };
 
       // Constants
       const height = 600;
@@ -236,7 +249,7 @@ export default defineComponent({
 
       // Computes the radius and spiral thickness for a particular event.
       // Each inner spiral (previous day) should get progressively thinner.
-      function spiralThickness(timestamp: Date, staggered = false): [number, number] {
+      function spiralThickness(timestamp: Date | string, staggered = false): [number, number] {
         const hourstart = staggered
           ? moment(timestamp).startOf('hour').valueOf()
           : moment(timestamp).valueOf();
@@ -247,17 +260,17 @@ export default defineComponent({
         .arc<PieArcDatum<number>>()
         // Compute the radius of each event, rounded to the hour in which the event occurs.
         .innerRadius(d => {
-          const [radius, thick] = spiralThickness(events[d.data].timestamp, true);
+          const [radius, thick] = spiralThickness(eventAt(d.data).timestamp, true);
           return radius - thick / 2;
         })
         .outerRadius(d => {
-          const [radius, thick] = spiralThickness(events[d.data].timestamp, true);
+          const [radius, thick] = spiralThickness(eventAt(d.data).timestamp, true);
           return radius + thick / 2;
         })
         // Makes corners round and pretty
         .cornerRadius(2);
 
-      events.forEach((e: IEvent & { startAngle: number; endAngle: number }, i) => {
+      events.forEach((e, i) => {
         // TODO: Draw as polygon-segments instead?
         // Would give us control of start/end points so we can make them align prettily.
         const gradientArcs = d3
@@ -288,10 +301,10 @@ export default defineComponent({
         // Append the arc
         // TODO: Rotate arcs slightly so that arc ends are facing each other (is this even possible)
         g.append('g')
-          .selectAll('path')
+          .selectAll<SVGPathElement, PieArcDatum<number>>('path')
           .data(gradientArcs)
           .join('path')
-          .attr('d', arcGen as any)
+          .attr('d', arcGen)
           .attr('stroke', 'none')
           // NOTE: Attempted rotation around a pivot point, doesn't work
           //.attr('transform', `rotate(-5 ${x} ${y})`)
@@ -305,7 +318,7 @@ export default defineComponent({
 
       // Draw clock ticks
       // Modified from sunburst-clock.js
-      function drawClockTick(group, a, radius, inner = false) {
+      function drawClockTick(group: typeof g, a: number, radius: number, inner = false) {
         const xn = Math.cos(a);
         const yn = Math.sin(a);
 
@@ -333,7 +346,14 @@ export default defineComponent({
             .style('stroke-width', 2);
       }
 
-      function drawClock(group, h, m, text, radius, inner = false) {
+      function drawClock(
+        group: typeof g,
+        h: number,
+        m: number,
+        text: string,
+        radius: number,
+        inner = false
+      ) {
         const a = 2 * Math.PI * (h / 24 + m / 24 / 60) - (1 / 2) * Math.PI;
         drawClockTick(g, a, radius, inner);
 
@@ -370,7 +390,7 @@ export default defineComponent({
       // Draw date labels
       // We want to draw date-labels at the start of the spiral for each day (at 00:00)
 
-      function drawDate(group, date) {
+      function drawDate(group: typeof g, date: Date) {
         const radius = yScale(moment(date).add(8, 'hours'));
         const radius_next_quad = yScale(moment(date).add(14, 'hours'));
         const radius_diff = (radius_next_quad - radius) / 4;
@@ -407,9 +427,9 @@ export default defineComponent({
 
       // From: https://stackoverflow.com/a/49097025/965332
       // Might serve as a base for later improvements
-      function makeSpiral(group, quarterTurns) {
+      function makeSpiral(group: typeof g, quarterTurns: number) {
         const pointsPerQuarter = 90;
-        const points = [];
+        const points: number[] = [];
 
         for (let i = 0; i < quarterTurns * pointsPerQuarter; i++) {
           const angle = (i * Math.PI) / 2 / pointsPerQuarter;

@@ -16,6 +16,7 @@ div
 
 <script lang="ts">
 import { defineComponent } from 'vue';
+import type { IEvent } from '~/util/interfaces';
 import { useBucketsStore } from '~/stores/buckets';
 import Timespiral from '~/visualizations/Timespiral.vue';
 
@@ -26,19 +27,20 @@ export default defineComponent({
   },
   data() {
     return {
-      events: [],
+      events: [] as IEvent[],
       bucketId: '',
     };
   },
   async mounted() {
     const bucketStore = useBucketsStore();
     await bucketStore.ensureLoaded();
-    const buckets = bucketStore.bucketsAFK(bucketStore.hosts[0]);
-    if (buckets.length == 0) {
+    const [firstHost] = bucketStore.hosts;
+    const [afkBucket] = firstHost === undefined ? [] : bucketStore.bucketsAFK(firstHost);
+    if (afkBucket === undefined) {
       console.warn("Couldn't find suitable bucket");
       return;
     }
-    this.bucketId = buckets[0];
+    this.bucketId = afkBucket;
 
     // Show the last week by default. Previously hard-coded to 2022-08-08
     // which left most users staring at an empty chart.
@@ -48,15 +50,9 @@ export default defineComponent({
       id: this.bucketId,
       start,
     });
-    this.events = bucket.events;
+    this.events = bucket.events ?? [];
     console.log('Retrieved events:', this.events);
     console.log('First/last event:', this.events[0], this.events[this.events.length - 1]);
-  },
-  methods: {
-    onEventClick(event) {
-      this.$store.commit('setSelectedEvent', event);
-      this.$router.push({ name: 'EventView' });
-    },
   },
 });
 </script>
