@@ -227,8 +227,8 @@ export default defineComponent({
           fullPrompt
         );
         this.llmResponse = response;
-      } catch (err: any) {
-        this.error = err?.message || String(err);
+      } catch (err) {
+        this.error = (err as { message?: string } | undefined)?.message || String(err);
       } finally {
         this.loading = false;
       }

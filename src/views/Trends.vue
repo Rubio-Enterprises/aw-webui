@@ -116,6 +116,7 @@ import {
 import { buildBarchartDataset, groupDaysIntoWeeks, type HourlyData } from '~/util/datasets';
 import { canonicalEvents, querystr_to_array } from '~/queries';
 import { getClient } from '~/util/awclient';
+import type { IEvent } from '~/util/interfaces';
 import { useBucketsStore } from '~/stores/buckets';
 import { useCategoryStore } from '~/stores/categories';
 import { useSettingsStore } from '~/stores/settings';
@@ -177,7 +178,7 @@ export default defineComponent({
       ];
     },
 
-    weekly(): { firstWeekStart: string | null; byWeek: Record<string, any> } | null {
+    weekly(): { firstWeekStart: string | null; byWeek: Record<string, HourlyData> } | null {
       if (!this.byPeriod) return null;
       return groupDaysIntoWeeks(this.byPeriod, this.settingsStore.startOfWeek);
     },
@@ -450,10 +451,10 @@ export default defineComponent({
       start: moment.Moment,
       end: moment.Moment,
       isCurrent: () => boolean = () => true
-    ): Promise<{ byPeriod: Record<string, any>; totals: CategoryTotals }> {
+    ): Promise<{ byPeriod: Record<string, HourlyData>; totals: CategoryTotals }> {
       const periods = this.dayPeriods(start, end);
       const query = this.buildCategoryQuery(host);
-      const results: any[] = [];
+      const results: { cat_events?: IEvent[] }[] = [];
       for (const period of periods) {
         const r = await getClient().query([period], query, { name: 'trendsByDay', verbose: true });
         results.push(r[0]);
@@ -461,7 +462,7 @@ export default defineComponent({
         // stop spending day queries on a response that will be discarded.
         if (!isCurrent()) break;
       }
-      const byPeriod: Record<string, any> = {};
+      const byPeriod: Record<string, HourlyData> = {};
       const totals: CategoryTotals = {};
       periods.forEach((p, i) => {
         const events = (results[i] && results[i].cat_events) || [];
