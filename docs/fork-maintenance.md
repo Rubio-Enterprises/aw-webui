@@ -22,15 +22,16 @@ its committed media files and `just setup`; `just package` invokes
 
 Run `just build-dev`, then `just setup` before local hooks. Setup installs locked
 project dependencies into named volumes and installs thin container-dispatch hooks.
-The base image supplies the Checks; the repository supplies the locked ESLint that
-its Lefthook jobs call. The central Standards Check and Test Gate run the same
-Lifecycle Scripts in CI.
+The base image supplies the Checks, including Biome for JavaScript, TypeScript
+and JSON. The shared Biome hook does not select Vue single-file components, so
+their script, Pug and style blocks are not linted or formatted. The central
+Standards Check and Test Gate use the same tooling in CI.
 
 ## Onboarding validation limitation
 
 The owner explicitly deferred the legacy upstream server-integration/TestCafe
 matrix during onboarding. Canonical gates currently cover Jest without external
-servers, locales, TypeScript, ESLint and both Webpack/Vite builds. The 30
+servers, locales, TypeScript, Biome and both Webpack/Vite builds. The 30
 server-backed Jest tests remain skipped without `AW_QUERY_TEST_SERVER_URL`;
 TestCafe's browser/server matrix is not run. These are known coverage gaps, not
 proof of server interoperability. Porting that matrix is follow-up work using
