@@ -8,14 +8,21 @@ div
 <script lang="ts">
 import { defineComponent } from 'vue';
 // Based on: https://medium.com/@dillonchanis/handling-errors-in-vue-with-error-boundaries-91f6ead0093b
+// An error as aw-client (axios) raises it: request failures carry a code and the server response
+type CapturedError = Error & {
+  code?: string;
+  response?: { data?: { message?: string } };
+};
+
 export default defineComponent({
   name: 'ErrorBoundary',
   data() {
     return {
-      errors: [],
+      errors: [] as { msg: string | Error; time: string; dismissed: boolean }[],
     };
   },
-  errorCaptured(err, _vm, _info) {
+  errorCaptured(error, _vm, _info) {
+    const err = error as CapturedError;
     // console.error("Error captured!");
     // console.error(err, vm, info);
 
@@ -25,7 +32,7 @@ export default defineComponent({
     }
 
     // fallback
-    let msg = err;
+    let msg: string | Error = err;
     // use server error response if available; err.isAxiosError doesn't help much here…
     if (err.response && err.response.data && err.response.data.message) {
       msg = err.response.data.message;
