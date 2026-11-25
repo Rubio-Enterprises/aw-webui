@@ -46,8 +46,9 @@ export interface Category {
   rule: Rule;
   data?: {
     [key: string]: unknown;
-    color?: string;
-    score?: number;
+    // null: cleared in the editor. score is a string when typed into the editor's input.
+    color?: string | null;
+    score?: number | string | null;
     private?: boolean;
   };
   depth?: number;

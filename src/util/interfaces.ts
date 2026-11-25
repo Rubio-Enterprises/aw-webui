@@ -29,6 +29,8 @@ export interface IBucket {
   id: string;
   hostname?: string;
   device_id?: string;
+  // The watcher that created the bucket (e.g. aw-watcher-window)
+  client?: string;
   type: string;
   data: {
     [key: string]: unknown;

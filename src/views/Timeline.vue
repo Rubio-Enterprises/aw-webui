@@ -112,6 +112,7 @@ div
 
 <script lang="ts">
 import { defineComponent } from 'vue';
+import type { Moment } from 'moment';
 import 'vue-awesome/icons/filter';
 import 'vue-awesome/icons/ellipsis-v';
 import _ from 'lodash';
@@ -123,6 +124,7 @@ import { canonicalEvents, querystr_to_array } from '~/queries';
 import { useCategoryStore } from '~/stores/categories';
 import { matchString } from '~/util/classes';
 import { getCategorizationStringFromEvent } from '~/util/color';
+import type { IBucket, IEvent } from '~/util/interfaces';
 import { seconds_to_duration } from '~/util/time';
 import { categoryTimelineQuery, mergeCategoryIntervals } from '~/util/timelineCategories';
 
@@ -130,23 +132,26 @@ export default defineComponent({
   name: 'Timeline',
   data() {
     return {
-      all_buckets: null,
-      hosts: null,
-      buckets: null,
-      categorizedEvents: [],
+      all_buckets: null as readonly IBucket[] | null,
+      hosts: null as (string | undefined)[] | null,
+      buckets: null as readonly IBucket[] | null,
+      categorizedEvents: [] as IEvent[],
       categoryError: false,
-      clients: null,
+      clients: null as (string | undefined)[] | null,
       fetchSeq: 0,
-      daterange: null,
+      daterange: null as Moment[] | null,
       maxDuration: 31 * 24 * 60 * 60,
-      filter_hostname: null,
-      filter_client: null,
-      filter_duration: null,
+      filter_hostname: null as string | null,
+      filter_client: null as string | null,
+      filter_duration: null as number | null,
       filter_afk: false,
       filter_merge_similar: false,
-      filter_categories: [],
-      swimlane: null,
+      filter_categories: [] as string[][],
+      swimlane: null as string | null,
       updateTimelineWindow: true,
+      // Not reactive: the pending fetch and the range it was started for
+      fetchedRange: null as Moment[] | null,
+      bucketsRequest: null as Promise<IBucket[]> | null,
     };
   },
   computed: {
@@ -166,38 +171,40 @@ export default defineComponent({
       return Number(settingsStore.durationDefault);
     },
     // This does not match the chartData which is rendered in the timeline, as chartData excludes short events.
-    num_events() {
-      return _.sumBy(this.buckets, 'events.length');
+    num_events(): number {
+      return _.sumBy(this.buckets as IBucket[] | null, 'events.length');
     },
     category_options() {
       const categoryStore = useCategoryStore();
       return categoryStore.allCategoriesSelect;
     },
-    filter_summary() {
-      const desc = [];
+    filter_summary(): string {
+      const desc: string[] = [];
       if (this.filter_hostname) {
         desc.push(this.filter_hostname);
       }
       if (this.filter_client) {
         desc.push(this.filter_client);
       }
-      if (this.filter_duration > 0) {
+      if (this.filter_duration !== null && this.filter_duration > 0) {
         desc.push(seconds_to_duration(this.filter_duration));
       }
       if (this.filter_afk) {
-        desc.push(this.$t('ui.timeline.afkFiltered'));
+        desc.push(this.$t('ui.timeline.afkFiltered') as string);
       }
       if (this.filter_merge_similar) {
-        desc.push(this.$t('ui.timeline.mergedByApp'));
+        desc.push(this.$t('ui.timeline.mergedByApp') as string);
       }
       if (this.filter_categories.length > 0) {
-        desc.push(this.$t('ui.timeline.categoriesCount', { count: this.filter_categories.length }));
+        desc.push(
+          this.$t('ui.timeline.categoriesCount', { count: this.filter_categories.length }) as string
+        );
       }
 
       if (desc.length > 0) {
         return desc.join(', ');
       }
-      return this.$t('ui.timeline.none');
+      return this.$t('ui.timeline.none') as string;
     },
   },
   watch: {
@@ -238,16 +245,17 @@ export default defineComponent({
     useCategoryStore().load();
   },
   methods: {
-    onCategorySelect(event) {
-      const text = event.target.value;
+    onCategorySelect(event: Event) {
+      const target = event.target as HTMLSelectElement;
+      const text = target.value;
       if (!text) return;
       const cat = this.category_options.find(c => c.text === text);
-      if (cat && !this.filter_categories.some(fc => _.isEqual(fc, cat.value))) {
+      if (cat?.value && !this.filter_categories.some(fc => _.isEqual(fc, cat.value))) {
         this.filter_categories = [...this.filter_categories, cat.value];
       }
-      event.target.value = '';
+      target.value = '';
     },
-    removeCategory(idx) {
+    removeCategory(idx: number) {
       this.filter_categories = this.filter_categories.filter((_cat, i) => i !== idx);
     },
     // A saved edit changed the server's events, so the cached range is stale.
@@ -261,30 +269,35 @@ export default defineComponent({
       const seq = ++this.fetchSeq;
       // Only refetch when the range changes; filters work on copies below.
       const range = this.daterange;
-      if (this.fetchedRange !== range) {
+      const [rangeStart, rangeEnd] = range;
+      if (!rangeStart || !rangeEnd) return;
+      if (this.fetchedRange !== range || !this.bucketsRequest) {
         this.fetchedRange = range;
-        this.bucketsRequest = useBucketsStore().getBucketsWithEvents({
-          start: range[0].format(),
-          end: range[1].format(),
+        // aw-client types events more narrowly than the store returns them
+        const request: Promise<IBucket[]> = useBucketsStore().getBucketsWithEvents({
+          start: rangeStart.format(),
+          end: rangeEnd.format(),
         });
+        this.bucketsRequest = request;
         // Let the next call retry a failed fetch
-        this.bucketsRequest.catch(() => {
+        request.catch(() => {
           if (this.fetchedRange === range) this.fetchedRange = null;
         });
       }
       const fetched = await this.bucketsRequest;
       // A newer call (range or filter change) took over while this one was loading
       if (seq !== this.fetchSeq) return;
-      this.all_buckets = Object.freeze(fetched);
+      const allBuckets: readonly IBucket[] = Object.freeze(fetched);
+      this.all_buckets = allBuckets;
 
-      this.hosts = this.all_buckets
+      this.hosts = allBuckets
         .map(a => a.hostname)
         .filter((value, index, array) => array.indexOf(value) === index);
-      this.clients = this.all_buckets
+      this.clients = allBuckets
         .map(a => a.client)
         .filter((value, index, array) => array.indexOf(value) === index);
 
-      let buckets = this.all_buckets.map(bucket => ({ ...bucket }));
+      let buckets: IBucket[] = allBuckets.map(bucket => ({ ...bucket }));
       if (this.filter_hostname) {
         buckets = _.filter(buckets, b => b.hostname == this.filter_hostname);
       }
@@ -298,18 +311,19 @@ export default defineComponent({
         events: ReturnType<typeof mergeCategoryIntervals>;
         error: boolean;
       }>;
-      const categoryQuery = categoryTimelineQuery(buckets, this.all_buckets, {
+      const minDuration = this.filter_duration ?? 0;
+      const categoryQuery = categoryTimelineQuery(buckets, [...allBuckets], {
         categories: useCategoryStore().classes_for_query,
         filter_categories: this.filter_categories,
         always_active_pattern: this.always_active_pattern || undefined,
       });
       if (categoryQuery) {
         categoryPromise = getClient()
-          .query([`${this.daterange[0].format()}/${this.daterange[1].format()}`], categoryQuery)
+          .query([`${rangeStart.format()}/${rangeEnd.format()}`], categoryQuery)
           .then(data => {
             let events = mergeCategoryIntervals(data[0] || []);
-            if (this.filter_duration > 0) {
-              events = events.filter(e => e.duration >= this.filter_duration);
+            if (minDuration > 0) {
+              events = events.filter(e => e.duration >= minDuration);
             }
             return { events, error: false };
           })
@@ -321,9 +335,9 @@ export default defineComponent({
         categoryPromise = Promise.resolve({ events: [], error: false });
       }
 
-      if (this.filter_duration > 0) {
+      if (minDuration > 0) {
         for (const bucket of buckets) {
-          bucket.events = _.filter(bucket.events, e => e.duration >= this.filter_duration);
+          bucket.events = _.filter(bucket.events, e => e.duration >= minDuration);
         }
       }
 
@@ -377,7 +391,7 @@ export default defineComponent({
     // Merges adjacent events with the same app name within window buckets.
     // This collapses rapid title changes (e.g. toggling UI panels) into single
     // blocks per app, fixing timeline flooding for apps like Adobe Illustrator.
-    _applyMergeSimilar: function (buckets) {
+    _applyMergeSimilar: function (buckets: IBucket[]): IBucket[] {
       return buckets.map(bucket => {
         if (bucket.type !== 'currentwindow' || !bucket.events || bucket.events.length <= 1) {
           return bucket;
@@ -387,11 +401,12 @@ export default defineComponent({
           (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
         );
 
-        const merged = [];
-        let current = { ...sorted[0] };
+        const [first, ...rest] = sorted;
+        if (!first) return bucket;
+        const merged: IEvent[] = [];
+        let current: IEvent = { ...first };
 
-        for (let i = 1; i < sorted.length; i++) {
-          const next = sorted[i];
+        for (const next of rest) {
           const currentEnd = new Date(current.timestamp).getTime() + current.duration * 1000;
           const nextStart = new Date(next.timestamp).getTime();
           const gap = nextStart - currentEnd;
@@ -414,9 +429,9 @@ export default defineComponent({
 
     // Replaces raw window bucket events with AFK-filtered events via aw query engine.
     // Also hides AFK status buckets since they're used for filtering, not display.
-    _applyAfkFilter: async function (buckets) {
+    _applyAfkFilter: async function (buckets: IBucket[]): Promise<IBucket[]> {
       const bucketsStore = useBucketsStore();
-      const result = [];
+      const result: IBucket[] = [];
 
       for (const bucket of buckets) {
         // Hide AFK status buckets when AFK filtering is active
@@ -426,10 +441,10 @@ export default defineComponent({
 
         // For window buckets, replace events with AFK-filtered query results
         if (bucket.type === 'currentwindow' && bucket.hostname) {
-          const afkBucketIds = bucketsStore.bucketsAFK(bucket.hostname);
-          if (afkBucketIds.length > 0) {
+          const [afkBucketId] = bucketsStore.bucketsAFK(bucket.hostname);
+          if (afkBucketId !== undefined) {
             try {
-              const filteredEvents = await this._queryAfkFilteredEvents(bucket.id, afkBucketIds[0]);
+              const filteredEvents = await this._queryAfkFilteredEvents(bucket.id, afkBucketId);
               // Create a copy with filtered events to avoid mutating frozen all_buckets
               result.push({ ...bucket, events: filteredEvents });
               continue;
@@ -448,7 +463,10 @@ export default defineComponent({
 
     // Runs a canonicalEvents query to get window events filtered by AFK status,
     // respecting the user's always_active_pattern setting.
-    _queryAfkFilteredEvents: async function (windowBucketId, afkBucketId) {
+    _queryAfkFilteredEvents: async function (
+      windowBucketId: string,
+      afkBucketId: string
+    ): Promise<IEvent[]> {
       const queryCode =
         canonicalEvents({
           bid_window: windowBucketId,
@@ -461,9 +479,9 @@ export default defineComponent({
 
       const queryArray = querystr_to_array(queryCode);
 
-      const start = this.daterange[0].format();
-      const end = this.daterange[1].format();
-      const timeperiods = [`${start}/${end}`];
+      const [rangeStart, rangeEnd] = this.daterange ?? [];
+      if (!rangeStart || !rangeEnd) return [];
+      const timeperiods = [`${rangeStart.format()}/${rangeEnd.format()}`];
 
       const data = await getClient().query(timeperiods, queryArray);
       return data[0] || [];

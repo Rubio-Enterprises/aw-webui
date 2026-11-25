@@ -29,7 +29,8 @@ function getScoreFromCategory(c: Category | undefined, allCats: Category[]): num
   // Returns the score for a certain category, falling back to parents if none set
   // Very similar to getColorFromCategory
   if (c && c.data && c.data.score !== null && c.data.score !== undefined) {
-    return c.data.score;
+    // The editor's input can leave a numeric string here
+    return Number(c.data.score);
   }
   if (c && c.name.slice(0, -1).length > 0) {
     // If no color is set on category, traverse parents until one is found

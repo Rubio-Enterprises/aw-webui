@@ -249,8 +249,9 @@ export const useBucketsStore = defineStore('buckets', {
       limit,
     }: {
       id: string;
-      start?: Date;
-      end?: Date;
+      // Callers pass Dates or formatted timestamps; aw-client forwards both unchanged.
+      start?: Date | string;
+      end?: Date | string;
       limit?: number;
     }) {
       await this.ensureLoaded();
@@ -258,15 +259,17 @@ export const useBucketsStore = defineStore('buckets', {
       if (!found) throw new Error(`Unknown bucket: ${id}`);
       const bucket = _.cloneDeep(found);
       // aw-client declares event timestamps as Date, but the JSON response carries ISO strings.
+      // aw-client types the options and event timestamps as Date; the API takes and
+      // returns ISO strings.
       bucket.events = (await getClient().getEvents(bucket.id, {
-        start,
-        end,
+        start: start as Date | undefined,
+        end: end as Date | undefined,
         limit: limit || -1,
       })) as unknown as IEvent[];
       return bucket;
     },
 
-    async getBucketsWithEvents({ start, end }: { start?: Date; end?: Date }) {
+    async getBucketsWithEvents({ start, end }: { start?: Date | string; end?: Date | string }) {
       await this.ensureLoaded();
       const buckets = await Promise.all(
         _.map(
