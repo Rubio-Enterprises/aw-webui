@@ -55,7 +55,7 @@ interface Entry {
   color?: string;
   colorKey?: string | string[];
   link?: string;
-  category?: string;
+  category?: string[];
 }
 
 function update(container: HTMLElement, apps: Entry[], noDataLabel = 'No data') {
@@ -274,7 +274,7 @@ function updateSummedEvents(
   if (hoverKeyFunc == null) {
     hoverKeyFunc = titleKeyFunc;
   }
-  const apps = _.map(summedEvents, (e) => {
+  const apps = _.map(summedEvents, (e): Entry => {
     return {
       name: titleKeyFunc(e),
       hovertext: hoverKeyFunc(e),
@@ -283,7 +283,7 @@ function updateSummedEvents(
       colorKey: colorKeyFunc(e),
       link: linkKeyFunc(e),
       category: e.data['$category'],
-    } as Entry;
+    };
   });
   update(container, apps, noDataLabel);
 }

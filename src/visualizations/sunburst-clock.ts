@@ -16,11 +16,9 @@
 
 import * as d3 from 'd3';
 import moment from 'moment';
-
-import { IEvent } from '~/util/interfaces';
-
+import { getCategoryColorFromEvent, getColorFromString } from '~/util/color';
+import type { IEvent } from '~/util/interfaces';
 import { seconds_to_duration } from '../util/time';
-import { getColorFromString, getCategoryColorFromEvent } from '~/util/color';
 
 // Dimensions of sunburst.
 const width = 750;
@@ -35,10 +33,10 @@ const legendData: Record<string, string> = {
 
 interface ArcObject extends d3.DefaultArcObject, d3.HierarchyRectangularNode<IEvent> {}
 
-let rootEl: d3.Selection<HTMLElement, any, null, any>; // The root DOM node of the graph as a d3 object
-let vis: d3.Selection<SVGElement, any, HTMLElement, any>; // The root SVG node of the graph as a d3 object
+let rootEl: d3.Selection<HTMLElement, unknown, null, undefined>; // The root DOM node of the graph as a d3 object
+let vis: d3.Selection<SVGGElement, unknown, null, undefined>; // The root SVG node of the graph as a d3 object
 let partition_layout: d3.PartitionLayout<IEvent>; // The partition layout
-let arc: d3.Arc<any, ArcObject>;
+let arc: d3.Arc<unknown, ArcObject>;
 
 function drawLegend() {
   // Dimensions of legend item: width, height, spacing, radius of rounded rect.
@@ -58,33 +56,27 @@ function drawLegend() {
   const g = legend
     .selectAll('g')
     .data(
-      Object.entries(legendData).map(t => {
+      Object.entries(legendData).map((t) => {
         return { key: t[0], value: t[1] };
-      })
+      }),
     )
     .enter()
     .append('svg:g')
-    .attr('transform', function (d, i) {
-      return 'translate(0,' + i * (li.h + li.s) + ')';
-    });
+    .attr('transform', (_datum, i) => `translate(0,${i * (li.h + li.s)})`);
 
   g.append('svg:rect')
     .attr('rx', li.r)
     .attr('ry', li.r)
     .attr('width', li.w)
     .attr('height', li.h)
-    .style('fill', function (d) {
-      return d.value;
-    });
+    .style('fill', (d) => d.value);
 
   g.append('svg:text')
     .attr('x', li.w / 2)
     .attr('y', li.h / 2)
     .attr('dy', '0.35em')
     .attr('text-anchor', 'middle')
-    .text(function (d) {
-      return d.key;
-    });
+    .text((d) => d.key);
 }
 
 function drawClockTick(a: number) {
@@ -155,10 +147,8 @@ function mouseover(_: Event, d: d3.HierarchyRectangularNode<IEvent>) {
   // Then highlight only those that are an ancestor of the current segment.
   // FIXME: This currently makes all other svg paths on the page faded as well
   rootEl
-    .selectAll('path')
-    .filter(function (node: any) {
-      return sequenceArray.indexOf(node) >= 0;
-    })
+    .selectAll<SVGPathElement, d3.HierarchyRectangularNode<IEvent>>('path')
+    .filter((node) => sequenceArray.includes(node))
     .style('opacity', 1);
 }
 
@@ -204,7 +194,7 @@ function create(el: HTMLElement) {
     .attr('height', height)
     .append('svg:g')
     .attr('id', 'container')
-    .attr('transform', 'translate(' + width / 2 + ',' + height / 2 + ')') as d3.Selection<
+    .attr('transform', `translate(${width / 2},${height / 2})`) as d3.Selection<
     SVGGElement,
     unknown,
     null,
@@ -217,25 +207,17 @@ function create(el: HTMLElement) {
 
   arc = d3
     .arc<ArcObject>()
-    .startAngle(function (d: ArcObject) {
-      return d.x0;
-    })
-    .endAngle(function (d: ArcObject) {
-      return d.x1;
-    })
-    .innerRadius(function (d: ArcObject) {
-      return Math.sqrt(d.y0);
-    })
-    .outerRadius(function (d: ArcObject) {
-      return Math.sqrt(d.y1);
-    });
+    .startAngle((d: ArcObject) => d.x0)
+    .endAngle((d: ArcObject) => d.x1)
+    .innerRadius((d: ArcObject) => Math.sqrt(d.y0))
+    .outerRadius((d: ArcObject) => Math.sqrt(d.y1));
 }
 
 // Main function to draw and set up the visualization, once we have the data.
 function update(
   el: HTMLElement,
   root_event: IEvent & { children: IEvent[] },
-  startOfDay?: moment.Moment
+  startOfDay?: moment.Moment,
 ) {
   // Basic setup of page elements.
   initializeBreadcrumbTrail();
@@ -251,7 +233,7 @@ function update(
   const root_node: d3.HierarchyRectangularNode<IEvent> = partition_layout(root);
 
   const mode_clock = true;
-  let nodes;
+  let nodes: d3.HierarchyRectangularNode<IEvent>[];
   if (mode_clock) {
     // TODO: Make this a checkbox in the UI
     const show_whole_day = true;
@@ -291,7 +273,7 @@ function update(
     }
 
     nodes = root_node
-      .each(function (d: d3.HierarchyRectangularNode<IEvent>) {
+      .each((d: d3.HierarchyRectangularNode<IEvent>) => {
         const loc_start_sec = moment(d.data.timestamp).diff(root_start, 'seconds', true);
         const loc_end_sec = moment(d.data.timestamp)
           .add(d.data.duration, 'seconds')
@@ -299,11 +281,11 @@ function update(
 
         const loc_start = Math.max(
           0,
-          loc_start_sec / ((root_end.valueOf() - root_start.valueOf()) / 1000)
+          loc_start_sec / ((root_end.valueOf() - root_start.valueOf()) / 1000),
         );
         const loc_end = Math.min(
           1,
-          loc_end_sec / ((root_end.valueOf() - root_start.valueOf()) / 1000)
+          loc_end_sec / ((root_end.valueOf() - root_start.valueOf()) / 1000),
         );
 
         d.x0 = 2 * Math.PI * loc_start;
@@ -312,13 +294,13 @@ function update(
       .descendants();
   } else {
     root = root
-      .sum(d => d.duration)
+      .sum((d) => d.duration)
       .sort((a, b) => JSON.stringify(a.data.data).localeCompare(JSON.stringify(b.data.data)));
     nodes = root_node.descendants();
   }
 
   // For efficiency, filter nodes to keep only those large enough to see.
-  nodes = nodes.filter(function (d: d3.HierarchyRectangularNode<IEvent>) {
+  nodes = nodes.filter((d: d3.HierarchyRectangularNode<IEvent>) => {
     // 0.005 radians = 0.29 degrees
     // If show_whole_day:
     //   0.0044 rad = 1min
@@ -333,12 +315,10 @@ function update(
     .data(nodes)
     .enter()
     .append('svg:path')
-    .attr('display', function (d: d3.HierarchyNode<IEvent>) {
-      return d.depth ? null : 'none';
-    })
+    .attr('display', (d: d3.HierarchyNode<IEvent>) => (d.depth ? null : 'none'))
     .attr('d', arc)
     .attr('fill-rule', 'evenodd')
-    .style('fill', function (d: d3.HierarchyNode<IEvent>) {
+    .style('fill', (d: d3.HierarchyNode<IEvent>) => {
       const e: IEvent = d.data;
       return d.depth === 2
         ? getCategoryColorFromEvent({ type: 'currentwindow' }, e)

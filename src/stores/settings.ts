@@ -1,15 +1,15 @@
-import { defineStore } from 'pinia';
-import moment, { Moment } from 'moment';
-import { getClient } from '~/util/awclient';
-import { Category, CategorySet, getDefaultClasses, cleanCategory } from '~/util/classes';
-import { SavedQuery } from '~/util/savedQueries';
-import { AlertGoal, cleanAlertGoals } from '~/util/alerts';
-import { View, defaultViews } from '~/stores/views';
-import type { PrivacyFilterRule } from '~/util/privacyFilters';
 import { isEqual } from 'lodash';
-import { AppLocale, i18n, isAppLocale, setAppLocale } from '~/i18n';
+import moment, { type Moment } from 'moment';
+import { defineStore } from 'pinia';
+import { type AppLocale, i18n, isAppLocale, setAppLocale } from '~/i18n';
+import { defaultViews, type View } from '~/stores/views';
+import { type AlertGoal, cleanAlertGoals } from '~/util/alerts';
+import { getClient } from '~/util/awclient';
+import { type Category, type CategorySet, cleanCategory, getDefaultClasses } from '~/util/classes';
+import type { PrivacyFilterRule } from '~/util/privacyFilters';
+import type { SavedQuery } from '~/util/savedQueries';
 
-function jsonEq(a: any, b: any) {
+function jsonEq(a: unknown, b: unknown) {
   try {
     const jsonA = JSON.parse(JSON.stringify(a));
     const jsonB = JSON.parse(JSON.stringify(b));
@@ -44,7 +44,12 @@ interface State {
   theme: 'light' | 'dark' | 'auto';
   locale: string;
 
-  newReleaseCheckData: Record<string, any>;
+  newReleaseCheckData: {
+    isEnabled: boolean;
+    nextCheckTime: Moment | string;
+    howOftenToCheck: number;
+    timesChecked: number;
+  };
   userSatisfactionPollData: {
     isEnabled: boolean;
     nextPollTime: Moment;
@@ -212,19 +217,19 @@ export const useSettingsStore = defineStore('settings', {
         // Keys ending with 'Data' are JSON-serialized objects in localStorage
         const isJsonKey =
           key.endsWith('Data') ||
-          key == 'views' ||
-          key == 'classes' ||
-          key == 'category_sets' ||
-          key == 'active_set_ids' ||
-          key == 'saved_queries' ||
-          key == 'category_builder_ignored_words' ||
-          key == 'alerts';
+          key === 'views' ||
+          key === 'classes' ||
+          key === 'category_sets' ||
+          key === 'active_set_ids' ||
+          key === 'saved_queries' ||
+          key === 'category_builder_ignored_words' ||
+          key === 'alerts';
         try {
           if (isJsonKey) {
             let parsed = JSON.parse(raw);
-            if (key == 'classes') {
+            if (key === 'classes') {
               parsed = parsed.map(cleanCategory);
-            } else if (key == 'alerts') {
+            } else if (key === 'alerts') {
               parsed = cleanAlertGoals(parsed);
             }
             storage[key] = parsed;
@@ -304,7 +309,7 @@ export const useSettingsStore = defineStore('settings', {
 
         // Save to localStorage
         // NOTE: we always save the theme and landingpage to localStorage, since they are used before the settings are loaded
-        if (saveToLocalStorage || key == 'theme' || key == 'landingpage') {
+        if (saveToLocalStorage || key === 'theme' || key === 'landingpage') {
           if (typeof value === 'object') {
             localStorage.setItem(key, JSON.stringify(value));
           } else {
@@ -321,7 +326,7 @@ export const useSettingsStore = defineStore('settings', {
           console.log('Saving', { [key]: value });
           //console.log('Was:', server_settings[key]);
           //console.log('Now:', value);
-          await client.req.post('/0/settings/' + key, value, {
+          await client.req.post(`/0/settings/${key}`, value, {
             headers: {
               'Content-Type': 'application/json',
             },
@@ -332,7 +337,7 @@ export const useSettingsStore = defineStore('settings', {
       // After save, reload
       await this.load({ save: false });
     },
-    async update(new_state: Record<string, any>) {
+    async update(new_state: Partial<State>) {
       console.log('Updating state', new_state);
       await this.ensureLoaded();
       this.$patch(new_state);

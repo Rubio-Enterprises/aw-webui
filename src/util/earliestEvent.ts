@@ -5,6 +5,8 @@ type GetEvents = (
   params: { end?: Date; limit: number },
 ) => Promise<{ timestamp: string | Date }[]>;
 
+type TimedBucket = Pick<IBucket, 'id' | 'metadata'>;
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 // Lower bound for the search. The Unix epoch rather than a recent date, so
 // imported data with old timestamps is still found (the wider range costs
@@ -20,7 +22,7 @@ const SEARCH_FLOOR = new Date(0);
  * requests per bucket instead of reading every event.
  */
 export async function earliestEventInBucket(
-  bucket: IBucket,
+  bucket: TimedBucket,
   getEvents: GetEvents,
 ): Promise<Date | null> {
   if (bucket.metadata?.start) {
@@ -50,7 +52,7 @@ export async function earliestEventInBucket(
 
 /** Earliest event across several buckets, or null if all are empty. */
 export async function earliestEventInBuckets(
-  buckets: IBucket[],
+  buckets: TimedBucket[],
   getEvents: GetEvents,
 ): Promise<Date | null> {
   const starts = await Promise.all(buckets.map((b) => earliestEventInBucket(b, getEvents)));

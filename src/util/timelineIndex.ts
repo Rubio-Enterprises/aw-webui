@@ -1,4 +1,4 @@
-import { IBucket, IEvent } from './interfaces';
+import type { IBucket, IEvent } from './interfaces';
 
 export interface IndexedEvent {
   id: string;
@@ -17,7 +17,7 @@ function groupTimelineEntries(entries: IndexedEvent[], threshold: number): Index
       const first = members[0];
       grouped.push({
         ...first,
-        id: JSON.stringify([first.bucket.id, 'group', members.map(item => item.id)]),
+        id: JSON.stringify([first.bucket.id, 'group', members.map((item) => item.id)]),
         event: {
           ...first.event,
           duration: members.reduce((total, item) => total + item.event.duration, 0),
@@ -36,7 +36,7 @@ function groupTimelineEntries(entries: IndexedEvent[], threshold: number): Index
     (a, b) =>
       a.start - b.start ||
       Number(a.event.duration > 0 && Number.isFinite(a.end)) -
-        Number(b.event.duration > 0 && Number.isFinite(b.end))
+        Number(b.event.duration > 0 && Number.isFinite(b.end)),
   );
   for (const item of entries) {
     // Invalid intervals still split runs, even though they cannot be rendered.
@@ -64,7 +64,7 @@ export function indexTimelineEvents(
   filterShort: boolean | ((bucket: IBucket) => boolean) = true,
   displayEvent: (bucketId: string, event: IEvent) => IEvent = (_bucketId, event) => event,
   groupingSeconds: number | ((bucket: IBucket) => number) = 0,
-  expandedGroups: readonly string[] = []
+  expandedGroups: readonly string[] = [],
 ) {
   const entries: IndexedEvent[] = [];
   const expanded = expandedGroups.length ? new Set(expandedGroups) : undefined;
@@ -84,7 +84,7 @@ export function indexTimelineEvents(
         invalidTimestamp = true;
         return;
       }
-      if (!group && !Number.isFinite(end)) return;
+      if (!(group || Number.isFinite(end))) return;
       bucketEntries.push({
         id: JSON.stringify([bucket.id, event.id ?? [event.timestamp, index]]),
         bucket,
@@ -97,7 +97,7 @@ export function indexTimelineEvents(
     // An invalid timestamp cannot be placed safely between chronological members.
     const grouped = !invalidTimestamp
       ? groupTimelineEntries(bucketEntries, threshold)
-      : bucketEntries.filter(item => Number.isFinite(item.end) && item.event.duration > 0);
+      : bucketEntries.filter((item) => Number.isFinite(item.end) && item.event.duration > 0);
     for (const item of grouped) {
       if (item.members && expanded?.has(item.id)) {
         for (const member of item.members) entries.push(member);
@@ -106,15 +106,15 @@ export function indexTimelineEvents(
   }
   entries.sort((a, b) => a.start - b.start);
   let maxEnd = -Infinity;
-  const ends = entries.map(e => (maxEnd = Math.max(maxEnd, e.end)));
-  return { entries, ends, groups: new Set(entries.map(item => item.bucket.id)) };
+  const ends = entries.map((e) => (maxEnd = Math.max(maxEnd, e.end)));
+  return { entries, ends, groups: new Set(entries.map((item) => item.bucket.id)) };
 }
 
 // Prefix maximum ends keep events that begin before the viewport but overlap it.
 export function visibleTimelineEvents(
   index: ReturnType<typeof indexTimelineEvents>,
   start: number,
-  end: number
+  end: number,
 ): IndexedEvent[] {
   let low = 0;
   let high = index.ends.length;
@@ -131,13 +131,16 @@ export function visibleTimelineEvents(
 }
 
 // DataSet updates notify vis-timeline. Avoid notifications for unchanged items.
-export function syncTimelineData(dataset, next: Record<string, any>[]): void {
-  const ids = new Set(next.map(item => item.id));
-  const removed = dataset.getIds().filter(id => !ids.has(id));
+export function syncTimelineData(
+  dataset,
+  next: { id: string | number; [key: string]: unknown }[],
+): void {
+  const ids = new Set(next.map((item) => item.id));
+  const removed = dataset.getIds().filter((id) => !ids.has(id));
   if (removed.length) dataset.remove(removed);
-  const changed = next.filter(item => {
+  const changed = next.filter((item) => {
     const previous = dataset.get(item.id);
-    return !previous || Object.keys(item).some(key => item[key] !== previous[key]);
+    return !previous || Object.keys(item).some((key) => item[key] !== previous[key]);
   });
   if (changed.length) dataset.update(changed);
 }

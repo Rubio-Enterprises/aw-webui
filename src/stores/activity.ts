@@ -1,46 +1,44 @@
-import { defineStore } from 'pinia';
-import moment from 'moment';
 import * as _ from 'lodash';
-import { map, filter, values, groupBy, sortBy, flow, reverse } from 'lodash/fp';
-import { IEvent } from '~/util/interfaces';
-
-import { window_events } from '~/util/fakedata';
-import queries, { ActivityQuerySource, MultiQueryParams } from '~/queries';
-import { get_day_start_with_offset, get_offset_duration } from '~/util/time';
-import {
-  TimePeriod,
-  dateToTimeperiod,
-  timeperiodToStr,
-  splitTimeperiodStrs,
-  timeperiodsAroundTimeperiod,
-  timeperiodsForBarchart,
-  usesMonthlyBuckets,
-} from '~/util/timeperiod';
-import { earliestEventInBuckets } from '~/util/earliestEvent';
-
-import { useSettingsStore } from '~/stores/settings';
-import { activeHistoryCacheKey, selectPeriodsToQuery } from '~/util/activeHistory';
+import { filter, flow, groupBy, map, reverse, sortBy, values } from 'lodash/fp';
+import moment from 'moment';
+import { defineStore } from 'pinia';
+import queries, { type ActivityQuerySource, type MultiQueryParams } from '~/queries';
 import { useBucketsStore } from '~/stores/buckets';
 import { useCategoryStore } from '~/stores/categories';
-
+import { useSettingsStore } from '~/stores/settings';
+import { activeHistoryCacheKey, selectPeriodsToQuery } from '~/util/activeHistory';
 import { getClient } from '~/util/awclient';
+import {
+  categoryByPeriodFromChunks,
+  DESKTOP_QUERY_EVENT_LIMIT,
+  type FullDesktopQueryResult,
+  mergeEventsByKeys,
+  mergeFullDesktopResults,
+  periodsForFullDesktopQuery,
+  type WindowQueryResult,
+} from '~/util/desktopQuerySplit';
+import { earliestEventInBuckets } from '~/util/earliestEvent';
+import { window_events } from '~/util/fakedata';
+import type { IEvent } from '~/util/interfaces';
 import {
   buildMultideviceHostParams,
   eligibleMultideviceHosts,
+  type HostDuration,
   hostDurationBreakdown,
-  HostDuration,
   isMultiHostSelection,
   parseHostParam,
   resolveHostSelection,
 } from '~/util/multidevice';
+import { get_day_start_with_offset, get_offset_duration } from '~/util/time';
 import {
-  DESKTOP_QUERY_EVENT_LIMIT,
-  FullDesktopQueryResult,
-  categoryByPeriodFromChunks,
-  mergeEventsByKeys,
-  mergeFullDesktopResults,
-  periodsForFullDesktopQuery,
-} from '~/util/desktopQuerySplit';
+  dateToTimeperiod,
+  splitTimeperiodStrs,
+  type TimePeriod,
+  timeperiodsAroundTimeperiod,
+  timeperiodsForBarchart,
+  timeperiodToStr,
+  usesMonthlyBuckets,
+} from '~/util/timeperiod';
 
 // The history request started by ensure_category_history, shared so that
 // switching views back and forth doesn't repeat it.
@@ -51,7 +49,7 @@ function timeperiodStrsAroundTimeperiod(timeperiod: TimePeriod): string[] {
 }
 
 function activeHistorySources(state: State): ActivityQuerySource[] {
-  return state.buckets.afk.slice(0, 1).map(bid_afk => ({
+  return state.buckets.afk.slice(0, 1).map((bid_afk) => ({
     bid_afk,
     bid_window: state.buckets.window[0],
     bid_browsers: state.buckets.browser,
@@ -86,7 +84,7 @@ async function queryDesktopPeriods(
   periods: string[],
   query: string[],
   name: string,
-  onProgress?: () => void
+  onProgress?: () => void,
 ): Promise<{ merged: FullDesktopQueryResult; chunks: [string, FullDesktopQueryResult][] }> {
   const client = getClient();
   const signal = client.controller.signal;
@@ -96,7 +94,7 @@ async function queryDesktopPeriods(
       throw signal['reason'] || 'unknown reason';
     }
     const data = await client.query([period], query, { name, verbose: true });
-    if (data && data[0]) {
+    if (data?.[0]) {
       chunks.push([period, data[0]]);
     }
     if (onProgress) onProgress();
@@ -134,7 +132,7 @@ export function chunkPeriodsBySpan(periods: string[], maxDays = 366): string[][]
 /** Bundle ID -> app name, from ScreenTime events (app = bundle ID, title = name). */
 export function screentimeNameMap(events: IEvent[]): Record<string, string> {
   const names: Record<string, string> = {};
-  events.forEach(e => {
+  events.forEach((e) => {
     if (e.data.title && !names[e.data.app]) {
       names[e.data.app] = e.data.title;
     }
@@ -150,7 +148,7 @@ export function screentimeNameMap(events: IEvent[]): Record<string, string> {
  * Uncategorized. Apps without app_cat_events keep their old (name-based) color.
  */
 export function withDominantCategory(appEvents: IEvent[], appCatEvents?: IEvent[]): IEvent[] {
-  if (!appEvents || !appCatEvents || appCatEvents.length === 0) return appEvents;
+  if (!(appEvents && appCatEvents) || appCatEvents.length === 0) return appEvents;
   // ScreenTime remaps set classname to the bundle ID on both lists, so two
   // bundle IDs that share a display name are kept apart.
   const appKey = (e: IEvent): string => e.data.classname ?? e.data.app;
@@ -161,7 +159,7 @@ export function withDominantCategory(appEvents: IEvent[], appCatEvents?: IEvent[
       dominant.set(appKey(e), { duration: e.duration, category: e.data.$category });
     }
   }
-  return appEvents.map(e => {
+  return appEvents.map((e) => {
     const best = dominant.get(appKey(e));
     return best ? { ...e, data: { ...e.data, $category: best.category } } : e;
   });
@@ -169,7 +167,7 @@ export function withDominantCategory(appEvents: IEvent[], appCatEvents?: IEvent[
 
 /** Show ScreenTime apps by name, keeping the bundle ID as classname (in place). */
 export function applyScreentimeNames(events: IEvent[], bundleIdToName: Record<string, string>) {
-  events.forEach(e => {
+  events.forEach((e) => {
     const name = bundleIdToName[e.data.app];
     if (name) {
       e.data.classname = e.data.app;
@@ -195,8 +193,16 @@ function sumDurations(results: { duration?: number }[]): number {
   return results.reduce((acc, r) => acc + (r.duration || 0), 0);
 }
 
-export function mergeEditorResults(results: Record<string, any>[]) {
-  const all = (key: string): IEvent[] => _.flatten(results.map(r => r[key] || []));
+interface EditorQueryResult {
+  files?: IEvent[];
+  languages?: IEvent[];
+  projects?: IEvent[];
+  duration?: number;
+}
+
+export function mergeEditorResults(results: EditorQueryResult[]) {
+  const all = (key: 'files' | 'languages' | 'projects') =>
+    results.flatMap((result) => result[key] || []);
   return {
     files: mergeEventsByKeys(all('files'), ['file', 'language'], DESKTOP_QUERY_EVENT_LIMIT),
     languages: mergeEventsByKeys(all('languages'), ['language'], DESKTOP_QUERY_EVENT_LIMIT),
@@ -205,9 +211,13 @@ export function mergeEditorResults(results: Record<string, any>[]) {
   };
 }
 
-export function mergeAppQueryResults(results: Record<string, any>[], isIos: boolean) {
+export function mergeAppQueryResults(
+  results: WindowQueryResult[],
+  isIos: boolean,
+): WindowQueryResult {
   if (results.length === 1) return results[0];
-  const all = (key: string): IEvent[] => _.flatten(results.map(r => r[key] || []));
+  const all = (key: 'app_events' | 'app_cat_events' | 'title_events' | 'cat_events') =>
+    results.flatMap((result) => result[key] || []);
   const titleKeys = isIos ? ['app', 'classname', 'title'] : ['app', 'classname'];
   const app_events = mergeEventsByKeys(all('app_events'), ['app'], DESKTOP_QUERY_EVENT_LIMIT);
   return {
@@ -285,7 +295,7 @@ interface State {
     // non-afk events (no detail data) for the current period
     events: IEvent[];
     // Aggregated events for current and past periods
-    history: Record<any, IEvent[]>;
+    history: Record<string, IEvent[]>;
     // Identity of the context `history` was fetched for. Cached periods are
     // only reusable while this matches; see util/activeHistory.
     history_key: string | null;
@@ -405,7 +415,7 @@ export const useActivityStore = defineStore('activity', {
   getters: {
     getActiveHistoryAroundTimeperiod(this: State) {
       return (timeperiod: TimePeriod) => {
-        return timeperiodsAroundTimeperiod(timeperiod).map(period => ({
+        return timeperiodsAroundTimeperiod(timeperiod).map((period) => ({
           period,
           events: this.active.history[timeperiodToStr(period)] || [],
         }));
@@ -416,7 +426,7 @@ export const useActivityStore = defineStore('activity', {
       if (!this.category.top) {
         return null;
       }
-      const uncategorized = this.category.top.filter(e => {
+      const uncategorized = this.category.top.filter((e) => {
         return _.isEqual(e.data['$category'], ['Uncategorized']);
       });
       const uncategorized_duration = uncategorized.length > 0 ? uncategorized[0].duration : 0;
@@ -447,7 +457,7 @@ export const useActivityStore = defineStore('activity', {
         }
       } else {
         console.warn(
-          'ensure_loaded called twice with same query_options but without query_options.force = true, skipping...'
+          'ensure_loaded called twice with same query_options but without query_options.force = true, skipping...',
         );
       }
     },
@@ -494,7 +504,7 @@ export const useActivityStore = defineStore('activity', {
         this.query_category_time_by_period_completed();
       } else {
         console.log(
-          'Cannot query windows as we are missing either an afk/window bucket pair or an android bucket'
+          'Cannot query windows as we are missing either an afk/window bucket pair or an android bucket',
         );
         this.query_window_completed();
         this.query_category_time_by_period_completed();
@@ -584,7 +594,7 @@ export const useActivityStore = defineStore('activity', {
         bucketsStore.bucketsAFK,
         bucketsStore.bucketsAndroid,
         // fakedata hosts only take part when explicitly selected
-        { includeFakedata: selection.hosts.some(h => h.startsWith('fakedata')) }
+        { includeFakedata: selection.hosts.some((h) => h.startsWith('fakedata')) },
       );
       return resolveHostSelection(selection, eligible);
     },
@@ -602,7 +612,7 @@ export const useActivityStore = defineStore('activity', {
       // Android view: their events have no window titles.
       const bucketsStore = useBucketsStore();
       const hasDesktop = hosts.some(
-        h => bucketsStore.bucketsWindow(h).length > 0 && bucketsStore.bucketsAFK(h).length > 0
+        (h) => bucketsStore.bucketsWindow(h).length > 0 && bucketsStore.bucketsAFK(h).length > 0,
       );
       this.window.available = hasDesktop;
       this.browser.available = false;
@@ -646,7 +656,7 @@ export const useActivityStore = defineStore('activity', {
 
     multidevice_params(
       { filter_categories, filter_afk, always_active_pattern }: QueryOptions,
-      hosts: string[]
+      hosts: string[],
     ): MultiQueryParams {
       const bucketsStore = useBucketsStore();
       // Pass each host's actual bucket IDs (see buildMultideviceHostParams),
@@ -658,9 +668,9 @@ export const useActivityStore = defineStore('activity', {
       // android query path instead of being dropped.
       const { host_params, hosts_with_buckets } = buildMultideviceHostParams(
         hosts,
-        host => bucketsStore.bucketsWindow(host),
-        host => bucketsStore.bucketsAFK(host),
-        host => bucketsStore.bucketsAndroid(host)
+        (host) => bucketsStore.bucketsWindow(host),
+        (host) => bucketsStore.bucketsAFK(host),
+        (host) => bucketsStore.bucketsAndroid(host),
       );
       return {
         hosts: hosts_with_buckets,
@@ -682,7 +692,7 @@ export const useActivityStore = defineStore('activity', {
       // exist for the same host (hybrid case). Without this, android[0] is the Android
       // watcher bucket, isIos is false, and ScreenTime data is never processed.
       const iosBucket = this.buckets.android.find((id: string) =>
-        id.startsWith('aw-import-screentime')
+        id.startsWith('aw-import-screentime'),
       );
       const selectedBucket = iosBucket || this.buckets.android[0];
 
@@ -692,14 +702,14 @@ export const useActivityStore = defineStore('activity', {
         categoryStore.classes_for_query,
         filter_categories,
         isIos,
-        periods.length > 1 ? CHUNKED_QUERY_LIMIT : undefined
+        periods.length > 1 ? CHUNKED_QUERY_LIMIT : undefined,
       );
       this.progress_add(periods.length);
       const chunks = [];
       for (const period of periods) {
         const result = await getClient().query([period], q).catch(this.errorHandler);
         this.progress_tick();
-        if (!(result && result[0])) {
+        if (!result?.[0]) {
           // Don't show partial totals as if they covered the whole period
           this.query_window_completed();
           this.query_browser_completed({ domains: [], urls: [], titles: [], duration: 0 });
@@ -709,7 +719,7 @@ export const useActivityStore = defineStore('activity', {
       }
       const data = [mergeAppQueryResults(chunks, isIos)];
 
-      if (isIos && data && data[0] && data[0].title_events) {
+      if (isIos && data?.[0]?.title_events) {
         // Build bundle ID → human name lookup from title_events before modifying them.
         // title_events has 'app' = bundle ID and 'title' = human-readable name.
         // For ScreenTime imports each bundle ID maps to exactly one human-readable name,
@@ -761,7 +771,7 @@ export const useActivityStore = defineStore('activity', {
           this.buckets.browser,
           categoryStore.classes_for_query,
           filter_categories,
-          isIos
+          isIos,
         );
         // Chunk like the app query above: a single request covering the whole
         // timeperiod floods the Android and web buckets and can exceed the
@@ -774,7 +784,7 @@ export const useActivityStore = defineStore('activity', {
             .query([period], bq, { name: 'androidBrowserQuery' })
             .catch(this.errorHandler);
           this.progress_tick();
-          if (!(bResult && bResult[0] && bResult[0].browser)) {
+          if (!bResult?.[0]?.browser) {
             // Don't show partial browser totals as if they covered the whole period
             this.query_browser_completed();
             return;
@@ -795,7 +805,7 @@ export const useActivityStore = defineStore('activity', {
         .query([timeperiodToStr(timeperiod)], q, { name: 'browserOnlyQuery' })
         .catch(this.errorHandler);
       this.progress_tick();
-      if (result && result[0] && result[0].browser) {
+      if (result?.[0]?.browser) {
         this.query_browser_completed(result[0].browser);
       } else {
         this.query_browser_completed({});
@@ -813,16 +823,17 @@ export const useActivityStore = defineStore('activity', {
     async query_multidevice_full(query_options: QueryOptions, hosts: string[]) {
       const periods = periodsForFullDesktopQuery(query_options.timeperiod);
       this.progress_add(periods.length);
-      const params = this.multidevice_params(query_options, hosts);
+      const params: MultiQueryParams = this.multidevice_params(query_options, hosts);
       const q = queries.multideviceQuery(params);
       const { merged, chunks } = await queryDesktopPeriods(periods, q, 'multidevice', () =>
-        this.progress_tick()
+        this.progress_tick(),
       );
-      const windowResult: Record<string, any> = merged.window || {};
+      const windowResult: WindowQueryResult & { host_durations?: HostDuration[] } =
+        merged.window || {};
       windowResult.host_durations = hostDurationBreakdown(
         params.hosts,
         windowResult.host_cumulative_durations,
-        windowResult.host_raw_durations
+        windowResult.host_raw_durations,
       );
       if (usesMonthlyBuckets(query_options.timeperiod)) {
         // As in query_desktop_full: long ranges don't keep years of active
@@ -835,9 +846,9 @@ export const useActivityStore = defineStore('activity', {
 
       // ScreenTime (iOS) events carry the bundle ID as "app": show the app
       // name instead, as the single-device view (query_android) does.
-      const screentimeBuckets = _.values(params.host_params)
-        .filter((p: any) => p.isIos && p.bid_android)
-        .map((p: any) => p.bid_android as string);
+      const screentimeBuckets = Object.values(params.host_params).flatMap((p) =>
+        'bid_android' in p && p.isIos && p.bid_android ? [p.bid_android] : [],
+      );
       if (screentimeBuckets.length > 0 && windowResult.app_events) {
         // Same periods as the main query, in bounded requests. The names
         // are cosmetic: if the lookup fails, keep the results as they are.
@@ -850,9 +861,9 @@ export const useActivityStore = defineStore('activity', {
             const results = await getClient().query(chunk, namesQuery, {
               name: 'screentimeNamesQuery',
             });
-            (results || []).forEach((events: IEvent[]) =>
-              _.defaults(bundleIdToName, screentimeNameMap(events || []))
-            );
+            (results || []).forEach((events: IEvent[]) => {
+              _.defaults(bundleIdToName, screentimeNameMap(events || []));
+            });
           }
         } catch (e) {
           if (signal.aborted) throw e;
@@ -892,7 +903,7 @@ export const useActivityStore = defineStore('activity', {
         always_active_pattern,
       });
       const { merged, chunks } = await queryDesktopPeriods(periods, q, 'fullDesktopQuery', () =>
-        this.progress_tick()
+        this.progress_tick(),
       );
       if (usesMonthlyBuckets(timeperiod) && merged.window) {
         // active_events is only used to skip inactive periods in the
@@ -919,7 +930,7 @@ export const useActivityStore = defineStore('activity', {
       const periods = splitTimeperiodStrs(timeperiod, EDITOR_MAX_DAYS_PER_REQUEST);
       const q = queries.editorActivityQuery(
         this.buckets.editor,
-        periods.length > 1 ? CHUNKED_QUERY_LIMIT : undefined
+        periods.length > 1 ? CHUNKED_QUERY_LIMIT : undefined,
       );
       this.progress_add(periods.length);
       const chunks = [];
@@ -929,7 +940,7 @@ export const useActivityStore = defineStore('activity', {
           verbose: true,
         });
         this.progress_tick();
-        if (data && data[0]) chunks.push(data[0]);
+        if (data?.[0]) chunks.push(data[0]);
       }
       this.query_editor_completed(chunks.length === 1 ? chunks[0] : mergeEditorResults(chunks));
     },
@@ -942,7 +953,7 @@ export const useActivityStore = defineStore('activity', {
      */
     async get_earliest_date(
       host: string,
-      { force = false }: { force?: boolean } = {}
+      { force = false }: { force?: boolean } = {},
     ): Promise<{ date: string | null; approximate: boolean }> {
       const settingsStore = useSettingsStore();
       const bucketsStore = useBucketsStore();
@@ -951,14 +962,14 @@ export const useActivityStore = defineStore('activity', {
       const selected = this.resolve_multidevice_hosts(host);
       const hosts = selected.length > 0 ? selected : [host];
       const ids = _.uniq(
-        _.flatMap(hosts, h => [
+        _.flatMap(hosts, (h) => [
           ...bucketsStore.bucketsWindow(h),
           ...bucketsStore.bucketsAFK(h),
           ...bucketsStore.bucketsAndroid(h),
           ...bucketsStore.bucketsEditor(h),
           ...bucketsStore.bucketsBrowser(h),
           ...bucketsStore.bucketsStopwatch(h),
-        ])
+        ]),
       );
       // Keyed on the bucket IDs too, so e.g. importing a bucket with older
       // events (which reloads the buckets store) is picked up.
@@ -967,20 +978,20 @@ export const useActivityStore = defineStore('activity', {
         return { date: earliestDateCache.get(key), approximate: false };
       }
 
-      const buckets = ids.map(id => bucketsStore.getBucket(id)).filter(b => b);
+      const buckets = ids.map((id) => bucketsStore.getBucket(id)).filter((b) => b);
       const client = getClient();
       let earliest: Date | null;
       try {
         earliest = await earliestEventInBuckets(buckets, (id, params) =>
-          client.getEvents(id, params)
+          client.getEvents(id, params),
         );
       } catch (e) {
         // Fall back to bucket creation dates (not cached, so a refresh retries)
         console.warn('Failed to find earliest event, using bucket creation dates', e);
-        const created = buckets.map(b => b.first_seen).filter(d => d);
+        const created = buckets.map((b) => b.first_seen).filter((d) => d);
         const date =
           created.length > 0
-            ? moment(_.min(created.map(d => new Date(d).getTime())))
+            ? moment(_.min(created.map((d) => new Date(d).getTime())))
                 .subtract(get_offset_duration(settingsStore.startOfDay))
                 .format('YYYY-MM-DD')
             : null;
@@ -1012,14 +1023,14 @@ export const useActivityStore = defineStore('activity', {
             include_audible: query_options.include_audible,
             always_active_pattern: query_options.always_active_pattern,
           },
-          sources
+          sources,
         ),
         force: query_options.force,
       });
 
       const periods = selectPeriodsToQuery(
         timeperiodStrsAroundTimeperiod(timeperiod),
-        this.active.history
+        this.active.history,
       );
       // Nothing missing: no request at all.
       if (periods.length === 0) return;
@@ -1043,13 +1054,13 @@ export const useActivityStore = defineStore('activity', {
       if (this.active.history_generation !== generation) return;
       const active_history = _.zipObject(
         periods,
-        data.map(events => events.map(e => ({ ...e, data: { ...e.data, status: 'not-afk' } })))
+        data.map((events) => events.map((e) => ({ ...e, data: { ...e.data, status: 'not-afk' } }))),
       );
       this.query_active_history_completed({ active_history });
     },
 
     async query_category_time_by_period(
-      query_options: QueryOptions & { dontQueryInactive?: boolean }
+      query_options: QueryOptions & { dontQueryInactive?: boolean },
     ) {
       const {
         timeperiod,
@@ -1070,7 +1081,7 @@ export const useActivityStore = defineStore('activity', {
       let periods: string[] = timeperiodsForBarchart(timeperiod).map(timeperiodToStr);
 
       // Filter out periods that start in the future
-      periods = periods.filter(period => new Date(period.split('/')[0]) < new Date());
+      periods = periods.filter((period) => new Date(period.split('/')[0]) < new Date());
       this.progress_add(periods.length);
 
       const loading = this.query_options;
@@ -1110,7 +1121,7 @@ export const useActivityStore = defineStore('activity', {
 
         // Prefer ScreenTime bucket over Android watcher for consistency with query_android
         const iosBucketForCategory = this.buckets.android.find((id: string) =>
-          id.startsWith('aw-import-screentime')
+          id.startsWith('aw-import-screentime'),
         );
         const iosOrAndroidBucket = iosBucketForCategory || this.buckets.android[0];
         const isAndroid = iosOrAndroidBucket !== undefined;
@@ -1152,7 +1163,7 @@ export const useActivityStore = defineStore('activity', {
       // Zip periods
       let by_period = _.zipObject(periods, data);
       // Filter out values that are undefined (no longer needed, only used when visualization was progressive (looks buggy))
-      by_period = _.fromPairs(_.toPairs(by_period).filter(o => o[1]));
+      by_period = _.fromPairs(_.toPairs(by_period).filter((o) => o[1]));
 
       // A newer load took over; drop this result.
       if (this.query_options !== loading) return;
@@ -1161,11 +1172,11 @@ export const useActivityStore = defineStore('activity', {
 
     async query_active_history_multidevice(
       { timeperiod, ...query_options }: QueryOptions,
-      hosts: string[]
+      hosts: string[],
     ) {
       const settingsStore = useSettingsStore();
       const { host_params, hosts: resolvedHosts } = this.multidevice_params(query_options, hosts);
-      const sources: ActivityQuerySource[] = resolvedHosts.map(host => host_params[host]);
+      const sources: ActivityQuerySource[] = resolvedHosts.map((host) => host_params[host]);
       const generation = this.invalidate_active_history({
         cache_key: activeHistoryCacheKey(
           {
@@ -1176,13 +1187,13 @@ export const useActivityStore = defineStore('activity', {
             filter_afk: query_options.filter_afk,
             always_active_pattern: query_options.always_active_pattern,
           },
-          sources
+          sources,
         ),
         force: query_options.force,
       });
       const periods = selectPeriodsToQuery(
         timeperiodStrsAroundTimeperiod(timeperiod),
-        this.active.history
+        this.active.history,
       );
       if (periods.length === 0) return;
 
@@ -1202,14 +1213,17 @@ export const useActivityStore = defineStore('activity', {
           throw signal['reason'] || 'unknown reason';
         }
         data.push(
-          ...(await client.query(chunk, query, { name: 'multideviceActivityQuery', verbose: true }))
+          ...(await client.query(chunk, query, {
+            name: 'multideviceActivityQuery',
+            verbose: true,
+          })),
         );
         this.progress_tick();
       }
       if (this.active.history_generation !== generation) return;
       const active_history = _.zipObject(
         periods,
-        data.map(events => events.map(e => ({ ...e, data: { ...e.data, status: 'not-afk' } })))
+        data.map((events) => events.map((e) => ({ ...e, data: { ...e.data, status: 'not-afk' } }))),
       );
       this.query_active_history_completed({ active_history });
     },
@@ -1229,7 +1243,7 @@ export const useActivityStore = defineStore('activity', {
             useMultidevice: false,
             startOfDay: settingsStore.startOfDay,
           },
-          [iosOrAndroidBucket]
+          [iosOrAndroidBucket],
         ),
         force: query_options.force,
       });
@@ -1237,13 +1251,13 @@ export const useActivityStore = defineStore('activity', {
       // Same freshness policy as desktop, including skipping future periods.
       const periods = selectPeriodsToQuery(
         timeperiodStrsAroundTimeperiod(timeperiod),
-        this.active.history
+        this.active.history,
       );
       if (periods.length === 0) return;
 
       const data = await getClient().query(
         periods,
-        queries.activityQueryAndroid(iosOrAndroidBucket)
+        queries.activityQueryAndroid(iosOrAndroidBucket),
       );
       if (this.active.history_generation !== generation) return;
       const active_history = _.zipObject(periods, data);
@@ -1251,7 +1265,7 @@ export const useActivityStore = defineStore('activity', {
         active_history,
         (duration: number, key): [IEvent] => {
           return [{ timestamp: key.split('/')[0], duration, data: { status: 'not-afk' } }];
-        }
+        },
       );
       this.query_active_history_completed({ active_history: active_history_events });
     },
@@ -1263,7 +1277,7 @@ export const useActivityStore = defineStore('activity', {
       this.active.available = this.buckets.afk.length > 0;
       this.editor.available = this.buckets.editor.length > 0;
       this.android.available = this.buckets.android.length > 0;
-      this.ios.available = this.buckets.android.some(id => id.startsWith('aw-import-screentime'));
+      this.ios.available = this.buckets.android.some((id) => id.startsWith('aw-import-screentime'));
       this.category.available = this.window.available || this.android.available;
       this.stopwatch.available = this.buckets.stopwatch.length > 0;
     },
@@ -1287,30 +1301,35 @@ export const useActivityStore = defineStore('activity', {
 
       this.start_loading({});
 
-      function groupSumEventsBy(events, key, f) {
+      type DemoEvent = (typeof window_events)[number];
+      function groupSumEventsBy(
+        events: DemoEvent[],
+        key: string,
+        f: (event: DemoEvent) => string | string[] | undefined,
+      ) {
         return flow(
-          filter(f),
+          filter((event: DemoEvent) => Boolean(f(event))),
           groupBy(f),
           values,
-          map((es: any) => {
+          map((es: DemoEvent[]) => {
             return { duration: _.sumBy(es, 'duration'), data: { [key]: f(es[0]) } };
           }),
           sortBy('duration'),
-          reverse
+          reverse,
         )(events);
       }
 
-      const app_events = groupSumEventsBy(window_events, 'app', (e: any) => e.data.app);
-      const title_events = groupSumEventsBy(window_events, 'title', (e: any) => e.data.title);
-      const cat_events = groupSumEventsBy(window_events, '$category', (e: any) => e.data.$category);
-      const url_events = groupSumEventsBy(window_events, 'url', (e: any) => e.data.url);
-      const domain_events = groupSumEventsBy(window_events, '$domain', (e: any) =>
-        e.data.url === undefined ? '' : new URL(e.data.url).host
+      const app_events = groupSumEventsBy(window_events, 'app', (e) => e.data.app);
+      const title_events = groupSumEventsBy(window_events, 'title', (e) => e.data.title);
+      const cat_events = groupSumEventsBy(window_events, '$category', (e) => e.data.$category);
+      const url_events = groupSumEventsBy(window_events, 'url', (e) => e.data.url);
+      const domain_events = groupSumEventsBy(window_events, '$domain', (e) =>
+        e.data.url === undefined ? '' : new URL(e.data.url).host,
       );
       const browser_title_events = groupSumEventsBy(
-        window_events.filter((e: any) => e.data.url),
+        window_events.filter((e) => e.data.url),
         'title',
-        (e: any) => e.data.title
+        (e) => e.data.title,
       );
 
       this.query_window_completed({
@@ -1402,14 +1421,14 @@ export const useActivityStore = defineStore('activity', {
 
     query_window_completed(
       this: State,
-      data: Record<string, any> = {
+      data: WindowQueryResult & { host_durations?: HostDuration[] } = {
         app_events: [],
         title_events: [],
         cat_events: [],
         active_events: [],
         duration: 0,
         raw_duration: 0,
-      }
+      },
     ) {
       // Set $color and $score for categories
       if (data.cat_events) {
@@ -1428,7 +1447,7 @@ export const useActivityStore = defineStore('activity', {
 
     query_browser_completed(
       this: State,
-      data = { domains: [], urls: [], titles: [], duration: 0 }
+      data = { domains: [], urls: [], titles: [], duration: 0 },
     ) {
       this.browser.top_domains = data.domains;
       this.browser.top_urls = data.urls;
@@ -1442,7 +1461,7 @@ export const useActivityStore = defineStore('activity', {
 
     query_editor_completed(
       this: State,
-      data = { duration: 0, files: [], languages: [], projects: [] }
+      data = { duration: 0, files: [], languages: [], projects: [] },
     ) {
       this.editor.duration = data.duration;
       this.editor.top_files = data.files;
