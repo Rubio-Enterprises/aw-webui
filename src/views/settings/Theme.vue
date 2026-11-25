@@ -47,7 +47,7 @@ export default defineComponent({
         const settingsStore = useSettingsStore();
         return settingsStore.theme;
       },
-      set(value) {
+      set(value: 'light' | 'dark' | 'auto') {
         console.log('Set theme to ' + value);
         const settingsStore = useSettingsStore();
         settingsStore.update({
@@ -68,7 +68,7 @@ export default defineComponent({
 
         // Append Dark Theme Element if dark theme should be applied
         if (detectedTheme === 'dark') {
-          document.querySelector('head').appendChild(themeLink);
+          document.head.appendChild(themeLink);
         }
       },
     },

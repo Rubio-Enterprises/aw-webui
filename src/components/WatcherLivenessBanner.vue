@@ -52,18 +52,21 @@ export default Vue.extend({
       const now = new Date(this.now);
       const staleMs = STALE_THRESHOLD_MINUTES * 60 * 1000;
 
-      const pairs = [
-        {
-          type: 'window',
-          name: 'aw-watcher-window',
-          ids: this.bucketsStore.bucketsWindow(this.host),
-        },
-        { type: 'afk', name: 'aw-watcher-afk', ids: this.bucketsStore.bucketsAFK(this.host) },
-      ];
+      const windowPair = {
+        type: 'window',
+        name: 'aw-watcher-window',
+        ids: this.bucketsStore.bucketsWindow(this.host),
+      };
+      const afkPair = {
+        type: 'afk',
+        name: 'aw-watcher-afk',
+        ids: this.bucketsStore.bucketsAFK(this.host),
+      };
+      const pairs = [windowPair, afkPair];
 
       // Only show banner when at least one core bucket on this host is current.
       // This avoids false positives on idle machines that haven't had activity today.
-      const allCoreIds = [...pairs[0].ids, ...pairs[1].ids];
+      const allCoreIds = [...windowPair.ids, ...afkPair.ids];
       if (allCoreIds.length === 0) return [];
 
       const hasCurrentBucket = allCoreIds.some(id => {

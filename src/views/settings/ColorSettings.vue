@@ -20,7 +20,7 @@ export default defineComponent({
         const settingsStore = useSettingsStore();
         return settingsStore.useColorFallback;
       },
-      set: function (val) {
+      set: function (val: boolean) {
         const settingsStore = useSettingsStore();
         settingsStore.update({ useColorFallback: val });
       },

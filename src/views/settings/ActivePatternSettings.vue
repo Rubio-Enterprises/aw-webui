@@ -56,7 +56,7 @@ export default defineComponent({
       get() {
         return this.settingsStore.always_active_pattern;
       },
-      set(value) {
+      set(value: string) {
         console.log('Setting always_active_pattern to ' + value);
         this.settingsStore.update({ always_active_pattern: value });
       },

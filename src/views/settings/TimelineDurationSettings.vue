@@ -37,7 +37,7 @@ export default defineComponent({
       get() {
         return Number(this.settingsStore.timelineGroupGranularity);
       },
-      set(value) {
+      set(value: number | string) {
         const seconds = Number(value);
         if (Number.isFinite(seconds) && seconds >= 0) {
           this.settingsStore.update({ timelineGroupGranularity: seconds });
@@ -48,7 +48,7 @@ export default defineComponent({
       get() {
         return this.settingsStore.durationDefault;
       },
-      set(value) {
+      set(value: number) {
         console.log('Set default timeline duration to ' + value);
         this.settingsStore.update({ durationDefault: value });
       },

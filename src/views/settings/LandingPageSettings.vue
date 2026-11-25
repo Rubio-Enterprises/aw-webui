@@ -36,7 +36,7 @@ export default defineComponent({
         const settingsStore = useSettingsStore();
         return settingsStore.landingpage || '/home';
       },
-      set: function (val) {
+      set: function (val: string) {
         const settingsStore = useSettingsStore();
         settingsStore.update({ landingpage: val });
       },

@@ -20,7 +20,7 @@ export default defineComponent({
         const settingsStore = useSettingsStore();
         return settingsStore.newReleaseCheckData.isEnabled;
       },
-      set(value) {
+      set(value: boolean) {
         const settingsStore = useSettingsStore();
         const data = settingsStore.newReleaseCheckData;
         settingsStore.update({
