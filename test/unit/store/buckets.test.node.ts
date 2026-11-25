@@ -2,6 +2,7 @@ import { createPinia, setActivePinia } from 'pinia';
 
 import { useBucketsStore } from '~/stores/buckets';
 import { useServerStore } from '~/stores/server';
+import { createClient, getClient } from '~/util/awclient';
 import type { IBucket } from '~/util/interfaces';
 
 function bucket(partial: Partial<IBucket> & { id: string }): IBucket {
@@ -172,5 +173,76 @@ describe('desktopBucketIds', () => {
       bid_window: 'aw-watcher-window_laptop',
       bid_afk: 'aw-watcher-afk_laptop',
     });
+  });
+});
+
+describe('strict-typing regressions', () => {
+  beforeAll(() => {
+    createClient();
+  });
+
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    useServerStore().$patch({
+      info: { hostname: 'erb-m2', device_id: 'local-uuid', version: '0.14.0', testing: true },
+    });
+  });
+
+  test('bucketsByDevice copes with buckets that have neither device_id nor hostname', () => {
+    const store = useBucketsStore();
+    store.update_buckets([
+      bucket({ id: 'orphan', hostname: undefined, data: {} }),
+      bucket({ id: 'aw-watcher-window_erb-m2', data: { device_id: 'real-uuid-xyz' } }),
+    ]);
+    // Old code: `toLowerCase` of an undefined device id threw while building the group
+    const devices = store.bucketsByDevice;
+    expect(devices['erb-m2']?.device_id).toBe('real-uuid-xyz');
+  });
+
+  test('bucketsByDevice copes with a group whose buckets all lack ids', () => {
+    const store = useBucketsStore();
+    store.update_buckets([bucket({ id: 'orphan', hostname: undefined, data: {} })]);
+    const groups = Object.values(store.bucketsByDevice);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].device_ids).toEqual([]);
+    expect(groups[0].device_id).toBeUndefined();
+  });
+
+  test('hosts leaves out buckets that carry no hostname', () => {
+    const store = useBucketsStore();
+    store.update_buckets([
+      bucket({ id: 'orphan', hostname: undefined, data: {} }),
+      bucket({ id: 'aw-watcher-window_erb-m2' }),
+    ]);
+    // toEqual would treat an undefined entry as a match for a missing one
+    expect(store.hosts).toHaveLength(1);
+    expect(store.hosts).toStrictEqual(['erb-m2']);
+  });
+
+  test('getBucketWithEvents rejects an unknown bucket id without querying events', async () => {
+    const store = useBucketsStore();
+    store.update_buckets([bucket({ id: 'aw-watcher-window_erb-m2' })]);
+    // ensureLoaded() skips loading because buckets are present
+    const getEvents = jest.spyOn(getClient(), 'getEvents').mockResolvedValue([]);
+    await expect(store.getBucketWithEvents({ id: 'does-not-exist' })).rejects.toThrow(
+      /does-not-exist/,
+    );
+    expect(getEvents).not.toHaveBeenCalled();
+    getEvents.mockRestore();
+  });
+
+  test('getBucketWithEvents returns a copy of a known bucket with its events', async () => {
+    const store = useBucketsStore();
+    store.update_buckets([bucket({ id: 'aw-watcher-window_erb-m2' })]);
+    const events = [{ timestamp: '2026-09-16T00:00:00Z', duration: 1, data: { app: 'x' } }];
+    const getEvents = jest
+      .spyOn(getClient(), 'getEvents')
+      .mockResolvedValue(
+        events as unknown as Awaited<ReturnType<ReturnType<typeof getClient>['getEvents']>>,
+      );
+    const result = await store.getBucketWithEvents({ id: 'aw-watcher-window_erb-m2' });
+    expect(result.events).toEqual(events);
+    expect(store.getBucket('aw-watcher-window_erb-m2')?.events).toBeUndefined();
+    getEvents.mockRestore();
   });
 });

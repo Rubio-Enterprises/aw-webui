@@ -528,3 +528,49 @@ describe('import add-on-top via setActiveSets', () => {
     expect(store.get_category(['Dev'])?.rule.regex).toBe('editor');
   });
 });
+
+describe('strict-typing regressions', () => {
+  setActivePinia(createPinia());
+  const categoryStore = useCategoryStore();
+
+  beforeEach(() => {
+    categoryStore.clearAll();
+  });
+
+  test('category_select lists categories in text order', () => {
+    categoryStore.classes = [
+      { id: 0, name: ['Work'], rule: { type: 'none' } },
+      { id: 1, name: ['Media'], rule: { type: 'none' } },
+      { id: 2, name: ['Media', 'Audio'], rule: { type: 'none' } },
+      { id: 3, name: ['Comms'], rule: { type: 'none' } },
+      { id: 4, name: ['Uncategorized'], rule: { type: 'none' } },
+    ] as Category[];
+    const texts = categoryStore.category_select(false).map((o) => o.text);
+    // The old comparator returned a boolean, which never sorts a list in place
+    expect(texts).toEqual(['Comms', 'Media', 'Media > Audio', 'Uncategorized', 'Work']);
+  });
+
+  test('category_select puts the meta entries first, before the sorted categories', () => {
+    categoryStore.classes = [
+      { id: 0, name: ['Work'], rule: { type: 'none' } },
+      { id: 1, name: ['Media'], rule: { type: 'none' } },
+    ] as Category[];
+    const options = categoryStore.category_select(true);
+    expect(options.map((o) => o.text)).toEqual(['All', 'Uncategorized', 'Media', 'Work']);
+    expect(options[0].value).toBeNull();
+  });
+
+  test('updateClass rejects an unknown category id and leaves the classes untouched', () => {
+    categoryStore.restoreDefaultClasses();
+    const before = JSON.stringify(categoryStore.classes);
+    expect(() =>
+      categoryStore.updateClass({ id: 9999, name: ['Ghost'], rule: { type: 'none' } }),
+    ).toThrow(/unknown category 9999/);
+    expect(JSON.stringify(categoryStore.classes)).toBe(before);
+  });
+
+  test('appendClassRule rejects an unknown category id', () => {
+    categoryStore.restoreDefaultClasses();
+    expect(() => categoryStore.appendClassRule(9999, 'foo')).toThrow(/unknown category 9999/);
+  });
+});
