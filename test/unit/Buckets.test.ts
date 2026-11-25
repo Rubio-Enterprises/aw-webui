@@ -1,5 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 describe('Buckets.vue device ID label', () => {
   const src = fs.readFileSync(path.join(__dirname, '../../src/views/Buckets.vue'), 'utf8');
@@ -51,7 +51,7 @@ describe('Buckets.vue bucket import', () => {
     // A new import must not render the previous run's success/error alert
     // beside the importing spinner.
     expect(src).toMatch(
-      /this\.import_success = false;\s*\n\s*this\.import_error = null;\s*\n\s*try \{/
+      /this\.import_success = false;\s*\n\s*this\.import_error = null;\s*\n\s*try \{/,
     );
   });
 

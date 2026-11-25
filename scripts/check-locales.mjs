@@ -5,17 +5,17 @@
  * SUPPORTED matches the locale files.
  * Usage: node scripts/check-locales.mjs [--verbose]
  */
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const LOCALES_DIR = path.join(__dirname, '../src/i18n/locales');
 // Derived from the files, so adding a locale never edits this script.
 const LOCALES = fs
   .readdirSync(LOCALES_DIR)
-  .filter(name => name.endsWith('.ts'))
-  .map(name => name.slice(0, -'.ts'.length))
+  .filter((name) => name.endsWith('.ts'))
+  .map((name) => name.slice(0, -'.ts'.length))
   .sort((a, b) => a.localeCompare(b, 'en'));
 // These contributor-facing messages intentionally use English fallback until translated.
 const ENGLISH_FALLBACK_KEYS = new Set([
@@ -133,7 +133,6 @@ function loadLocale(code) {
   let text = fs.readFileSync(filePath, 'utf8');
   text = text.replace(/export\s+default\s+/, '').replace(/;\s*$/, '');
   // Locale files are static object literals only.
-  // eslint-disable-next-line no-new-func
   return new Function(`return (${text})`)();
 }
 
@@ -158,7 +157,7 @@ function placeholders(s) {
 function isAllowlistedIdentical(enValue, targetValue) {
   if (enValue !== targetValue) return false;
   const words = enValue.toLowerCase().match(/[a-z]+/g) || [];
-  return words.every(word => ALLOWLIST_WORDS.includes(word));
+  return words.every((word) => ALLOWLIST_WORDS.includes(word));
 }
 
 function sourceFiles(dir) {
@@ -198,7 +197,7 @@ function localeOrderErrors() {
     const j = i < 0 ? -1 : source.indexOf(end, i + start.length);
     return j < 0 ? '' : source.slice(i + start.length, j);
   };
-  const codes = (text, re) => [...text.matchAll(re)].map(m => m[1]);
+  const codes = (text, re) => [...text.matchAll(re)].map((m) => m[1]);
   const quoted = /'([\w-]+)'/g;
   const keys = /^\s*'?([\w-]+)'?\s*[:,]/gm;
   const lists = {
@@ -209,7 +208,7 @@ function localeOrderErrors() {
     HTML_LANG: codes(block('const HTML_LANG: Record<AppLocale, string> = {', '};'), keys),
     detectBrowserLocale: codes(
       block('function detectBrowserLocale()', 'return null;\n}'),
-      /return '([\w-]+)';/g
+      /return '([\w-]+)';/g,
     ),
     MOMENT_LOCALE: codes(block('const MOMENT_LOCALE: Record<AppLocale, string> = {', '};'), keys),
     LANGUAGE_NAMES: codes(block('const LANGUAGE_NAMES: Record<AppLocale, string> = {', '};'), keys),
@@ -242,14 +241,14 @@ const orderErrors = localeOrderErrors();
 if (orderErrors.length) {
   failed = true;
   console.error(`\nLocale registrations out of alphabetical order (${orderErrors.length}):`);
-  orderErrors.forEach(e => console.error(`  - ${e}`));
+  for (const error of orderErrors) console.error(`  - ${error}`);
 }
 
-const missingInEnglish = [...usedStaticTranslationKeys()].filter(key => !(key in enFlat));
+const missingInEnglish = [...usedStaticTranslationKeys()].filter((key) => !(key in enFlat));
 if (missingInEnglish.length) {
   failed = true;
   console.error(`\n[en] Missing keys used by source (${missingInEnglish.length}):`);
-  missingInEnglish.sort().forEach(key => console.error(`  - ${key}`));
+  for (const key of missingInEnglish.sort()) console.error(`  - ${key}`);
 }
 
 for (const code of LOCALES) {
@@ -258,20 +257,20 @@ for (const code of LOCALES) {
   const enKeys = new Set(Object.keys(enFlat));
   const keys = new Set(Object.keys(flat));
 
-  const missing = [...enKeys].filter(k => !keys.has(k));
-  const extra = [...keys].filter(k => !enKeys.has(k));
+  const missing = [...enKeys].filter((k) => !keys.has(k));
+  const extra = [...keys].filter((k) => !enKeys.has(k));
 
-  const requiredMissing = missing.filter(k => !ENGLISH_FALLBACK_KEYS.has(k));
+  const requiredMissing = missing.filter((k) => !ENGLISH_FALLBACK_KEYS.has(k));
   if (requiredMissing.length) {
     failed = true;
     console.error(`\n[${code}] Missing keys (${requiredMissing.length}):`);
-    requiredMissing.slice(0, 20).forEach(k => console.error(`  - ${k}`));
+    for (const key of requiredMissing.slice(0, 20)) console.error(`  - ${key}`);
     if (requiredMissing.length > 20) console.error(`  ... and ${requiredMissing.length - 20} more`);
   }
   if (extra.length) {
     failed = true;
     console.error(`\n[${code}] Extra keys (${extra.length}):`);
-    extra.slice(0, 20).forEach(k => console.error(`  - ${k}`));
+    for (const key of extra.slice(0, 20)) console.error(`  - ${key}`);
   }
 
   const placeholderMismatches = [];
@@ -296,15 +295,15 @@ for (const code of LOCALES) {
   if (placeholderMismatches.length) {
     failed = true;
     console.error(`\n[${code}] Placeholder mismatches (${placeholderMismatches.length}):`);
-    placeholderMismatches
-      .slice(0, 15)
-      .forEach(({ key, en, got }) => console.error(`  - ${key}: en [${en}] vs [${got}]`));
+    for (const { key, en, got } of placeholderMismatches.slice(0, 15)) {
+      console.error(`  - ${key}: en [${en}] vs [${got}]`);
+    }
   }
 
   if (untranslated.length) {
     console.warn(`\n[${code}] Possibly untranslated (identical to en, ${untranslated.length}):`);
     const shown = verbose ? untranslated : untranslated.slice(0, 15);
-    shown.forEach(k => console.warn(`  - ${k}: "${enFlat[k].slice(0, 60)}..."`));
+    for (const key of shown) console.warn(`  - ${key}: "${enFlat[key].slice(0, 60)}..."`);
     if (untranslated.length > shown.length) {
       console.warn(`  ... and ${untranslated.length - shown.length} more (use --verbose)`);
     }
@@ -320,7 +319,7 @@ console.log('\nTranslation coverage (missing or identical to en counts as untran
 for (const { code, translated, total } of coverage) {
   const pct = ((100 * translated) / total).toFixed(1);
   console.log(
-    `  ${code.padEnd(6)} ${String(translated).padStart(4)}/${total}  ${pct.padStart(5)}%`
+    `  ${code.padEnd(6)} ${String(translated).padStart(4)}/${total}  ${pct.padStart(5)}%`,
   );
 }
 

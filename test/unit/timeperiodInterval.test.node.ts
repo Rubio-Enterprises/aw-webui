@@ -1,19 +1,19 @@
-import { execFileSync } from 'child_process';
-import path from 'path';
+import { execFileSync } from 'node:child_process';
+import path from 'node:path';
 import moment from 'moment';
 import {
-  MAX_INTERVAL_MS,
   exactBucketLabels,
   exactIntervalReadable,
   exactIntervalToTimeperiod,
   formatExactInterval,
   hourlyLabels,
   instantToWall,
+  MAX_INTERVAL_MS,
   parseExactInterval,
-  splitTimeperiodStrs,
   shiftExactInterval,
-  timeperiodToStr,
+  splitTimeperiodStrs,
   timeperiodsForBarchart,
+  timeperiodToStr,
   wallTimeInstants,
 } from '~/util/timeperiod';
 
@@ -23,7 +23,6 @@ const REPO_ROOT = path.resolve(__dirname, '../..');
 const ZONE = 'Europe/Stockholm';
 
 if (!process.env.AW_INTERVAL_ZONE) {
-  // eslint-disable-next-line jest/expect-expect
   test(`interval regressions replay under TZ=${ZONE}`, () => {
     execFileSync(
       process.execPath,
@@ -41,7 +40,7 @@ if (!process.env.AW_INTERVAL_ZONE) {
         env: { ...process.env, TZ: ZONE, AW_INTERVAL_ZONE: ZONE },
         stdio: 'pipe',
         timeout: 90000,
-      }
+      },
     );
   }, 95000);
 }
@@ -85,8 +84,8 @@ describe('parseExactInterval', () => {
     const end = start.clone().add(MAX_INTERVAL_MS + 1000, 'milliseconds');
     expect(
       parseExactInterval(
-        `${start.format('YYYY-MM-DDTHH:mm:ss[Z]')}..${end.format('YYYY-MM-DDTHH:mm:ss[Z]')}`
-      )
+        `${start.format('YYYY-MM-DDTHH:mm:ss[Z]')}..${end.format('YYYY-MM-DDTHH:mm:ss[Z]')}`,
+      ),
     ).toBeNull();
   });
 
@@ -115,7 +114,7 @@ describe('exact interval timeperiod', () => {
     expect(
       timeperiodToStr(tp)
         .split('/')
-        .map(s => moment(s).valueOf())
+        .map((s) => moment(s).valueOf()),
     ).toEqual([moment(interval.start).valueOf(), moment(interval.end).valueOf()]);
   });
 
@@ -140,12 +139,12 @@ describe('exact interval timeperiod', () => {
 
 describe('exact interval buckets', () => {
   const bounds = (periods: { start: string; length: [number, string] }[]) =>
-    periods.map(timeperiodToStr).map(s => s.split('/').map(x => moment(x).valueOf()));
+    periods.map(timeperiodToStr).map((s) => s.split('/').map((x) => moment(x).valueOf()));
 
   const expectPartition = (
     periods: { start: string; length: [number, string] }[],
     startMs: number,
-    endMs: number
+    endMs: number,
   ) => {
     const b = bounds(periods);
     expect(b[0][0]).toBe(startMs);
@@ -163,7 +162,7 @@ describe('exact interval buckets', () => {
     expectPartition(
       periods,
       moment('2026-10-20T13:00:00Z').valueOf(),
-      moment('2026-10-20T14:00:00Z').valueOf()
+      moment('2026-10-20T14:00:00Z').valueOf(),
     );
   });
 
@@ -178,7 +177,7 @@ describe('exact interval buckets', () => {
     expectPartition(
       periods,
       moment('2026-10-20T13:15:00Z').valueOf(),
-      moment('2026-10-20T15:00:00Z').valueOf()
+      moment('2026-10-20T15:00:00Z').valueOf(),
     );
     expect(hourlyLabels(tp)).toHaveLength(periods.length);
   });
@@ -194,17 +193,17 @@ describe('exact interval buckets', () => {
     expectPartition(
       periods,
       moment('2026-10-20T13:00:00Z').valueOf(),
-      moment('2026-10-22T19:00:00Z').valueOf()
+      moment('2026-10-22T19:00:00Z').valueOf(),
     );
   });
 
   test('exactly 24 elapsed hours is hourly; 24h + 1s moves to one clipped day', () => {
     const day = timeperiodsForBarchart(
-      exactIntervalToTimeperiod({ start: '2026-10-20T13:00:00Z', end: '2026-10-21T13:00:00Z' })
+      exactIntervalToTimeperiod({ start: '2026-10-20T13:00:00Z', end: '2026-10-21T13:00:00Z' }),
     );
     expect(day).toHaveLength(24);
     const over = timeperiodsForBarchart(
-      exactIntervalToTimeperiod({ start: '2026-10-20T13:00:00Z', end: '2026-10-21T13:00:01Z' })
+      exactIntervalToTimeperiod({ start: '2026-10-20T13:00:00Z', end: '2026-10-21T13:00:01Z' }),
     );
     expect(over).toHaveLength(2);
   });
@@ -216,11 +215,15 @@ describe('Android/editor splitting of an exact interval', () => {
       start: '2026-10-20T13:00:00Z',
       end: '2026-10-23T01:00:00Z',
     });
-    const chunks = splitTimeperiodStrs(tp, 1).map(c => c.split('/').map(x => moment(x).valueOf()));
+    const chunks = splitTimeperiodStrs(tp, 1).map((c) =>
+      c.split('/').map((x) => moment(x).valueOf()),
+    );
     expect(chunks).toHaveLength(3);
     expect(chunks[0][0]).toBe(moment('2026-10-20T13:00:00Z').valueOf());
     expect(chunks[2][1]).toBe(moment('2026-10-23T01:00:00Z').valueOf());
-    chunks.forEach(([, to], i) => i < 2 && expect(chunks[i + 1][0]).toBe(to));
+    chunks.forEach(([, to], i) => {
+      if (i < 2) expect(chunks[i + 1][0]).toBe(to);
+    });
   });
 });
 
@@ -238,9 +241,9 @@ describe('exact interval chart labels', () => {
 
   test('multi-day labels carry the date', () => {
     const labels = exactBucketLabels(
-      exactIntervalToTimeperiod({ start: '2026-10-20T13:00:00Z', end: '2026-10-22T19:00:00Z' })
+      exactIntervalToTimeperiod({ start: '2026-10-20T13:00:00Z', end: '2026-10-22T19:00:00Z' }),
     );
-    labels.forEach(l => expect(l).toMatch(/^\d{4}-\d{2}-\d{2}/));
+    for (const label of labels) expect(label).toMatch(/^\d{4}-\d{2}-\d{2}/);
     expect(new Set(labels).size).toBe(labels.length);
   });
 });
@@ -288,7 +291,7 @@ describeZone('DST handling (Europe/Stockholm)', () => {
     expect(periods).toHaveLength(4);
     const labels = hourlyLabels(tp);
     expect(new Set(labels).size).toBe(4);
-    expect(labels.filter(l => l.includes('('))).toHaveLength(2);
+    expect(labels.filter((l) => l.includes('('))).toHaveLength(2);
   });
 
   test('a spring-forward day-long interval is 23 elapsed hours of buckets', () => {
