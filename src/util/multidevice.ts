@@ -32,11 +32,11 @@ export function buildMultideviceHostParams(
   hosts: string[],
   bucketsWindow: (host: string) => string[],
   bucketsAFK: (host: string) => string[],
-  bucketsAndroid?: (host: string) => string[]
+  bucketsAndroid?: (host: string) => string[],
 ): MultideviceHostSelection {
   const host_params: MultideviceHostSelection['host_params'] = {};
   const hosts_with_buckets: string[] = [];
-  hosts.forEach(host => {
+  hosts.forEach((host) => {
     const bid_window = bucketsWindow(host)[0];
     const bid_afk = bucketsAFK(host)[0];
     if (bid_window && bid_afk) {
@@ -51,7 +51,7 @@ export function buildMultideviceHostParams(
     // pick the Android watcher bucket, set isIos to false, and the host's
     // ScreenTime data would never be processed.
     const bid_android =
-      androidBucketIds.find(id => id.startsWith('aw-import-screentime')) || androidBucketIds[0];
+      androidBucketIds.find((id) => id.startsWith('aw-import-screentime')) || androidBucketIds[0];
     if (bid_android) {
       host_params[host] = { bid_android, isIos: bid_android.startsWith('aw-import-screentime') };
       hosts_with_buckets.push(host);
@@ -104,14 +104,14 @@ export function parseHostParam(param: string, knownHosts: string[] = []): HostSe
     ? _uniq(
         param
           .split(HOST_SEPARATOR)
-          .map(h => _decode(h.trim()))
-          .filter(h => h.length > 0)
+          .map((h) => _decode(h.trim()))
+          .filter((h) => h.length > 0),
       )
     : [];
   // A list of known hosts wins over a known host that happens to be spelled
   // the same (hosts "a", "b" and "a,b"); formatHostParam links such a single
   // host in escaped form, so it stays reachable.
-  if (items.length > 1 && items.every(h => knownHosts.includes(h))) {
+  if (items.length > 1 && items.every((h) => knownHosts.includes(h))) {
     return { all: false, hosts: items };
   }
   if (knownHosts.includes(param)) {
@@ -145,7 +145,7 @@ export function formatHostParam(selection: HostSelection | string[]): string {
       ? encodeURIComponent(encodeURIComponent(host))
       : encodeURIComponent(host);
   }
-  return sel.hosts.map(h => encodeURIComponent(encodeURIComponent(h))).join(HOST_SEPARATOR);
+  return sel.hosts.map((h) => encodeURIComponent(encodeURIComponent(h))).join(HOST_SEPARATOR);
 }
 
 /** Whether a selection spans more than one device (i.e. needs the multidevice query). */
@@ -169,24 +169,24 @@ export function resolveHostSelection(selection: HostSelection, eligibleHosts: st
   if (selection.hosts.length <= 1) {
     return [...selection.hosts];
   }
-  return eligibleHosts.filter(h => selection.hosts.includes(h));
+  return eligibleHosts.filter((h) => selection.hosts.includes(h));
 }
 
 /** Toggle `host` in a selection; returns the new selection (never empty). */
 export function toggleHostInSelection(
   selection: HostSelection,
   host: string,
-  eligibleHosts: string[]
+  eligibleHosts: string[],
 ): HostSelection {
   const current = resolveHostSelection(selection, eligibleHosts);
-  const next = current.includes(host) ? current.filter(h => h !== host) : [...current, host];
+  const next = current.includes(host) ? current.filter((h) => h !== host) : [...current, host];
   if (next.length === 0) {
     // Keep at least one device selected.
     return selection;
   }
-  const ordered = eligibleHosts.filter(h => next.includes(h));
+  const ordered = eligibleHosts.filter((h) => next.includes(h));
   // Hosts that aren't eligible (e.g. a stale host from the URL) are kept at the end.
-  next.forEach(h => {
+  next.forEach((h) => {
     if (!ordered.includes(h)) ordered.push(h);
   });
   if (ordered.length > 1 && ordered.length === eligibleHosts.length) {
@@ -198,7 +198,7 @@ export function toggleHostInSelection(
 function _decode(s: string): string {
   try {
     return decodeURIComponent(s);
-  } catch (e) {
+  } catch {
     // Not valid percent-encoding: take it literally
     return s;
   }
@@ -220,15 +220,15 @@ export function eligibleMultideviceHosts(
   bucketsWindow: (host: string) => string[],
   bucketsAFK: (host: string) => string[],
   bucketsAndroid: (host: string) => string[],
-  { includeFakedata = false }: { includeFakedata?: boolean } = {}
+  { includeFakedata = false }: { includeFakedata?: boolean } = {},
 ): string[] {
   return hosts.filter(
-    host =>
+    (host) =>
       !!host &&
       host !== 'unknown' &&
       ((bucketsWindow(host).length > 0 && bucketsAFK(host).length > 0) ||
         bucketsAndroid(host).length > 0) &&
-      (includeFakedata || !host.startsWith('fakedata'))
+      (includeFakedata || !host.startsWith('fakedata')),
   );
 }
 
@@ -247,7 +247,7 @@ export interface HostDuration {
 export function hostDurationBreakdown(
   hosts: string[],
   cumulative: number[] | undefined,
-  raw: number[] | undefined
+  raw: number[] | undefined,
 ): HostDuration[] {
   if (!cumulative || cumulative.length !== hosts.length) return [];
   return hosts.map((host, i) => {
