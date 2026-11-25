@@ -97,6 +97,6 @@ export function selectPeriodsToQuery(
     // The open period is always refreshed so its duration can grow.
     if (now_ms < end) return true;
 
-    return !Object.hasOwn(cached, period_str);
+    return Object.getOwnPropertyDescriptor(cached, period_str) === undefined;
   });
 }
