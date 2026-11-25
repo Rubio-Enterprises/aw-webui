@@ -12,10 +12,11 @@
  */
 export function isBrowserAllowlistMiss(browser: {
   available: boolean;
-  duration: number;
-  top_domains: unknown[] | null;
+  duration: number | undefined;
+  top_domains: unknown[] | null | undefined;
 }): boolean {
   if (!browser.available) return false;
-  if (browser.top_domains === null) return false;
+  // Still loading (null) or no data at all (undefined): nothing to judge yet
+  if (browser.top_domains == null) return false;
   return browser.duration === 0 && browser.top_domains.length === 0;
 }
