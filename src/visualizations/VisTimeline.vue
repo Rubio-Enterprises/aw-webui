@@ -87,9 +87,9 @@ div#visualization {
 </style>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
+import { defineComponent, markRaw, type PropType } from 'vue';
 import _ from 'lodash';
-import { markRaw } from 'vue';
+import type { Moment } from 'moment';
 import Color from 'color';
 import { buildTooltip } from '../util/tooltip';
 import { seconds_to_duration } from '../util/time';
@@ -97,12 +97,14 @@ import { getCategoryColorFromEvent, getColorFromCategory, getTitleAttr } from '.
 import { useCategoryStore } from '~/stores/categories';
 import { getSwimlane } from '../util/swimlane';
 import {
+  type IndexedEvent,
   indexTimelineEvents,
   visibleTimelineEvents,
   syncTimelineData,
 } from '../util/timelineIndex';
 import { DataSet } from 'vis-data';
-import { IEvent } from '../util/interfaces';
+import type { DataGroup, DataItem, TimelineOptions } from 'vis-timeline';
+import type { IBucket, IEvent } from '../util/interfaces';
 import { formatTimelineBucketLabelHtml, shortenBucketLabel } from '../util/timelineLabels';
 
 import { Timeline } from 'vis-timeline/esnext';
@@ -114,28 +116,31 @@ const PIXELS_PER_WHEEL_LINE = 40;
 const CATEGORIZED_ROW = '__categorized__';
 const PIXELS_PER_WHEEL_PAGE = 800;
 
+type TimelineIndex = ReturnType<typeof indexTimelineEvents>;
+type TimelineGroupRow = DataGroup & { id: string; content: string };
+// DataItem.id is optional in vis-data's types, but every row built here has one.
+type TimelineRow = DataItem & { id: string };
+type RenderedViewport = { index: TimelineIndex; width: number; start: number; end: number };
+// What vis-timeline passes to the 'select' listener
+type SelectProperties = { items: string[]; event: { type: string } };
+
 export default defineComponent({
   components: {
     EventEditor,
   },
   props: {
-    buckets: { type: Array },
-    events: { type: Array },
-    categorizedEvents: { type: Array, default: () => [] },
+    buckets: { type: Array as PropType<IBucket[]> },
+    events: { type: Array as PropType<IEvent[]> },
+    categorizedEvents: { type: Array as PropType<IEvent[]>, default: () => [] },
     showRowLabels: { type: Boolean },
-    queriedInterval: { type: Array },
+    queriedInterval: { type: Array as PropType<Moment[]> },
     showQueriedInterval: { type: Boolean },
     swimlane: { type: String },
     updateTimelineWindow: { type: Boolean },
     groupGranularity: { type: Number, default: 0 },
   },
   data() {
-    return {
-      timeline: null,
-      filterShortEvents: true,
-      items: [],
-      groups: [],
-      options: {
+    const options: TimelineOptions = {
         zoomMin: 1000 * 60, // 10min in milliseconds
         zoomMax: 1000 * 60 * 60 * 24 * 31 * 3, // about three months in milliseconds
         stack: false,
@@ -151,18 +156,35 @@ export default defineComponent({
         // Horizontal scroll navigation (see #629). Dominant horizontal wheel
         // events are handled by onHorizontalWheel.
         horizontalScroll: true, // horizontal scroll/swipe pans the timeline
-      },
-      editingEvent: null,
-      editingEventBucket: null,
+    };
+    return {
+      timeline: null as Timeline | null,
+      filterShortEvents: true,
+      items: [] as TimelineRow[],
+      groups: [] as TimelineGroupRow[],
+      options,
+      editingEvent: null as IEvent | null,
+      editingEventBucket: null as string | null,
       eventOverrides: {} as Record<string, IEvent>,
       expandedGroups: [] as string[],
       pendingWindowRestore: null as { start: Date; end: Date } | null,
 
       updateHasRun: false,
+
+      // Declared here so they are typed; created() gives every instance fresh ones.
+      // Not reactive: Vue 2 only observes arrays and plain objects, so these class
+      // instances and Maps are left alone.
+      itemData: new DataSet<DataItem>(),
+      groupData: new DataSet<DataGroup>(),
+      itemEvents: new Map<string, IndexedEvent>(),
+      preparedItems: new Map<string, TimelineRow>(),
+      hasInitialRange: false,
+      viewportFrame: null as number | null,
+      renderedViewport: null as RenderedViewport | null,
     };
   },
   computed: {
-    bucketsFromEither() {
+    bucketsFromEither(): IBucket[] {
       if (this.buckets) {
         return this.buckets;
       } else if (this.events) {
@@ -171,6 +193,7 @@ export default defineComponent({
           {
             id: 'events',
             type: 'search',
+            data: {},
             events: this.events,
           },
         ];
@@ -179,20 +202,26 @@ export default defineComponent({
         return [];
       }
     },
-    eventIndex() {
+    eventIndex(): TimelineIndex {
       const rows = [...this.bucketsFromEither];
       if (this.categorizedEvents?.length) {
-        rows.unshift({ id: CATEGORIZED_ROW, type: 'categorized', events: this.categorizedEvents });
+        rows.unshift({
+          id: CATEGORIZED_ROW,
+          type: 'categorized',
+          data: {},
+          events: this.categorizedEvents,
+        });
       }
       // The derived category row keeps subsecond intervals, as they are already merged.
       const seconds =
         Number.isFinite(this.groupGranularity) && this.groupGranularity > 0
           ? this.groupGranularity
           : 0;
-      const granularity = bucket => (bucket.id === CATEGORIZED_ROW ? 0 : seconds);
+      const granularity = (bucket: IBucket) => (bucket.id === CATEGORIZED_ROW ? 0 : seconds);
       return indexTimelineEvents(
         rows,
-        bucket => this.filterShortEvents && bucket.id !== CATEGORIZED_ROW && !granularity(bucket),
+        (bucket: IBucket) =>
+          this.filterShortEvents && bucket.id !== CATEGORIZED_ROW && !granularity(bucket),
         (bucketId, event) => this.displayEvent(bucketId, event),
         granularity,
         this.expandedGroups
@@ -209,7 +238,7 @@ export default defineComponent({
     },
     buckets() {
       // For some reason, an object is passed here, after which the correct array arrives
-      if (this.buckets.length === undefined) {
+      if (this.buckets?.length === undefined) {
         //console.log("I told you so!")
         return;
       }
@@ -219,7 +248,7 @@ export default defineComponent({
       this.update();
     },
     events() {
-      if (this.events.length === undefined) {
+      if (this.events?.length === undefined) {
         return;
       }
 
@@ -229,8 +258,8 @@ export default defineComponent({
     },
   },
   created() {
-    this.itemData = new DataSet();
-    this.groupData = new DataSet();
+    this.itemData = new DataSet<DataItem>();
+    this.groupData = new DataSet<DataGroup>();
     this.itemEvents = new Map();
     this.preparedItems = new Map();
     this.hasInitialRange = false;
@@ -239,16 +268,27 @@ export default defineComponent({
   },
   mounted() {
     this.$nextTick(() => {
-      if (this._isDestroyed || this._isBeingDestroyed) return;
-      const el = this.$el.querySelector('#visualization');
+      // Vue sets these on every instance, but they are not in its public types
+      if (
+        ('_isDestroyed' in this && this._isDestroyed) ||
+        ('_isBeingDestroyed' in this && this._isBeingDestroyed)
+      ) {
+        return;
+      }
+      const el = this.$el.querySelector<HTMLElement>('#visualization');
+      if (!el) return;
       el.addEventListener('wheel', this.onHorizontalWheel, {
         capture: true,
         passive: false,
       });
-      this.options.tooltip.template = item => item.title || this.tooltipForItem(item.id);
-      this.timeline = markRaw(new Timeline(el, this.itemData, this.groupData, this.options));
-      this.timeline.on('rangechange', this.scheduleViewportUpdate);
-      this.timeline.on('select', properties => {
+      this.options.tooltip = {
+        ...this.options.tooltip,
+        template: item => item.title || this.tooltipForItem(item.id),
+      };
+      const timeline = markRaw(new Timeline(el, this.itemData, this.groupData, this.options));
+      this.timeline = timeline;
+      timeline.on('rangechange', this.scheduleViewportUpdate);
+      timeline.on('select', (properties: SelectProperties) => {
         // Sends both 'press' and 'tap' events, only one should trigger
         if (properties.event.type == 'tap') {
           this.onSelect(properties);
@@ -263,7 +303,7 @@ export default defineComponent({
     this.itemEvents?.clear();
     this.preparedItems?.clear();
     this.renderedViewport = null;
-    const el = this.$el.querySelector('#visualization');
+    const el = this.$el.querySelector<HTMLElement>('#visualization');
     if (el) {
       el.removeEventListener('wheel', this.onHorizontalWheel, { capture: true });
     }
@@ -277,7 +317,7 @@ export default defineComponent({
       const seconds = Number(duration.toFixed(6));
       return Number.isInteger(seconds)
         ? seconds_to_duration(seconds)
-        : `${seconds}${this.$t('common.durationSeconds')}`;
+        : `${seconds}${this.$t('common.durationSeconds') as string}`;
     },
     scheduleViewportUpdate() {
       if (this.viewportFrame != null) return;
@@ -286,18 +326,19 @@ export default defineComponent({
         if (this.timeline) this.update(false);
       });
     },
-    tooltipForItem(id) {
-      if (id === 'queried-interval' && this.queriedInterval) {
+    tooltipForItem(id: string | number): string {
+      const [intervalStart, intervalEnd] = this.queriedInterval ?? [];
+      if (id === 'queried-interval' && intervalStart && intervalEnd) {
         return buildTooltip(
           { type: 'test' },
           {
-            timestamp: this.queriedInterval[0],
-            duration: this.queriedInterval[1].diff(this.queriedInterval[0], 'seconds'),
+            timestamp: intervalStart.format(),
+            duration: intervalEnd.diff(intervalStart, 'seconds'),
             data: { title: 'query' },
           }
         );
       }
-      const item = this.itemEvents.get(id);
+      const item = this.itemEvents.get(String(id));
       if (item?.members) {
         const totals = new Map<string, number>();
         for (const member of item.members) {
@@ -316,17 +357,18 @@ export default defineComponent({
           )
           .join('');
         return `<table><caption>${_.escape(
-          this.$t('ui.timeline.groupBreakdown')
+          this.$t('ui.timeline.groupBreakdown') as string
         )}</caption>${rows}</table>`;
       }
       return item ? buildTooltip({ ...item.bucket, type: item.bucket.type || '' }, item.event) : '';
     },
     onHorizontalWheel: function (event: WheelEvent) {
-      if (!this.timeline || Math.abs(event.deltaX) <= Math.abs(event.deltaY)) {
+      const timeline = this.timeline;
+      if (!timeline || Math.abs(event.deltaX) <= Math.abs(event.deltaY)) {
         return;
       }
 
-      const currentWindow = this.timeline.getWindow();
+      const currentWindow = timeline.getWindow();
       const start = currentWindow.start.valueOf();
       const end = currentWindow.end.valueOf();
       let deltaX = event.deltaX;
@@ -337,13 +379,14 @@ export default defineComponent({
       }
       const diff = (deltaX / 120) * ((end - start) / 20);
 
-      this.timeline.setWindow(new Date(start + diff), new Date(end + diff), {
+      timeline.setWindow(new Date(start + diff), new Date(end + diff), {
         animation: false,
       });
       event.preventDefault();
       event.stopImmediatePropagation();
     },
     openEditor: function () {
+      if (!this.editingEvent) return;
       this.$bvModal.show('edit-modal-' + this.editingEvent.id);
     },
     displayEvent: function (bucketId: string, event: IEvent): IEvent {
@@ -354,18 +397,20 @@ export default defineComponent({
       const key = `${bucket}\0${event.id}`;
       this.$set(this.eventOverrides, key, event);
       this.editingEvent = event;
-      if (this.timeline) {
-        const w = this.timeline.getWindow();
+      const timeline = this.timeline;
+      if (timeline) {
+        const w = timeline.getWindow();
         this.pendingWindowRestore = { start: w.start, end: w.end };
       }
       this.update();
       this.$emit('event-saved', event);
     },
-    onSelect: async function (properties) {
-      if (properties.items.length == 0) {
+    onSelect: async function (properties: SelectProperties) {
+      const [firstItem] = properties.items;
+      if (firstItem === undefined) {
         return;
       } else if (properties.items.length == 1) {
-        const selected = this.itemEvents.get(properties.items[0]);
+        const selected = this.itemEvents.get(firstItem);
         if (!selected) return;
         if (selected.members) {
           this.expandedGroups = [...this.expandedGroups, selected.id];
@@ -387,7 +432,8 @@ export default defineComponent({
 
         // We retrieve the full event to ensure if's not cut-off by the query range
         // See: https://github.com/ActivityWatch/aw-webui/pull/320#issuecomment-1056921587
-        this.editingEvent = await this.$aw.getEvent(bucketId, event.id);
+        // aw-client types timestamps as Date, but the JSON response carries strings.
+        this.editingEvent = (await this.$aw.getEvent(bucketId, event.id)) as unknown as IEvent;
         this.editingEventBucket = bucketId;
 
         this.$nextTick(() => {
@@ -419,7 +465,8 @@ export default defineComponent({
       // $nextTick has constructed the vis Timeline. Otherwise revisiting
       // the route with the keep-alive cache cleared throws
       // "can't access property setData, this.timeline is null".
-      if (!this.timeline) return;
+      const timeline = this.timeline;
+      if (!timeline) return;
 
       const index = this.eventIndex;
       // The window to show, applied after the data is synced below: vis-timeline
@@ -428,8 +475,10 @@ export default defineComponent({
       let nextWindow: [number, number] | null = null;
       let bounds: [number, number] | null = null;
       if (resetWindow) {
-        const start = this.queriedInterval?.[0]?.valueOf() ?? index.entries[0]?.start;
-        const end = this.queriedInterval?.[1]?.valueOf() ?? index.ends[index.ends.length - 1];
+        const start: number | undefined =
+          this.queriedInterval?.[0]?.valueOf() ?? index.entries[0]?.start;
+        const end: number | undefined =
+          this.queriedInterval?.[1]?.valueOf() ?? index.ends[index.ends.length - 1];
         if (start !== undefined && end !== undefined) {
           // Always bound scrolling to the queried interval when one is given, even
           // if the caller doesn't want the visible window reset (e.g. the Daily
@@ -461,7 +510,7 @@ export default defineComponent({
       }
       this.updateHasRun = true;
 
-      const timelineWindow = this.timeline.getWindow();
+      const timelineWindow = timeline.getWindow();
       const [start, end] = nextWindow ?? [
         timelineWindow.start.valueOf(),
         timelineWindow.end.valueOf(),
@@ -494,7 +543,7 @@ export default defineComponent({
       // host attribution of these watchers) are always shown bare.
       // TODO: drop the hostnameless-exception branch once
       // stopwatch/browser buckets are migrated to per-host ids.
-      const realHost = (b: any): string | undefined => {
+      const realHost = (b: IBucket): string | undefined => {
         const h = b && (b.hostname || (b.data && b.data.hostname));
         return h && h !== 'unknown' ? h : undefined;
       };
@@ -507,7 +556,7 @@ export default defineComponent({
       });
       const hasCollision = _.some(labelCounts, c => c > 1);
 
-      let groups = _.map(buckets, bucket => {
+      let groups: TimelineGroupRow[] = _.map(buckets, (bucket): TimelineGroupRow => {
         // If bucket id is not set, then if only one bucket is given, assume result of a search/query and set a constant placeholder one.
         // Otherwise, log a warning.
         if (bucket.id === undefined) {
@@ -535,12 +584,13 @@ export default defineComponent({
 
       const visible = visibleTimelineEvents(index, start - buffer, end + buffer);
       this.itemEvents = new Map(visible.map(item => [item.id, item]));
-      const colors = new Map();
+      const colors = new Map<string, string>();
       const allCats = this.categorizedEvents?.length ? useCategoryStore().classes : [];
-      const items = visible.map(item => {
-        if (!resetWindow && this.preparedItems.has(item.id)) return this.preparedItems.get(item.id);
+      const items: TimelineRow[] = visible.map((item): TimelineRow => {
+        const prepared = resetWindow ? undefined : this.preparedItems.get(item.id);
+        if (prepared) return prepared;
         const categorized = item.bucket.id === CATEGORIZED_ROW;
-        const name = item.event.data.$category;
+        const name = item.event.data.$category as string[] | undefined;
         const color = item.members
           ? '#777'
           : categorized
@@ -554,13 +604,13 @@ export default defineComponent({
           id: item.id,
           group: item.bucket.id,
           content: item.members
-            ? this.$t('ui.timeline.groupedEvents', {
+            ? (this.$t('ui.timeline.groupedEvents', {
                 count: item.members.length,
                 duration: this.formatGroupDuration(item.event.duration),
-              })
+              }) as string)
             : categorized
-            ? name.join(' > ')
-            : getTitleAttr(item.bucket, item.event),
+            ? (name?.join(' > ') ?? '')
+            : (getTitleAttr(item.bucket, item.event) ?? ''),
           start: item.start,
           end: item.end,
           style: `background-color: ${color}; border-color: ${colors.get(color)}`,
@@ -577,32 +627,34 @@ export default defineComponent({
       // Keep group rows stable while panning through gaps in a bucket's data.
       this.preparedItems = new Map(items.map(item => [item.id, item]));
       groups = groups.filter(group => index.groups.has(group.id));
-      if (this.queriedInterval && this.showQueriedInterval) {
+      const [intervalStart, intervalEnd] = this.queriedInterval ?? [];
+      if (intervalStart && intervalEnd && this.showQueriedInterval) {
         groups.push({ id: 'queried-interval', content: 'queried interval' });
         items.push({
           id: 'queried-interval',
           group: 'queried-interval',
           content: 'query',
-          start: this.queriedInterval[0].valueOf(),
-          end: this.queriedInterval[1].valueOf(),
+          start: intervalStart.valueOf(),
+          end: intervalEnd.valueOf(),
           style: 'background-color: #aaa; height: 10px',
         });
       }
       syncTimelineData(this.groupData, groups);
       syncTimelineData(this.itemData, items);
-      this.renderedViewport = {
+      // markRaw: Vue 2 would otherwise walk the whole index of every rendered event
+      this.renderedViewport = markRaw({
         index,
         width: end - start,
         start: start - buffer * 0.8,
         end: end + buffer * 0.8,
-      };
+      });
       if (bounds) {
         this.options.min = bounds[0];
         this.options.max = bounds[1];
-        this.timeline.setOptions(this.options);
+        timeline.setOptions(this.options);
       }
       if (nextWindow) {
-        this.timeline.setWindow(nextWindow[0], nextWindow[1], { animation: false });
+        timeline.setWindow(nextWindow[0], nextWindow[1], { animation: false });
       }
       this.items = items;
       this.groups = groups;

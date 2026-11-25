@@ -495,6 +495,14 @@ import {
   activityDiagnostic as diagnoseActivity,
 } from '~/util/activityDiagnostics';
 
+// Shown under the period picker when an exact start/end edit can't be applied
+interface IntervalIssue {
+  message: string;
+  field?: 'start' | 'end';
+  wall?: string;
+  options?: { value: string | null; text: string; disabled?: boolean }[];
+}
+
 export default defineComponent({
   name: 'Activity',
   components: {
@@ -502,7 +510,7 @@ export default defineComponent({
     'aw-watcher-liveness-banner': () => import('~/components/WatcherLivenessBanner.vue'),
   },
   props: {
-    host: String,
+    host: { type: String, required: true },
     date: {
       type: String,
       // NOTE: This does not work as you'd might expect since the default is set on
@@ -524,14 +532,14 @@ export default defineComponent({
       settingsStore: useSettingsStore(),
       bucketsStore: useBucketsStore(),
 
-      today: null,
+      today: null as string | null,
       showOptions: false,
       multideviceNoteDismissed: isMultideviceNoteDismissed(),
       showDeviceBreakdown: false,
       // First day with data for the host, used by All time
-      earliestDate: null,
+      earliestDate: null as string | null,
       // Problem with the last exact start/end edit (nonexistent or repeated DST time, bad order)
-      intervalIssue: null,
+      intervalIssue: null as IntervalIssue | null,
       navigationNow: Date.now(),
 
       include_audible: true,
@@ -546,7 +554,7 @@ export default defineComponent({
       refreshing: false,
       refreshGeneration: 0,
       filter_afk: true,
-      new_view: {},
+      new_view: { id: '', name: '' },
     };
   },
   computed: {
@@ -557,8 +565,7 @@ export default defineComponent({
     views(): import('~/stores/views').View[] {
       return this.viewsStore.viewsForHost(this.host);
     },
-    ...mapState(useSettingsStore, ['devmode']),
-    ...mapState(useSettingsStore, ['always_active_pattern']),
+    ...mapState(useSettingsStore, ['devmode', 'always_active_pattern'] as const),
 
     // number of filters currently set (different from defaults)
     filters_set() {
@@ -567,11 +574,14 @@ export default defineComponent({
 
     // getter and setter for filter_category, getting and setting $route.query
     filter_category: {
-      get() {
-        if (!this.$route.query.category) return null;
-        return this.$route.query.category.split('>');
+      get(): string[] | null {
+        const category = this.$route.query.category;
+        // A repeated ?category= parameter arrives as an array: use the first
+        const first = Array.isArray(category) ? category[0] : category;
+        if (!first) return null;
+        return first.split('>');
       },
-      set(value) {
+      set(value: string[] | null) {
         if (value == null) {
           this.$router.push({ query: _.omit(this.$route.query, 'category') });
         } else {
@@ -594,18 +604,18 @@ export default defineComponent({
       };
       return periods;
     },
-    periodLengthTitle: function () {
+    periodLengthTitle: function (): string {
       if (this.periodLength === 'last7d') {
-        return this.$t('activity.periodLast7dTitle');
+        return this.$t('activity.periodLast7dTitle') as string;
       }
       if (this.periodLength === 'last30d') {
-        return this.$t('activity.periodLast30dTitle');
+        return this.$t('activity.periodLast30dTitle') as string;
       }
       if (this.periodLength === 'range' || this.periodLength === 'interval') {
         return this.periodReadableRange;
       }
       if (this.periodLength === 'all') {
-        return this.$t('activity.periodAllTime');
+        return this.$t('activity.periodAllTime') as string;
       }
       return '';
     },
@@ -725,12 +735,13 @@ export default defineComponent({
       return this.nextPeriod() > today;
     },
     subview: function () {
-      return this.$route.meta.subview;
+      return this.$route.meta?.subview;
     },
     filter_categories: function () {
       if (this.filter_category) {
         const cats = this.categoryStore.all_categories;
-        const isChild = p => c => c.length > p.length && _.isEqual(p, c.slice(0, p.length));
+        const isChild = (p: string[]) => (c: string[]) =>
+          c.length > p.length && _.isEqual(p, c.slice(0, p.length));
         const children = _.filter(cats, isChild(this.filter_category));
         return [this.filter_category].concat(children);
       } else {
@@ -794,7 +805,7 @@ export default defineComponent({
       if (!this.timeperiod || this.periodLength === 'interval') return [];
       return this.activityStore.getActiveHistoryAroundTimeperiod(this.timeperiod);
     },
-    timeperiod: function () {
+    timeperiod: function (): TimePeriod | null {
       const settingsStore = useSettingsStore();
 
       if (this.exactInterval) {
@@ -824,19 +835,20 @@ export default defineComponent({
           length: [1, this.periodLength],
         };
       } else {
-        const len = { last7d: [7, 'days'], last30d: [30, 'days'] }[this.periodLength];
+        const len: [number, string] = this.periodLength === 'last7d' ? [7, 'days'] : [30, 'days'];
         return {
           start: get_day_start_with_offset(
-            moment(this._date).subtract(len[0] - 1, len[1]),
+            moment(this._date).subtract(len[0] - 1, len[1] as moment.unitOfTime.DurationConstructor),
             settingsStore.startOfDay
           ),
           length: len,
         };
       }
     },
-    periodReadableRange: function () {
-      if (this.exactInterval) {
-        return exactIntervalReadable(this.timeperiod);
+    periodReadableRange: function (): string {
+      const timeperiod = this.timeperiod;
+      if (this.exactInterval && timeperiod) {
+        return exactIntervalReadable(timeperiod);
       }
       if (
         this.periodLength === 'range' ||
@@ -848,7 +860,8 @@ export default defineComponent({
         return `${range.start}—${range.end}`;
       }
 
-      const periodStart = moment(this.timeperiod.start);
+      // Only the 'all' period has no timeperiod yet, and returned above
+      const periodStart = moment(timeperiod?.start);
       const dateFormatString = 'YYYY-MM-DD';
 
       // it's helpful to render a range for the week as opposed to just the start of the week
@@ -856,7 +869,7 @@ export default defineComponent({
       // start and exactly when the week ends. The formatting code ends up being a bit more wonky, but it's
       // worth the tradeoff. https://github.com/ActivityWatch/aw-webui/pull/284
 
-      let periodLength;
+      let periodLength: [number, string];
       if (this.periodIsBrowseable) {
         periodLength = [1, this.periodLength];
       } else {
@@ -870,7 +883,9 @@ export default defineComponent({
       }
 
       const startOfPeriod = periodStart.format(dateFormatString);
-      const endOfPeriod = periodStart.add(...periodLength).format(dateFormatString);
+      const endOfPeriod = periodStart
+        .add(periodLength[0], periodLength[1] as moment.unitOfTime.DurationConstructor)
+        .format(dateFormatString);
       return `${startOfPeriod}—${endOfPeriod}`;
     },
   },
@@ -911,7 +926,7 @@ export default defineComponent({
     try {
       await this.refresh();
     } catch (e) {
-      if (e.message !== 'canceled') {
+      if (!(e instanceof Error) || e.message !== 'canceled') {
         console.error(e);
         throw e;
       }
@@ -930,7 +945,7 @@ export default defineComponent({
     // By position rather than a hash of the hostname, so neighbouring
     // segments never share a colour (up to ten devices).
     deviceColor(index: number): string {
-      return schemeTableau10[index % schemeTableau10.length];
+      return schemeTableau10[index % schemeTableau10.length] ?? '';
     },
     deviceShare(d: HostDuration): number {
       const total = this.hostDurations.reduce((sum, h) => sum + h.duration, 0);
@@ -948,12 +963,11 @@ export default defineComponent({
         return formatDateRange(shiftDateRange(this.dateRange, -1));
       }
       // Step from the period start the view shows, not the (possibly mid-period) URL date.
-      const base = this.periodIsBrowseable ? moment(this.timeperiod.start) : moment(this._date);
+      // (the buttons are hidden for All time, the one period without a timeperiod)
+      const { start, length } = this.requireTimeperiod();
+      const base = this.periodIsBrowseable ? moment(start) : moment(this._date);
       return base
-        .subtract(
-          this.timeperiod.length[0],
-          this.timeperiod.length[1] as moment.unitOfTime.DurationConstructor
-        )
+        .subtract(length[0], length[1] as moment.unitOfTime.DurationConstructor)
         .format('YYYY-MM-DD');
     },
     nextPeriod: function () {
@@ -969,16 +983,20 @@ export default defineComponent({
         return formatDateRange(next);
       }
       // Step from the period start the view shows, not the (possibly mid-period) URL date.
-      const base = this.periodIsBrowseable ? moment(this.timeperiod.start) : moment(this._date);
+      const { start, length } = this.requireTimeperiod();
+      const base = this.periodIsBrowseable ? moment(start) : moment(this._date);
       return base
-        .add(
-          this.timeperiod.length[0],
-          this.timeperiod.length[1] as moment.unitOfTime.DurationConstructor
-        )
+        .add(length[0], length[1] as moment.unitOfTime.DurationConstructor)
         .format('YYYY-MM-DD');
     },
 
     instantToWall,
+
+    requireTimeperiod(): TimePeriod {
+      const timeperiod = this.timeperiod;
+      if (!timeperiod) throw new Error('The period is not known yet');
+      return timeperiod;
+    },
 
     // Edit one end of the exact interval from a local wall time. A wall time that
     // does not exist (spring-forward gap) is rejected, and one that happens twice
@@ -994,7 +1012,7 @@ export default defineComponent({
         };
         return;
       }
-      if (candidates.length > 1 && !candidates.includes(pick)) {
+      if (candidates.length > 1 && !(pick !== undefined && candidates.includes(pick))) {
         this.intervalIssue = {
           message: this.$t('activity.intervalAmbiguousTime').toString(),
           field,
@@ -1048,7 +1066,7 @@ export default defineComponent({
       this.setDate(anchor.format('YYYY-MM-DD'));
     },
 
-    setDate: function (date, periodLength) {
+    setDate: function (date: string, periodLength?: string) {
       // periodLength is an optional argument, default to this.periodLength
       if (!periodLength) {
         periodLength = this.periodLength;
@@ -1100,7 +1118,10 @@ export default defineComponent({
           1,
           Math.round(
             moment(this.timeperiod.start)
-              .add(...this.timeperiod.length)
+              .add(
+                this.timeperiod.length[0],
+                this.timeperiod.length[1] as moment.unitOfTime.DurationConstructor
+              )
               .diff(moment(this.timeperiod.start), 'days', true)
           )
         );
@@ -1133,7 +1154,7 @@ export default defineComponent({
         }
       }
 
-      let new_date;
+      let new_date: string;
       if (periodLength == '7 days') {
         periodLength = 'last7d';
         new_date = anchorDate.clone().add(1, 'days').format('YYYY-MM-DD');
@@ -1170,7 +1191,7 @@ export default defineComponent({
       return changed;
     },
 
-    refresh: async function (force) {
+    refresh: async function (force?: boolean): Promise<void> {
       // Invalidate the cached navigation boundary when refreshing newly recorded activity.
       this.navigationNow = Date.now();
       if (force && this.periodLength === 'all') {
@@ -1263,7 +1284,7 @@ export default defineComponent({
       return valid;
     },
 
-    handleOk(event) {
+    handleOk(event: Event) {
       // Prevent modal from closing
       event.preventDefault();
       // Trigger submit handler
@@ -1283,7 +1304,7 @@ export default defineComponent({
 
       // Hide the modal manually
       this.$nextTick(() => {
-        this.$refs.new_view.hide();
+        this.$bvModal.hide('new_view');
       });
     },
 

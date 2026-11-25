@@ -253,7 +253,7 @@ export interface QueryOptions {
   // Load the per-period category history (the timeline barchart). It is the
   // slowest part of a load, so views that don't show it can skip it.
   include_category_history?: boolean;
-  filter_categories?: string[][];
+  filter_categories?: string[][] | null;
   dont_query_inactive?: boolean;
   // Skip the active-time history around the period (the period-usage bars),
   // e.g. for custom ranges and All time where neighbouring periods aren't shown.

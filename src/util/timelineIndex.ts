@@ -139,23 +139,26 @@ export function visibleTimelineEvents(
 type DatasetId = string | number;
 
 /** The part of a vis-data DataSet that syncTimelineData uses. */
-export interface SyncableDataset {
+export interface SyncableDataset<T extends { id?: DatasetId }> {
   getIds(): DatasetId[];
-  get(id: DatasetId): Record<string, unknown> | null;
+  get(id: DatasetId): T | null;
   remove(ids: DatasetId[]): unknown;
-  update(items: { id: DatasetId; [key: string]: unknown }[]): unknown;
+  update(items: T[]): unknown;
 }
 
-export function syncTimelineData(
-  dataset: SyncableDataset,
-  next: { id: string | number; [key: string]: unknown }[],
+export function syncTimelineData<T extends { id?: DatasetId }>(
+  dataset: SyncableDataset<T>,
+  next: (T & { id: DatasetId })[],
 ): void {
   const ids = new Set(next.map((item) => item.id));
   const removed = dataset.getIds().filter((id) => !ids.has(id));
   if (removed.length) dataset.remove(removed);
   const changed = next.filter((item) => {
     const previous = dataset.get(item.id);
-    return !previous || Object.keys(item).some((key) => item[key] !== previous[key]);
+    return (
+      !previous ||
+      Object.keys(item).some((key) => Reflect.get(item, key) !== Reflect.get(previous, key))
+    );
   });
   if (changed.length) dataset.update(changed);
 }
