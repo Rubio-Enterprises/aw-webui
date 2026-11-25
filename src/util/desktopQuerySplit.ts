@@ -1,14 +1,14 @@
 import moment from 'moment';
 
 import { default_limit as DESKTOP_QUERY_EVENT_LIMIT } from '~/queries';
-import { IEvent } from '~/util/interfaces';
+import type { IEvent } from '~/util/interfaces';
 import {
   EXACT_HOURLY_MAX_MS,
-  TimePeriod,
-  timeperiodToStr,
+  type TimePeriod,
   timeperiodsCalendarMonthsOfPeriod,
   timeperiodsDaysOfPeriod,
   timeperiodsExactDaysOfPeriod,
+  timeperiodToStr,
 } from '~/util/timeperiod';
 
 export { DESKTOP_QUERY_EVENT_LIMIT };
@@ -81,7 +81,7 @@ export interface FullDesktopQueryResult {
 
 export function periodsForFullDesktopQuery(
   timeperiod: TimePeriod,
-  now: Date = new Date()
+  now: Date = new Date(),
 ): string[] {
   const [count, res] = timeperiod.length;
   let periods: string[];
@@ -111,14 +111,14 @@ export function periodsForFullDesktopQuery(
     periods = [timeperiodToStr(timeperiod)];
   }
 
-  return periods.filter(period => new Date(period.split('/')[0]) < now);
+  return periods.filter((period) => new Date(period.split('/')[0]) < now);
 }
 
 export function mergeEventsByKeys(events: IEvent[], keys: string[], limit?: number): IEvent[] {
   const groups = new Map<string, IEvent>();
   for (const event of events) {
     if (!event) continue;
-    const groupKey = keys.map(k => JSON.stringify(event.data?.[k])).join('\0');
+    const groupKey = keys.map((k) => JSON.stringify(event.data?.[k])).join('\0');
     const existing = groups.get(groupKey);
     const duration = event.duration || 0;
     if (!existing) {
@@ -145,20 +145,20 @@ export function mergeEventsByKeys(events: IEvent[], keys: string[], limit?: numb
  */
 export function categoryByPeriodFromChunks(
   timeperiod: TimePeriod,
-  chunks: [string, FullDesktopQueryResult][]
+  chunks: [string, FullDesktopQueryResult][],
 ): Record<string, { cat_events: IEvent[] }> {
   const byPeriod: Record<string, { cat_events: IEvent[] }> = {};
   const now = new Date();
   for (const month of timeperiodsCalendarMonthsOfPeriod(timeperiod)) {
     const key = timeperiodToStr(month);
-    const [start, end] = key.split('/').map(d => new Date(d));
+    const [start, end] = key.split('/').map((d) => new Date(d));
     if (start >= now) continue;
     const events = chunks
       .filter(([period]) => {
         const chunkStart = new Date(period.split('/')[0]);
         return chunkStart >= start && chunkStart < end;
       })
-      .flatMap(([, result]) => (result.window && result.window.cat_events) || []);
+      .flatMap(([, result]) => result.window?.cat_events || []);
     byPeriod[key] = { cat_events: mergeEventsByKeys(events, ['$category']) };
   }
   return byPeriod;
@@ -176,8 +176,8 @@ function concatEvents(chunks: Array<IEvent[] | undefined>): IEvent[] {
 function sumDurationLists(lists: Array<number[] | undefined>): number[] | undefined {
   const present = lists.filter(Boolean) as number[][];
   if (present.length === 0) return undefined;
-  const hostCount = Math.max(...present.map(l => l.length));
-  return Array.from({ length: hostCount }, (_v, i) => sumDurations(present.map(l => l[i])));
+  const hostCount = Math.max(...present.map((l) => l.length));
+  return Array.from({ length: hostCount }, (_v, i) => sumDurations(present.map((l) => l[i])));
 }
 
 function sumDurations(values: Array<number | undefined>): number {
@@ -185,57 +185,57 @@ function sumDurations(values: Array<number | undefined>): number {
 }
 
 export function mergeFullDesktopResults(results: FullDesktopQueryResult[]): FullDesktopQueryResult {
-  const windows = results.map(r => r.window).filter(Boolean) as WindowQueryResult[];
-  const browsers = results.map(r => r.browser).filter(Boolean) as BrowserQueryResult[];
-  const stopwatches = results.map(r => r.stopwatch).filter(Boolean) as StopwatchQueryResult[];
+  const windows = results.map((r) => r.window).filter(Boolean) as WindowQueryResult[];
+  const browsers = results.map((r) => r.browser).filter(Boolean) as BrowserQueryResult[];
+  const stopwatches = results.map((r) => r.stopwatch).filter(Boolean) as StopwatchQueryResult[];
 
   return {
     window: {
       app_events: mergeEventsByKeys(
-        concatEvents(windows.map(w => w.app_events)),
+        concatEvents(windows.map((w) => w.app_events)),
         ['app'],
-        DESKTOP_QUERY_EVENT_LIMIT
+        DESKTOP_QUERY_EVENT_LIMIT,
       ),
-      app_cat_events: mergeEventsByKeys(concatEvents(windows.map(w => w.app_cat_events)), [
+      app_cat_events: mergeEventsByKeys(concatEvents(windows.map((w) => w.app_cat_events)), [
         'app',
         '$category',
       ]),
       title_events: mergeEventsByKeys(
-        concatEvents(windows.map(w => w.title_events)),
+        concatEvents(windows.map((w) => w.title_events)),
         ['app', 'title'],
-        DESKTOP_QUERY_EVENT_LIMIT
+        DESKTOP_QUERY_EVENT_LIMIT,
       ),
       // cat_events is not limit_events'd in fullDesktopQuery
-      cat_events: mergeEventsByKeys(concatEvents(windows.map(w => w.cat_events)), ['$category']),
-      active_events: concatEvents(windows.map(w => w.active_events)),
-      duration: sumDurations(windows.map(w => w.duration)),
-      raw_duration: sumDurations(windows.map(w => w.raw_duration)),
-      host_cumulative_durations: sumDurationLists(windows.map(w => w.host_cumulative_durations)),
-      host_raw_durations: sumDurationLists(windows.map(w => w.host_raw_durations)),
+      cat_events: mergeEventsByKeys(concatEvents(windows.map((w) => w.cat_events)), ['$category']),
+      active_events: concatEvents(windows.map((w) => w.active_events)),
+      duration: sumDurations(windows.map((w) => w.duration)),
+      raw_duration: sumDurations(windows.map((w) => w.raw_duration)),
+      host_cumulative_durations: sumDurationLists(windows.map((w) => w.host_cumulative_durations)),
+      host_raw_durations: sumDurationLists(windows.map((w) => w.host_raw_durations)),
     },
     browser: {
       domains: mergeEventsByKeys(
-        concatEvents(browsers.map(b => b.domains)),
+        concatEvents(browsers.map((b) => b.domains)),
         ['$domain'],
-        DESKTOP_QUERY_EVENT_LIMIT
+        DESKTOP_QUERY_EVENT_LIMIT,
       ),
       urls: mergeEventsByKeys(
-        concatEvents(browsers.map(b => b.urls)),
+        concatEvents(browsers.map((b) => b.urls)),
         ['url'],
-        DESKTOP_QUERY_EVENT_LIMIT
+        DESKTOP_QUERY_EVENT_LIMIT,
       ),
       titles: mergeEventsByKeys(
-        concatEvents(browsers.map(b => b.titles)),
+        concatEvents(browsers.map((b) => b.titles)),
         ['title'],
-        DESKTOP_QUERY_EVENT_LIMIT
+        DESKTOP_QUERY_EVENT_LIMIT,
       ),
-      duration: sumDurations(browsers.map(b => b.duration)),
+      duration: sumDurations(browsers.map((b) => b.duration)),
     },
     stopwatch: {
       stopwatch_events: mergeEventsByKeys(
-        concatEvents(stopwatches.map(s => s.stopwatch_events)),
+        concatEvents(stopwatches.map((s) => s.stopwatch_events)),
         ['label'],
-        DESKTOP_QUERY_EVENT_LIMIT
+        DESKTOP_QUERY_EVENT_LIMIT,
       ),
     },
   };
