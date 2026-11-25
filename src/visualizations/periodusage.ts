@@ -1,10 +1,9 @@
 import * as d3 from 'd3';
 import _ from 'lodash';
 import moment from 'moment';
-
+import type { IEvent } from '../util/interfaces';
 import { seconds_to_duration } from '../util/time.ts';
-import { TimePeriod, timeperiodToStr } from '../util/timeperiod';
-import { IEvent } from '../util/interfaces';
+import { type TimePeriod, timeperiodToStr } from '../util/timeperiod';
 
 function create(svg_elem: SVGElement) {
   // Clear element
@@ -35,7 +34,7 @@ function update(
   svg_elem: SVGElement,
   usage_arr: { period: TimePeriod; events: IEvent[] }[],
   onPeriodClicked: (period: TimePeriod) => void,
-  labels: { noData: string; today: string } = { noData: 'No data', today: 'Today' }
+  labels: { noData: string; today: string } = { noData: 'No data', today: 'Today' },
 ) {
   const dateformat = 'YYYY-MM-DD';
 
@@ -49,8 +48,8 @@ function update(
 
   function get_usage_time(day_events) {
     return _.sumBy(
-      day_events.filter(e => e.data.status === 'not-afk'),
-      'duration'
+      day_events.filter((e) => e.data.status === 'not-afk'),
+      'duration',
     );
   }
 
@@ -71,7 +70,7 @@ function update(
     const height = 85 * (usage_time / longest_usage);
     const [start, end] = timeperiodToStr(period)
       .split('/')
-      .map(value => moment(value));
+      .map((value) => moment(value));
     const date = start.format(dateformat);
     const label =
       period.length[0] === 1 && period.length[1].startsWith('day')
@@ -85,16 +84,16 @@ function update(
     if (now.isSameOrAfter(start) && now.isBefore(end)) {
       svg
         .append('line')
-        .attr('x1', x + width / 2 + '%')
+        .attr('x1', `${x + width / 2}%`)
         .attr('y1', 0)
-        .attr('x2', x + width / 2 + '%')
+        .attr('x2', `${x + width / 2}%`)
         .attr('y2', 200)
         .attr('style', 'stroke: #888; stroke-width: 2px;')
         .attr('stroke-dasharray', '4, 2');
 
       svg
         .append('text')
-        .attr('x', x + width / 2 + '%')
+        .attr('x', `${x + width / 2}%`)
         .attr('text-anchor', 'middle')
         .attr('y', '30')
         .text(labels.today);
@@ -102,35 +101,33 @@ function update(
 
     const rect = svg
       .append('rect')
-      .attr('x', x + '%')
-      .attr('y', 101 - height + '%') // Draw rect bottom-up
+      .attr('x', `${x}%`)
+      .attr('y', `${101 - height}%`) // Draw rect bottom-up
       .attr('rx', 3)
       .attr('ry', 3)
       .attr(
         'style',
-        i === center_elem ? 'stroke: black; stroke-width: 1;' : 'stroke: #222; stroke-width: 1;'
+        i === center_elem ? 'stroke: black; stroke-width: 1;' : 'stroke: #222; stroke-width: 1;',
       )
-      .attr('width', width + '%')
-      .attr('height', height + offset + '%')
+      .attr('width', `${width}%`)
+      .attr('height', `${height + offset}%`)
       .attr('color', color)
       .attr('date', date)
       .style('fill', color)
       .on('mouseover', () => {
         rect.style('fill', diagramcolor_focused);
       })
-      .on('mouseout', e => {
+      .on('mouseout', (e) => {
         rect.style('fill', (e.target as Element).getAttribute('color') ?? color);
       })
-      .on('click', function () {
+      .on('click', () => {
         onPeriodClicked(period);
       });
     // This is device active time (not-AFK, always-active and audible periods on desktop,
     // usage events on mobile), independent of category filters;
     // the "Time active" headline additionally intersects with window events and
     // applies the active filters (see #722), so bars can be slightly higher.
-    rect
-      .append('title')
-      .text(label + '\n' + seconds_to_duration(usage_time) + '\n(device active time)');
+    rect.append('title').text(`${label}\n${seconds_to_duration(usage_time)}\n(device active time)`);
   });
 }
 

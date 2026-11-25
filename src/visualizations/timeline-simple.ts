@@ -1,11 +1,9 @@
-'use strict';
-
 const d3 = require('d3');
 const Color = require('color');
 const _ = require('lodash');
 const moment = require('moment');
 
-import { getTitleAttr, getColorFromString } from '../util/color';
+import { getColorFromString, getTitleAttr } from '../util/color';
 
 const time = require('../util/time');
 
@@ -47,13 +45,13 @@ function update(svg_el, events, event_type: string, noDataLabel = 'No data') {
   const m_first = moment(e_first.timestamp);
   const m_last = moment(e_last.timestamp);
   const total_duration = (m_last - m_first) / 1000 + e_last.duration;
-  console.log('First: ' + m_first.format());
-  console.log('Last: ' + m_last.format());
-  console.log('Duration: ' + total_duration);
+  console.log(`First: ${m_first.format()}`);
+  console.log(`Last: ${m_last.format()}`);
+  console.log(`Duration: ${total_duration}`);
 
   // Iterate over each event and create interval boxes
-  _.each(events, function (e, i) {
-    const id = 'timeline_event_' + i;
+  _.each(events, (e, i) => {
+    const id = `timeline_event_${i}`;
     const timestamp = moment(e.timestamp);
 
     const color_base = getColorFromString(getTitleAttr({ type: event_type }, e));
@@ -65,18 +63,18 @@ function update(svg_el, events, event_type: string, noDataLabel = 'No data') {
     const eg = timeline
       .append('g')
       .attr('id', id)
-      .attr('transform', 'translate(' + 100 * x + ',' + 0 + ')');
+      .attr('transform', `translate(${100 * x},0)`);
 
     const rect = eg
       .append('rect')
       .attr('width', width)
       .attr('height', 4)
       .style('fill', color_base)
-      .on('mouseover', function (d, j, n) {
+      .on('mouseover', (_event, j, n) => {
         const elem = n[j];
         elem.style.fill = color_hover;
       })
-      .on('mouseout', function (d, j, n) {
+      .on('mouseout', (_event, j, n) => {
         const elem = n[j];
         elem.style.fill = color_base;
       });
@@ -89,7 +87,7 @@ function update(svg_el, events, event_type: string, noDataLabel = 'No data') {
           'Duration: ' +
           time.seconds_to_duration(e.duration) +
           '\n' +
-          JSON.stringify(e.data)
+          JSON.stringify(e.data),
       );
 
     if (e.duration > 0.05 * total_duration) {
