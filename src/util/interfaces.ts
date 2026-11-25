@@ -35,7 +35,7 @@ export interface IBucket {
     hostname?: string;
     device_id?: string;
   };
-  metadata?: { start: Date | string; end: Date | string };
+  metadata?: { start?: Date | string; end?: Date | string };
   last_updated?: Date | string;
   first_seen?: Date | string;
   created?: Date | string;

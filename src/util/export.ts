@@ -11,8 +11,6 @@
 
 import Papa from 'papaparse';
 
-import type { IEvent } from './interfaces';
-
 /**
  * Cells a spreadsheet would evaluate as a formula: a leading `=`, `+`, `-` or
  * `@`, also after leading whitespace (Excel and LibreOffice trim it, so
@@ -32,7 +30,13 @@ export function neutralizeCsvFormula(value: string): string {
  * PapaParse ignores the `columns` option for array rows, so the header has to
  * be passed as `fields`.
  */
-export function reportEventsCsv(events: IEvent[]): string {
+interface ReportEventRow {
+  timestamp: string;
+  duration: number;
+  data: { $category?: unknown; app?: string; title?: string };
+}
+
+export function reportEventsCsv(events: ReportEventRow[]): string {
   return Papa.unparse(
     {
       fields: ['timestamp', 'duration', 'category', 'app', 'title'],
