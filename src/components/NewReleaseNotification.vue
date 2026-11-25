@@ -19,6 +19,7 @@ import axios from 'axios';
 import moment from 'moment';
 import semver from 'semver';
 import { mapWritableState } from 'pinia';
+import type { Moment } from 'moment';
 
 import { useSettingsStore, LONG_BACKOFF_PERIOD, SHORT_BACKOFF_PERIOD } from '~/stores/settings';
 import { getClient } from '~/util/awclient';
@@ -32,9 +33,9 @@ export default defineComponent({
     return {
       isVisible: false,
       isFollowUpVisible: false,
-      currentVersion: null,
-      latestVersion: null,
-      latestVersionDate: null,
+      currentVersion: null as string | null,
+      latestVersion: null as string | null,
+      latestVersionDate: null as Moment | null,
       // The following constants can be used in other files, such as ReleaseNotificationSettings.vue
       SHORT_BACKOFF_PERIOD: SHORT_BACKOFF_PERIOD,
       LONG_BACKOFF_PERIOD: LONG_BACKOFF_PERIOD,
@@ -90,8 +91,8 @@ export default defineComponent({
         console.error('unable to connect to GitHub API to check for latest version: ', err);
       }
     },
-    cleanVersionTag(tag) {
-      tag = tag.trim();
+    cleanVersionTag(rawTag: string): string | null {
+      let tag = rawTag.trim();
 
       // Remove the build metadata if it exists, e.g. 'v0.8.dev+c6433ea'
       const plus_idx = tag.indexOf('+');
@@ -110,14 +111,16 @@ export default defineComponent({
     },
     getReleaseIsReady() {
       // Want to make sure that the latest release is out for a week to make sure it's well tested
-      if (this.latestVersionDate) return moment() >= this.latestVersionDate.add(7, 'days');
+      if (this.latestVersionDate) return moment() >= this.latestVersionDate.clone().add(7, 'days');
       return false;
     },
     disableCheck() {
       this.isVisible = false;
       this.isFollowUpVisible = true;
-      this.data.isEnabled = false;
-      this.saveData();
+      // Saved through the store, like the toggle on the settings page
+      void useSettingsStore().update({
+        newReleaseCheckData: { ...this.data, isEnabled: false },
+      });
     },
   },
 });

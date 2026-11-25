@@ -65,6 +65,22 @@ const example_data = {
 
 const SEP = '>';
 
+// What vue-d3-sunburst passes to the label callback for each arc
+interface SunburstArc {
+  data: { name: string };
+  children?: unknown[];
+  y0: number;
+  y1: number;
+  context: { relativeDepth: number };
+}
+
+// The parts of the sunburst component instance that labelFor reads
+interface SunburstChart {
+  scaleY?: (y: number) => number;
+  maxLabelText: number;
+  $el: Element;
+}
+
 export default defineComponent({
   components: {
     breadcrumbTrail,
@@ -84,9 +100,9 @@ export default defineComponent({
     // Truncates the name to the radial space where it stays visible: the ring
     // itself when child arcs are drawn over the next ring, otherwise the ring
     // plus the library's maxLabelText overflow (minus its 5px text offset).
-    labelFor: function (node) {
+    labelFor: function (node: SunburstArc): string | null {
       const name = node.data.name;
-      const chart = this.$refs.sunburst;
+      const chart = this.$refs.sunburst as SunburstChart | undefined;
       if (!chart || !chart.scaleY) return name;
       const { scaleY, maxLabelText } = chart;
       const overflow = node.children ? 0 : maxLabelText;
@@ -95,11 +111,11 @@ export default defineComponent({
       const fontFamily = getComputedStyle(chart.$el).fontFamily;
       return fitLabel(name, maxWidth, s => measureText(s, fontPx, fontFamily));
     },
-    categoryForColor: function (d) {
+    categoryForColor: function (d: { name: string; parent?: string[] }) {
       const category = d.parent ? d.parent.concat([d.name]) : [d.name];
       return category.join(SEP);
     },
-    colorfunc: function (s) {
+    colorfunc: function (s: string) {
       // 'All' needs to be bright if light theme, and dark if dark theme
       // ('auto' resolves to the theme actually applied to the page, so it
       // stays in sync with the dark stylesheet managed by App.vue/Theme.vue)
