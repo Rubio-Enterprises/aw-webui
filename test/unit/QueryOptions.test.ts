@@ -1,12 +1,11 @@
+import { shallowMount } from '@vue/test-utils';
 import moment from 'moment';
 import { createPinia, setActivePinia } from 'pinia';
-import { shallowMount } from '@vue/test-utils';
 import QueryOptionsComponent from '~/components/QueryOptions.vue';
 import SearchComponent from '~/views/Search.vue';
+import { optionsApi } from '../helpers/vue';
 
-// Tests call Options API members directly, which the Vue constructor type doesn't expose.
-const QueryOptions: any = QueryOptionsComponent;
-const Search: any = SearchComponent;
+const Search = optionsApi(SearchComponent);
 
 const mockEnsureLoaded = jest.fn().mockResolvedValue(undefined);
 
@@ -24,7 +23,7 @@ describe('QueryOptions', () => {
   });
 
   test('renders date range values in native date inputs', async () => {
-    const wrapper = shallowMount(QueryOptions, {
+    const wrapper = shallowMount(QueryOptionsComponent, {
       propsData: {
         queryOptions: {
           start: '2026-08-15',
@@ -37,7 +36,7 @@ describe('QueryOptions', () => {
         'b-form-checkbox': true,
       },
       mocks: {
-        $t: key => key,
+        $t: (key) => key,
       },
     });
 
@@ -50,14 +49,14 @@ describe('QueryOptions', () => {
     expect((dateInputs.at(1).element as HTMLInputElement).value).toBe('2026-08-16');
   });
 
-  test.each([Search])('initializes date ranges as YYYY-MM-DD strings', view => {
+  test.each([Search])('initializes date ranges as YYYY-MM-DD strings', (view) => {
     const data = view.data();
 
     expect(data.queryOptions.start).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(data.queryOptions.stop).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  test.each([Search])('keeps extended ranges compatible with date inputs', view => {
+  test.each([Search])('keeps extended ranges compatible with date inputs', (view) => {
     const vm = {
       queryOptions: { start: moment('2026-08-15') },
       search: jest.fn(),

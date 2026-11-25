@@ -1,7 +1,7 @@
 import QueryExplorerComponent from '~/views/QueryExplorer.vue';
+import { optionsApi } from '../helpers/vue';
 
-// Tests call Options API members directly, which the Vue constructor type doesn't expose.
-const QueryExplorer: any = QueryExplorerComponent;
+const QueryExplorer = optionsApi(QueryExplorerComponent);
 
 describe('QueryExplorer saveCurrentQuery', () => {
   test('canceling an overwrite confirm aborts without opening the save-as-new prompt', async () => {
@@ -39,7 +39,7 @@ describe('QueryExplorer saveCurrentQuery', () => {
 
     expect(msgBoxConfirm).toHaveBeenCalledWith(
       'Update saved query "Daily Coding Time"?',
-      expect.objectContaining({ title: 'Update Query' })
+      expect.objectContaining({ title: 'Update Query' }),
     );
     expect(persistSavedQueries).not.toHaveBeenCalled();
   });
@@ -59,8 +59,8 @@ describe('QueryExplorer saveCurrentQuery', () => {
 
   test('cancels save modal closure before awaiting persistence failure', async () => {
     const event = { preventDefault: jest.fn() };
-    let resolvePersistence;
-    const persistence = new Promise(resolve => {
+    let resolvePersistence: (saved: boolean) => void;
+    const persistence = new Promise<boolean>((resolve) => {
       resolvePersistence = resolve;
     });
     const vm = {
@@ -124,8 +124,8 @@ describe('QueryExplorer saveCurrentQuery', () => {
 
   test('cancels rename modal closure before awaiting persistence failure', async () => {
     const event = { preventDefault: jest.fn() };
-    let resolvePersistence;
-    const persistence = new Promise(resolve => {
+    let resolvePersistence: (saved: boolean) => void;
+    const persistence = new Promise<boolean>((resolve) => {
       resolvePersistence = resolve;
     });
     const selectedSavedQuery = { id: 'daily-coding-time', name: 'Daily Coding Time' };

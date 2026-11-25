@@ -11,10 +11,10 @@ function fakeGetEvents(timestamps: Record<string, string[]>) {
   const getEvents = async (id: string, { end }: { end?: Date; limit: number }) => {
     calls.push(id);
     const ts = (timestamps[id] || [])
-      .map(t => new Date(t))
-      .filter(t => !end || t <= end)
+      .map((t) => new Date(t))
+      .filter((t) => !end || t <= end)
       .sort((a, b) => b.getTime() - a.getTime());
-    return ts.slice(0, 1).map(t => ({ timestamp: t.toISOString() }));
+    return ts.slice(0, 1).map((t) => ({ timestamp: t.toISOString() }));
   };
   return { getEvents, calls };
 }
@@ -24,8 +24,8 @@ describe('earliestEventInBucket', () => {
     const { getEvents, calls } = fakeGetEvents({});
     const start = new Date('2021-03-04T05:06:07Z');
     const res = await earliestEventInBucket(
-      { id: 'b', metadata: { start, end: start } } as any,
-      getEvents
+      { id: 'b', metadata: { start, end: start } },
+      getEvents,
     );
     expect(res).toEqual(start);
     expect(calls).toHaveLength(0);
@@ -35,7 +35,7 @@ describe('earliestEventInBucket', () => {
     const { getEvents, calls } = fakeGetEvents({
       b: ['2022-09-22T15:05:08Z', '2023-01-01T00:00:00Z', '2026-09-26T10:00:00Z'],
     });
-    const res = await earliestEventInBucket({ id: 'b' } as any, getEvents);
+    const res = await earliestEventInBucket({ id: 'b' }, getEvents);
     const first = new Date('2022-09-22T15:05:08Z').getTime();
     // Conservative: never after the first event, at most a day before it
     expect(res.getTime()).toBeLessThanOrEqual(first);
@@ -45,7 +45,7 @@ describe('earliestEventInBucket', () => {
 
   it('finds events from before 2000 (e.g. imported data)', async () => {
     const { getEvents } = fakeGetEvents({ b: ['1995-06-01T12:00:00Z', '2026-01-01T00:00:00Z'] });
-    const res = await earliestEventInBucket({ id: 'b' } as any, getEvents);
+    const res = await earliestEventInBucket({ id: 'b' }, getEvents);
     const first = new Date('1995-06-01T12:00:00Z').getTime();
     expect(res.getTime()).toBeLessThanOrEqual(first);
     expect(first - res.getTime()).toBeLessThanOrEqual(24 * 60 * 60 * 1000);
@@ -53,7 +53,7 @@ describe('earliestEventInBucket', () => {
 
   it('returns null for an empty bucket', async () => {
     const { getEvents } = fakeGetEvents({ b: [] });
-    expect(await earliestEventInBucket({ id: 'b' } as any, getEvents)).toBeNull();
+    expect(await earliestEventInBucket({ id: 'b' }, getEvents)).toBeNull();
   });
 });
 
@@ -64,10 +64,7 @@ describe('earliestEventInBuckets', () => {
       b: ['2023-06-01T12:00:00Z'],
       c: [],
     });
-    const res = await earliestEventInBuckets(
-      [{ id: 'a' }, { id: 'b' }, { id: 'c' }] as any,
-      getEvents
-    );
+    const res = await earliestEventInBuckets([{ id: 'a' }, { id: 'b' }, { id: 'c' }], getEvents);
     const first = new Date('2023-06-01T12:00:00Z').getTime();
     expect(res.getTime()).toBeLessThanOrEqual(first);
     expect(first - res.getTime()).toBeLessThanOrEqual(24 * 60 * 60 * 1000);

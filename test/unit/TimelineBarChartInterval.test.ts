@@ -1,11 +1,16 @@
 import { shallowMount } from '@vue/test-utils';
 import TimelineBarChart from '~/visualizations/TimelineBarChart.vue';
+import { withVm } from '../helpers/vue';
 
 // Exercise the component's computed data, not the canvas renderer's ESM entrypoint.
-jest.mock('vue-chartjs/legacy', () => ({ Bar: { render: h => h('div') } }));
+jest.mock('vue-chartjs/legacy', () => ({ Bar: { render: (h) => h('div') } }));
 jest.mock('chart.js/auto', () => ({}));
 
 const HOUR = 3600000;
+
+interface ChartVm {
+  chartData: { datasets: { data: number[] }[] };
+}
 
 describe('exact interval stack bounds', () => {
   test.each([
@@ -25,7 +30,7 @@ describe('exact interval stack bounds', () => {
         clamp_hourly: true,
       },
     });
-    const vm: any = wrapper.vm;
+    const vm = withVm<ChartVm>(wrapper).vm;
     for (const dataset of vm.chartData.datasets) {
       dataset.data.forEach((value: number, i: number) => {
         expect(value).toBeCloseTo(expected[i]);
@@ -48,7 +53,7 @@ describe('exact interval stack bounds', () => {
         clamp_hourly: clamp,
       },
     });
-    expect((wrapper.vm as any).chartData.datasets[0].data).toEqual([2]);
+    expect(withVm<ChartVm>(wrapper).vm.chartData.datasets[0].data).toEqual([2]);
     wrapper.destroy();
   });
 });

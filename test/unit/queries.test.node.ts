@@ -64,13 +64,14 @@
  *             (Flatpak app ID retained: 'one.ablaze.floorp')
  */
 
+import type { DesktopQueryParams, MultiQueryParams } from '~/queries';
 import {
+  activityQuery,
   analysisContextQuery,
+  androidBrowserQuery,
   appQuery,
   browser_appname_regex,
   browser_appnames,
-  activityQuery,
-  androidBrowserQuery,
   browserOnlyQuery,
   canonicalEvents,
   categoryQuery,
@@ -80,7 +81,6 @@ import {
   multideviceQuery,
   querystr_to_array,
 } from '~/queries';
-import type { DesktopQueryParams, MultiQueryParams } from '~/queries';
 import type { Rule } from '~/util/classes';
 
 // Convert ActivityWatch (?i) patterns to JS RegExp with i flag for testing.
@@ -346,7 +346,7 @@ describe('chrome fork matching in generated query', () => {
     }).join('\n');
     const chromeWindowFilter = query.slice(
       query.indexOf('window_chrome_re ='),
-      query.indexOf('events_chrome = filter_period_intersect')
+      query.indexOf('events_chrome = filter_period_intersect'),
     );
     // The chrome stream must NOT match Helium when a dedicated Helium bucket exists.
     expect(chromeWindowFilter).not.toContain('helium(\\.exe)?$');
@@ -368,7 +368,7 @@ describe('chrome fork matching in generated query', () => {
     }).join('\n');
     const chromeWindowFilter = query.slice(
       query.indexOf('window_chrome_re ='),
-      query.indexOf('events_chrome = filter_period_intersect')
+      query.indexOf('events_chrome = filter_period_intersect'),
     );
     // The chrome stream must NOT match Arc when a dedicated Arc bucket exists.
     expect(chromeWindowFilter).not.toContain('arc(\\.exe)?$');
@@ -464,7 +464,7 @@ describe('querystr_to_array', () => {
     const result = querystr_to_array(query);
     expect(result).toHaveLength(1);
     expect(result[0]).toBe(
-      'events = categorize(events, [["Work", {"type": "regex", "regex": "foo;bar"}]]);'
+      'events = categorize(events, [["Work", {"type": "regex", "regex": "foo;bar"}]]);',
     );
   });
 
@@ -545,7 +545,7 @@ describe('generated AQL contains no JavaScript comments', () => {
 // merge_events_by_keys skips events missing any requested key, so including
 // "title" in the Android (non-iOS) path collapsed all activity to 0s.
 describe('appQuery merge key regression', () => {
-  const categories: any[] = [];
+  const categories: [] = [];
   const filter_categories: string[][] = [];
 
   test('Android watcher path does NOT merge on "title"', () => {
@@ -565,7 +565,7 @@ describe('appQuery merge key regression', () => {
     expect(joined).toContain('merge_events_by_keys(events, ["app", "title"])');
     // The title_events step must merge on ["app", "title"] for iOS (no "classname" — ScreenTime events lack it)
     expect(joined).toContain(
-      'title_events = sort_by_duration(merge_events_by_keys(events, ["app", "title"]));'
+      'title_events = sort_by_duration(merge_events_by_keys(events, ["app", "title"]));',
     );
     expect(joined).not.toContain('"app", "classname", "title"');
   });
@@ -576,7 +576,7 @@ describe('appQuery merge key regression', () => {
 // canonicalEvents with bid_android.  They were missing isIos, causing ScreenTime
 // buckets to lose title distinctions before category assignment.
 describe('categoryQuery merge key regression (ScreenTime callers)', () => {
-  const categories: any[] = [];
+  const categories: [] = [];
   const filter_categories: string[][] = [];
 
   test('Android watcher bucket does NOT merge on "title" in category query', () => {
@@ -619,7 +619,7 @@ describe('androidBrowserQuery', () => {
       'aw-watcher-android_device',
       ['aw-watcher-web-firefox', 'aw-watcher-web-brave'],
       [],
-      []
+      [],
     ).join('\n');
     expect(joined).toContain('org.mozilla.fenix');
     expect(joined).toContain('com.brave.browser_nightly');
@@ -638,11 +638,11 @@ describe('androidBrowserQuery', () => {
       'aw-watcher-android_device',
       [`aw-watcher-web-${browser}_phone`],
       [],
-      []
+      [],
     ).join('\n');
     const foregroundFilter = joined
       .split('\n')
-      .find(line => line.includes(`window_${browser} = filter_keyvals(events, "package",`));
+      .find((line) => line.includes(`window_${browser} = filter_keyvals(events, "package",`));
     expect(foregroundFilter).toContain(`"${androidPackage}"`);
     expect(joined).toContain(`filter_period_intersect(events_${browser}, window_${browser})`);
   });
@@ -652,15 +652,15 @@ describe('androidBrowserQuery', () => {
       'aw-watcher-android_device',
       ['aw-watcher-web-firefox_chromephone', 'aw-watcher-web-brave_firefox-profile'],
       [],
-      []
+      [],
     ).join('\n');
     expect(joined.match(/filter_period_intersect/g)).toHaveLength(2);
     expect(joined).not.toContain('events_chrome =');
     expect(joined).toContain(
-      'events_firefox = flood(query_bucket("aw-watcher-web-firefox_chromephone"))'
+      'events_firefox = flood(query_bucket("aw-watcher-web-firefox_chromephone"))',
     );
     expect(joined).toContain(
-      'events_brave = flood(query_bucket("aw-watcher-web-brave_firefox-profile"))'
+      'events_brave = flood(query_bucket("aw-watcher-web-brave_firefox-profile"))',
     );
   });
 
@@ -669,7 +669,7 @@ describe('androidBrowserQuery', () => {
       'aw-watcher-android_device',
       ['aw-watcher-web-cromite_phone', 'aw-watcher-web-personal_phone', 'aw-watcher-web-arc_phone'],
       [],
-      []
+      [],
     ).join('\n');
     expect(joined).toContain('query_bucket("aw-watcher-web-cromite_phone")');
     expect(joined).toContain('query_bucket("aw-watcher-web-personal_phone")');
@@ -696,7 +696,7 @@ describe('androidBrowserQuery', () => {
       'aw-watcher-android_device',
       ['aw-watcher-web-chrome'],
       [],
-      []
+      [],
     ).join('\n');
     expect(joined).not.toContain('limit_events(browser_');
   });
@@ -707,7 +707,7 @@ describe('androidBrowserQuery', () => {
       ['aw-watcher-web-chrome'],
       [],
       [],
-      false
+      false,
     ).join('\n');
     // Without keep_event_timestamps, canonicalEvents merges by app and
     // collapses Chrome 09:00–09:10 + 10:00–10:10 into one 20-minute event.
@@ -722,7 +722,7 @@ describe('androidBrowserQuery', () => {
       ['aw-watcher-web-chrome'],
       [[['Work'], { type: 'regex', regex: 'Chrome' }]],
       [['Work']],
-      false
+      false,
     ).join('\n');
     expect(joined).not.toContain('filter_keyvals(events, "$category"');
     expect(joined).toContain('com.android.chrome');
@@ -734,7 +734,7 @@ describe('androidBrowserQuery', () => {
       ['aw-watcher-web-chrome'],
       [],
       [],
-      false
+      false,
     ).join('\n');
     expect(joined).toContain('"domains"');
     expect(joined).toContain('"urls"');

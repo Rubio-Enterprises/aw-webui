@@ -1,6 +1,7 @@
-import { buildMultideviceHostParams } from '~/util/multidevice';
-import { applyScreentimeNames, screentimeNameMap } from '~/stores/activity';
 import queries from '~/queries';
+import { applyScreentimeNames, screentimeNameMap } from '~/stores/activity';
+import type { IEvent } from '~/util/interfaces';
+import { buildMultideviceHostParams } from '~/util/multidevice';
 
 // Simulated bucket inventories, mirroring how aw-sync stores pulled data:
 // bucket IDs carry an "-synced-from-<host>" suffix while the hostname
@@ -26,8 +27,8 @@ describe('buildMultideviceHostParams', () => {
   it('uses the actual bucket IDs for each host', () => {
     const { host_params, hosts_with_buckets } = buildMultideviceHostParams(
       ['myhost', 'otherhost'],
-      host => windowBuckets[host] || [],
-      host => afkBuckets[host] || []
+      (host) => windowBuckets[host] || [],
+      (host) => afkBuckets[host] || [],
     );
     expect(hosts_with_buckets).toEqual(['myhost', 'otherhost']);
     expect(host_params['myhost']).toEqual({
@@ -43,8 +44,8 @@ describe('buildMultideviceHostParams', () => {
   it('skips hosts that lack either a window or an afk bucket (no android fallback given)', () => {
     const { host_params, hosts_with_buckets } = buildMultideviceHostParams(
       ['noafkhost', 'nowindowhost'],
-      host => windowBuckets[host] || [],
-      host => afkBuckets[host] || []
+      (host) => windowBuckets[host] || [],
+      (host) => afkBuckets[host] || [],
     );
     expect(hosts_with_buckets).toEqual([]);
     expect(host_params).toEqual({});
@@ -53,9 +54,9 @@ describe('buildMultideviceHostParams', () => {
   it('falls back to the android bucket for hosts with no afk bucket', () => {
     const { host_params, hosts_with_buckets } = buildMultideviceHostParams(
       ['noafkhost', 'phonehost'],
-      host => windowBuckets[host] || [],
-      host => afkBuckets[host] || [],
-      host => androidBuckets[host] || []
+      (host) => windowBuckets[host] || [],
+      (host) => afkBuckets[host] || [],
+      (host) => androidBuckets[host] || [],
     );
     expect(hosts_with_buckets).toEqual(['phonehost']);
     expect(host_params['phonehost']).toEqual({
@@ -68,9 +69,9 @@ describe('buildMultideviceHostParams', () => {
   it('marks ScreenTime (iOS) android-bucket hosts with isIos', () => {
     const { host_params, hosts_with_buckets } = buildMultideviceHostParams(
       ['ioshost'],
-      host => windowBuckets[host] || [],
-      host => afkBuckets[host] || [],
-      host => androidBuckets[host] || []
+      (host) => windowBuckets[host] || [],
+      (host) => afkBuckets[host] || [],
+      (host) => androidBuckets[host] || [],
     );
     expect(hosts_with_buckets).toEqual(['ioshost']);
     expect(host_params['ioshost']).toEqual({
@@ -82,9 +83,9 @@ describe('buildMultideviceHostParams', () => {
   it('prefers window+afk buckets over an android bucket when both are present', () => {
     const { host_params, hosts_with_buckets } = buildMultideviceHostParams(
       ['myhost'],
-      host => windowBuckets[host] || [],
-      host => afkBuckets[host] || [],
-      () => ['aw-watcher-android-synced-from-myhost']
+      (host) => windowBuckets[host] || [],
+      (host) => afkBuckets[host] || [],
+      () => ['aw-watcher-android-synced-from-myhost'],
     );
     expect(hosts_with_buckets).toEqual(['myhost']);
     expect(host_params['myhost']).toEqual({
@@ -201,7 +202,7 @@ describe('buildMultideviceHostParams ScreenTime priority', () => {
       ['hybridhost'],
       () => [],
       () => [],
-      () => ['aw-watcher-android-synced-from-hybridhost', 'aw-import-screentime_hybridhost']
+      () => ['aw-watcher-android-synced-from-hybridhost', 'aw-import-screentime_hybridhost'],
     );
     expect(hosts_with_buckets).toEqual(['hybridhost']);
     expect(host_params['hybridhost']).toEqual({
@@ -254,13 +255,13 @@ describe('multideviceActivityQuery', () => {
     const q = queries
       .multideviceActivityQuery(
         ['aw-watcher-afk_a', 'aw-watcher-afk_b-synced-from-b'],
-        ['aw-watcher-android-test-synced-from-phone']
+        ['aw-watcher-android-test-synced-from-phone'],
       )
       .join('\n');
     expect(q).toContain('query_bucket("aw-watcher-afk_a")');
     expect(q).toContain('query_bucket("aw-watcher-afk_b-synced-from-b")');
     expect(q).toContain(
-      'not_afk = period_union(not_afk, query_bucket("aw-watcher-android-test-synced-from-phone"));'
+      'not_afk = period_union(not_afk, query_bucket("aw-watcher-android-test-synced-from-phone"));',
     );
     expect(q).toContain('filter_keyvals(not_afk_curr, "status", ["not-afk"])');
     expect(q).toContain('RETURN = sum_durations(not_afk);');
@@ -291,9 +292,9 @@ describe('ScreenTime names in combined views', () => {
     const map = screentimeNameMap([
       { timestamp: '', duration: 1, data: { app: 'com.google.ios.youtube', title: 'YouTube' } },
       { timestamp: '', duration: 1, data: { app: 'com.apple.mobilesafari', title: '' } },
-    ] as any);
+    ]);
     expect(map).toEqual({ 'com.google.ios.youtube': 'YouTube' });
-    const events: any[] = [
+    const events: IEvent[] = [
       { timestamp: '', duration: 5, data: { app: 'com.google.ios.youtube' } },
       { timestamp: '', duration: 3, data: { app: 'Firefox' } },
     ];

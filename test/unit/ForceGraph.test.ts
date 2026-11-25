@@ -15,21 +15,21 @@ const data = {
 };
 
 describe('ForceGraph', () => {
-  let resizeCallback;
-  let containerWidth;
+  let resizeCallback: () => void;
+  let containerWidth: number;
 
   beforeEach(() => {
     containerWidth = 341;
     jest.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function () {
       return this.id === 'forcegraph' ? containerWidth : 0;
     });
-    (global as any).ResizeObserver = class {
-      constructor(cb) {
+    global.ResizeObserver = class {
+      constructor(cb: () => void) {
         resizeCallback = cb;
       }
       observe = jest.fn();
       disconnect = jest.fn();
-    };
+    } as unknown as typeof ResizeObserver;
   });
 
   afterEach(() => {
@@ -52,14 +52,14 @@ describe('ForceGraph', () => {
   test('labels each node, on the side facing the center', async () => {
     const wrapper = mount(ForceGraph, { propsData: { data }, attachTo: document.body });
     // Let the force simulation tick.
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     const svg = wrapper.element.querySelector('svg');
     const circles = [...svg.querySelectorAll('circle')];
     const labels = [...svg.querySelectorAll('text')];
-    expect(labels.map(t => t.textContent)).toEqual(['A', 'B', 'C', 'D']);
-    expect([...svg.querySelectorAll('title')].map(t => t.textContent)).toEqual(
-      data.nodes.map(n => n.id)
+    expect(labels.map((t) => t.textContent)).toEqual(['A', 'B', 'C', 'D']);
+    expect([...svg.querySelectorAll('title')].map((t) => t.textContent)).toEqual(
+      data.nodes.map((n) => n.id),
     );
     circles.forEach((c, i) => {
       const cx = +c.getAttribute('cx');

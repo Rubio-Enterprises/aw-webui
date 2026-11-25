@@ -1,5 +1,5 @@
-import { createPinia, setActivePinia } from 'pinia';
 import moment from 'moment';
+import { createPinia, setActivePinia } from 'pinia';
 import { useActivityStore } from '~/stores/activity';
 import { createClient, getClient } from '~/util/awclient';
 import { exactIntervalToTimeperiod } from '~/util/timeperiod';
@@ -23,7 +23,7 @@ describe('category query for an exact interval', () => {
     store.buckets.window = ['aw-watcher-window_test'];
     const query = jest
       .spyOn(getClient(), 'query')
-      .mockImplementation(async periods => periods.map(() => [{ cat_events: [] }]) as any);
+      .mockImplementation(async (periods) => periods.map(() => [{ cat_events: [] }]));
     const timeperiod = exactIntervalToTimeperiod({
       start: '2026-10-20T13:15:00Z',
       end: '2026-10-20T15:00:00Z',
@@ -31,8 +31,8 @@ describe('category query for an exact interval', () => {
 
     await store.query_category_time_by_period({ host: 'test', timeperiod });
 
-    const requested = query.mock.calls.flatMap(call => call[0]);
-    const intervals = requested.map((p: string) => p.split('/').map(x => moment(x).valueOf()));
+    const requested = query.mock.calls.flatMap((call) => call[0]);
+    const intervals = requested.map((p: string) => p.split('/').map((x) => moment(x).valueOf()));
     expect(intervals[0][0]).toBe(moment('2026-10-20T13:15:00Z').valueOf());
     expect(intervals[intervals.length - 1][1]).toBe(moment('2026-10-20T15:00:00Z').valueOf());
     intervals.forEach(([, to], i) => {

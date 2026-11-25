@@ -1,6 +1,6 @@
-import { hostDurationBreakdown } from '~/util/multidevice';
-import { mergeFullDesktopResults } from '~/util/desktopQuerySplit';
 import { multideviceQuery } from '~/queries';
+import { mergeFullDesktopResults } from '~/util/desktopQuerySplit';
+import { hostDurationBreakdown } from '~/util/multidevice';
 
 describe('hostDurationBreakdown', () => {
   test('credited shares add up to the merged total', () => {
@@ -8,7 +8,7 @@ describe('hostDurationBreakdown', () => {
     const out = hostDurationBreakdown(
       ['desktop', 'phone'],
       [5 * 3600, 7 * 3600],
-      [5 * 3600, 3 * 3600]
+      [5 * 3600, 3 * 3600],
     );
     expect(out).toEqual([
       { host: 'desktop', duration: 5 * 3600, overlap: 0 },
@@ -27,21 +27,21 @@ test('period chunks sum per-host durations element-wise', () => {
   const merged = mergeFullDesktopResults([
     { window: { host_cumulative_durations: [10, 15], host_raw_durations: [10, 8] } },
     { window: { host_cumulative_durations: [4, 6], host_raw_durations: [4, 2] } },
-  ] as any);
+  ]);
   expect(merged.window.host_cumulative_durations).toEqual([14, 21]);
   expect(merged.window.host_raw_durations).toEqual([14, 10]);
 });
 
 test('multideviceQuery returns cumulative and raw per-host durations', () => {
   const q = multideviceQuery({
-    bid_window: 'aw-watcher-window_a',
-    bid_afk: 'aw-watcher-afk_a',
-    classes: [],
-    filter_classes: [],
+    categories: [],
+    filter_categories: [],
+    include_audible: false,
+    always_active_pattern: '',
     filter_afk: true,
     hosts: ['a', 'b'],
     host_params: {},
-  } as any).join('\n');
+  }).join('\n');
   expect(q).toContain('host_cumulative_1 = sum_durations(events);');
   expect(q).toContain('"host_cumulative_durations": [host_cumulative_0, host_cumulative_1]');
   expect(q).toContain('"host_raw_durations": [host_raw_0, host_raw_1]');

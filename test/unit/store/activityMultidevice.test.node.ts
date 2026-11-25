@@ -1,8 +1,8 @@
-import { setActivePinia, createPinia } from 'pinia';
+import { createPinia, setActivePinia } from 'pinia';
 
 import { useActivityStore } from '~/stores/activity';
-import { selectPeriodsToQuery } from '~/util/activeHistory';
 import { useBucketsStore } from '~/stores/buckets';
+import { selectPeriodsToQuery } from '~/util/activeHistory';
 import { createClient } from '~/util/awclient';
 
 const bucket = (id: string, type: string, hostname: string) => ({
@@ -29,7 +29,7 @@ describe('activity store host selection', () => {
     bucket('aw-watcher-android-test-synced-from-phone', 'currentwindow', 'phone'),
     bucket('aw-watcher-window_fakedata', 'currentwindow', 'fakedata'),
     bucket('aw-watcher-afk_fakedata', 'afkstatus', 'fakedata'),
-  ] as any;
+  ];
 
   test('a single host is not a multidevice selection', () => {
     expect(activityStore.resolve_multidevice_hosts('self')).toEqual([]);
@@ -57,7 +57,7 @@ describe('activity store host selection', () => {
   test('multidevice params use the actual (synced) bucket ids', () => {
     const params = activityStore.multidevice_params(
       { host: '@all', filter_afk: true, filter_categories: [], always_active_pattern: '' },
-      ['laptop', 'phone']
+      ['laptop', 'phone'],
     );
     expect(params.hosts).toEqual(['laptop', 'phone']);
     expect(params.host_params.laptop).toEqual({
@@ -84,15 +84,15 @@ describe('multidevice availability flags', () => {
       'query_editor',
       'query_editor_completed',
       'query_category_time_by_period',
-    ]) {
-      jest.spyOn(activityStore, name as any).mockResolvedValue(undefined);
+    ] as const) {
+      jest.spyOn(activityStore, name).mockImplementation(() => Promise.resolve());
     }
     await activityStore.ensure_loaded_multidevice(
       {
         host: '@all',
         timeperiod: { start: '2026-09-25T04:00:00+02:00', length: [1, 'day'] },
-      } as any,
-      hosts
+      },
+      hosts,
     );
     return {
       window: activityStore.window.available,
@@ -105,7 +105,7 @@ describe('multidevice availability flags', () => {
       bucket('aw-watcher-window_self', 'currentwindow', 'self'),
       bucket('aw-watcher-afk_self', 'afkstatus', 'self'),
       bucket('aw-watcher-android-test', 'currentwindow', 'phone'),
-    ] as any;
+    ];
     expect(await flagsFor(['self', 'phone'])).toEqual({ window: true, android: false });
   });
 
@@ -113,7 +113,7 @@ describe('multidevice availability flags', () => {
     bucketsStore.buckets = [
       bucket('aw-watcher-android-test', 'currentwindow', 'phone'),
       bucket('aw-watcher-android-test-synced-from-tablet', 'currentwindow', 'tablet'),
-    ] as any;
+    ];
     expect(await flagsFor(['phone', 'tablet'])).toEqual({ window: false, android: true });
   });
 });
@@ -142,7 +142,7 @@ describe('multidevice path for custom ranges and All time', () => {
     bucket('aw-watcher-window_self', 'currentwindow', 'self'),
     bucket('aw-watcher-afk_self', 'afkstatus', 'self'),
     bucket('aw-watcher-android-test', 'currentwindow', 'phone'),
-  ] as any;
+  ];
 
   afterEach(() => jest.restoreAllMocks());
 
@@ -153,9 +153,12 @@ describe('multidevice path for custom ranges and All time', () => {
       'query_editor',
       'query_editor_completed',
       'query_category_time_by_period',
-    ];
+    ] as const;
     return Object.fromEntries(
-      names.map(n => [n, jest.spyOn(activityStore, n as any).mockResolvedValue(undefined)])
+      names.map((n) => [
+        n,
+        jest.spyOn(activityStore, n).mockImplementation(() => Promise.resolve()),
+      ]),
     );
   }
 
@@ -166,8 +169,8 @@ describe('multidevice path for custom ranges and All time', () => {
         host: '@all',
         skip_active_history: true,
         timeperiod: { start: '2026-09-01T04:00:00+02:00', length: [7, 'days'] },
-      } as any,
-      ['self', 'phone']
+      },
+      ['self', 'phone'],
     );
     expect(s.query_active_history_multidevice).not.toHaveBeenCalled();
     expect(s.query_category_time_by_period).toHaveBeenCalled();
@@ -175,14 +178,16 @@ describe('multidevice path for custom ranges and All time', () => {
 
   test('an exact interval keeps the category chart and its exact timeperiod', async () => {
     const s = spies();
-    const timeperiod = { start: '2026-10-20T13:00:00Z', length: [3600000, 'milliseconds'] };
+    const timeperiod: NonNullable<
+      Parameters<typeof activityStore.ensure_loaded_multidevice>[0]['timeperiod']
+    > = { start: '2026-10-20T13:00:00Z', length: [3600000, 'milliseconds'] };
     await activityStore.ensure_loaded_multidevice(
-      { host: '@all', skip_active_history: true, timeperiod } as any,
-      ['self', 'phone']
+      { host: '@all', skip_active_history: true, timeperiod },
+      ['self', 'phone'],
     );
     expect(s.query_active_history_multidevice).not.toHaveBeenCalled();
     expect(s.query_category_time_by_period).toHaveBeenCalledWith(
-      expect.objectContaining({ timeperiod })
+      expect.objectContaining({ timeperiod }),
     );
     expect(s.query_multidevice_full).toHaveBeenCalled();
   });
@@ -193,8 +198,8 @@ describe('multidevice path for custom ranges and All time', () => {
       {
         host: '@all',
         timeperiod: { start: '2024-01-01T04:00:00+01:00', length: [700, 'days'] },
-      } as any,
-      ['self', 'phone']
+      },
+      ['self', 'phone'],
     );
     expect(s.query_active_history_multidevice).toHaveBeenCalled();
     expect(s.query_category_time_by_period).not.toHaveBeenCalled();
@@ -217,7 +222,7 @@ describe('per-device duration loading lifecycle', () => {
     });
     expect(store.window.host_durations).toHaveLength(2);
 
-    store.start_loading({ host: 'desktop,tablet' } as any);
+    store.start_loading({ host: 'desktop,tablet' });
 
     expect(store.active.duration).toBeNull();
     expect(store.window.host_durations).toEqual([]);
@@ -232,7 +237,7 @@ describe('per-device duration loading lifecycle', () => {
         { host: 'tablet', duration: 3, overlap: 0 },
       ],
     });
-    expect(store.window.host_durations.map(row => row.host)).toEqual(['desktop', 'tablet']);
+    expect(store.window.host_durations.map((row) => row.host)).toEqual(['desktop', 'tablet']);
     expect(store.active.duration).toBe(7);
   });
 });

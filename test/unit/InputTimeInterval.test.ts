@@ -1,15 +1,15 @@
 import moment from 'moment';
 import InputTimeIntervalComponent from '~/components/InputTimeInterval.vue';
+import { optionsApi } from '../helpers/vue';
 
-// Tests call Options API members directly, which the Vue constructor type doesn't expose.
-const InputTimeInterval: any = InputTimeIntervalComponent;
+const InputTimeInterval = optionsApi(InputTimeIntervalComponent);
 
 describe('date range shifts', () => {
   function makeVm(start = null, end = null) {
     return { start, end, mode: 'range', duration: 0, valueChanged: jest.fn() };
   }
 
-  test.each([-7, -1, 1, 7])('does not populate an empty range when shifting %i days', days => {
+  test.each([-7, -1, 1, 7])('does not populate an empty range when shifting %i days', (days) => {
     const vm = makeVm();
 
     InputTimeInterval.methods.shiftDays.call(vm, days);

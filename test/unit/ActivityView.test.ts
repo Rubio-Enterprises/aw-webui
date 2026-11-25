@@ -1,8 +1,8 @@
 import { shallowMount } from '@vue/test-utils';
 import ActivityViewComponent from '~/views/activity/ActivityView.vue';
+import { optionsApi } from '../helpers/vue';
 
-// Tests call Options API members directly, which the Vue constructor type doesn't expose.
-const ActivityView: any = ActivityViewComponent;
+const ActivityView = optionsApi(ActivityViewComponent);
 
 const mockViews = [
   { id: 'default', name: 'Default', elements: [{ type: 'top_apps', props: {} }] },
@@ -46,7 +46,7 @@ describe('ActivityView view switching', () => {
 
   // Records a line per aw-selectable-vis instance created, so we can tell a
   // reused instance (no new record) from a fresh one.
-  let created;
+  let created: string[];
 
   const visStub = {
     name: 'aw-selectable-vis',
@@ -54,13 +54,13 @@ describe('ActivityView view switching', () => {
     created() {
       created.push(`${this.viewId}:${this.id}:${this.type}`);
     },
-    render: h => h('div'),
+    render: (h) => h('div'),
   };
 
   function mountView() {
-    return shallowMount(ActivityView, {
+    return shallowMount(ActivityViewComponent, {
       propsData: { view_id: 'default' },
-      mocks: { $route: { params: {}, path: '/activity/view/default' }, $t: key => key },
+      mocks: { $route: { params: {}, path: '/activity/view/default' }, $t: (key) => key },
       stubs: {
         draggable: { template: '<div><slot /></div>' },
         'aw-selectable-vis': visStub,

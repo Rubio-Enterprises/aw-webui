@@ -1,9 +1,14 @@
-import Vue from 'vue';
 import { shallowMount } from '@vue/test-utils';
+import Vue from 'vue';
 import BucketComponent from '~/views/Bucket.vue';
+import { optionsApi, withVm } from '../helpers/vue';
 
-// Tests call Options API members directly, which the Vue constructor type doesn't expose.
-const Bucket: any = BucketComponent;
+const Bucket = optionsApi(BucketComponent);
+
+interface BucketVm {
+  events: { data: { from: string } }[];
+  eventcount: string | number;
+}
 
 const mockCountEvents = jest.fn();
 const mockGetBucketWithEvents = jest.fn();
@@ -25,7 +30,7 @@ jest.mock('~/stores/buckets', () => ({
   useBucketsStore: () => ({
     ensureLoaded: jest.fn().mockResolvedValue(undefined),
     loadBuckets: mockLoadBuckets,
-    getBucket: id => mockState.buckets.find(b => b.id === id),
+    getBucket: (id) => mockState.buckets.find((b) => b.id === id),
     getBucketWithEvents: mockGetBucketWithEvents,
   }),
 }));
@@ -34,27 +39,29 @@ jest.mock('~/stores/buckets', () => ({
 const InputTimeIntervalStub = {
   template: '<div class="timeinterval" />',
   mounted() {
-    const t = iso => ({ format: () => iso });
+    const t = (iso) => ({ format: () => iso });
     this.$emit('input', [t('2026-10-01T00:00:00Z'), t('2026-10-02T00:00:00Z')]);
   },
 };
 
-function mountBucket(id): any {
-  return shallowMount(Bucket, {
-    propsData: { id },
-    stubs: {
-      'b-alert': { template: '<div class="alert"><slot /></div>' },
-      'router-link': { template: '<a><slot /></a>' },
-      'input-timeinterval': InputTimeIntervalStub,
-      'vis-timeline': true,
-      'aw-eventlist': true,
-    },
-    filters: { iso8601: v => v },
-  });
+function mountBucket(id: string) {
+  return withVm<BucketVm>(
+    shallowMount(BucketComponent, {
+      propsData: { id },
+      stubs: {
+        'b-alert': { template: '<div class="alert"><slot /></div>' },
+        'router-link': { template: '<a><slot /></a>' },
+        'input-timeinterval': InputTimeIntervalStub,
+        'vis-timeline': true,
+        'aw-eventlist': true,
+      },
+      filters: { iso8601: (v) => v },
+    }),
+  );
 }
 
 async function flush() {
-  for (let i = 0; i < 3; i++) await new Promise(resolve => setTimeout(resolve, 0));
+  for (let i = 0; i < 3; i++) await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 describe('Bucket view', () => {
@@ -75,7 +82,7 @@ describe('Bucket view', () => {
     expect(wrapper.text()).toContain('49828');
     expect(wrapper.find('.alert').exists()).toBe(false);
     expect(mockGetBucketWithEvents).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'aw-watcher-window_host' })
+      expect.objectContaining({ id: 'aw-watcher-window_host' }),
     );
   });
 
@@ -117,13 +124,13 @@ describe('Bucket view', () => {
 describe('Bucket view navigation', () => {
   const bucketA = { ...knownBucket, id: 'bucket-a' };
   const bucketB = { ...knownBucket, id: 'bucket-b' };
-  const eventsFor = id => [
+  const eventsFor = (id) => [
     { id: 1, timestamp: '2026-10-02T10:00:00Z', duration: 1, data: { from: id } },
   ];
 
   beforeEach(() => {
     mockState.buckets = [bucketA, bucketB];
-    mockCountEvents.mockReset().mockImplementation(async id => (id === 'bucket-a' ? 10 : 20));
+    mockCountEvents.mockReset().mockImplementation(async (id) => (id === 'bucket-a' ? 10 : 20));
     mockLoadBuckets.mockReset().mockResolvedValue(undefined);
     mockGetBucketWithEvents
       .mockReset()
@@ -159,8 +166,8 @@ describe('Bucket view navigation', () => {
 
   // Returns a promise plus a function to resolve it later.
   function deferred() {
-    let resolve;
-    const promise = new Promise(r => (resolve = r));
+    let resolve: (result: unknown) => void;
+    const promise = new Promise((r) => (resolve = r));
     return { promise, resolve };
   }
 
@@ -196,7 +203,7 @@ describe('Bucket view navigation', () => {
     // A -> B -> A with a new time range, while the first A request is still pending.
     await wrapper.setProps({ id: 'bucket-b' });
     await wrapper.setProps({ id: 'bucket-a' });
-    const t = iso => ({ format: () => iso });
+    const t = (iso) => ({ format: () => iso });
     wrapper.setData({ daterange: [t('2026-09-30T00:00:00Z'), t('2026-10-02T00:00:00Z')] });
     await flush();
     expect(wrapper.vm.events[0].data.from).toBe('bucket-a');
@@ -255,8 +262,8 @@ describe('Bucket.vue getEvents fallback', () => {
   });
 
   test('a stale fallback does not overwrite a newer range selection', async () => {
-    let release;
-    const gate = new Promise(r => (release = r));
+    let release: () => void;
+    const gate = new Promise<void>((r) => (release = r));
     const get = jest.fn(async ({ limit }) => {
       if (limit) {
         await gate;

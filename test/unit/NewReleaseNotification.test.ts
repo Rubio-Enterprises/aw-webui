@@ -1,15 +1,19 @@
-import { shallowMount } from '@vue/test-utils';
 import { createTestingPinia } from '@pinia/testing';
+import { shallowMount } from '@vue/test-utils';
 import NewReleaseNotification from '~/components/NewReleaseNotification.vue';
 import { createClient } from '~/util/awclient';
+import { withVm } from '../helpers/vue';
+
+interface ReleaseVm {
+  currentVersion: string | null;
+  latestVersion: string | null;
+  cleanVersionTag: (tag: string) => string;
+  getHasNewRelease: () => boolean;
+}
 
 describe('hasNewRelease method', () => {
-  const wrapper = shallowMount(NewReleaseNotification, {
-    global: {
-      plugins: [createTestingPinia()],
-    },
-  } as any);
-  const vm: any = wrapper.vm;
+  createTestingPinia();
+  const { vm } = withVm<ReleaseVm>(shallowMount(NewReleaseNotification));
   createClient();
 
   test('should clean and compare version tags properly', () => {

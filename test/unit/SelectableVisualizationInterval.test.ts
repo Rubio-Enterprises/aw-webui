@@ -13,9 +13,11 @@ describe('day-only clock mounting', () => {
   ])('period %p mounts clock: %p', (periodLength, expected) => {
     const store = useActivityStore();
     store.$patch({
-      query_options: { timeperiod: { start: '2026-10-20T13:00:00Z', length: periodLength } },
+      query_options: {
+        timeperiod: { start: '2026-10-20T13:00:00Z', length: periodLength as [number, string] },
+      },
       buckets: { loaded: true, afk: ['afk'], window: ['window'] },
-    } as any);
+    });
     const wrapper = shallowMount(SelectableVisualization, {
       propsData: { type: 'sunburst_clock', editable: false },
       stubs: ['aw-sunburst-clock', 'b-alert', 'icon'],

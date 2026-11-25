@@ -1,7 +1,7 @@
 import ActivityComponent from '~/views/activity/Activity.vue';
+import { optionsApi } from '../helpers/vue';
 
-// Tests call Options API members directly, which the Vue constructor type doesn't expose.
-const Activity: any = ActivityComponent;
+const Activity = optionsApi(ActivityComponent);
 
 describe('Activity per-device breakdown bar', () => {
   const hostDurations = [
@@ -13,7 +13,7 @@ describe('Activity per-device breakdown bar', () => {
 
   test('segment widths are each device share of the merged total', () => {
     const vm = { hostDurations };
-    const shares = hostDurations.map(d => Activity.methods.deviceShare.call(vm, d));
+    const shares = hostDurations.map((d) => Activity.methods.deviceShare.call(vm, d));
     expect(shares).toEqual([50, 25, 100 / 6, 100 / 12]);
     expect(shares.reduce((a, b) => a + b, 0)).toBeCloseTo(100);
   });

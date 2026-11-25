@@ -1,9 +1,9 @@
-import TimelineComponent from '~/views/Timeline.vue';
 import moment from 'moment';
 import { categoryTimelineQuery, mergeCategoryIntervals } from '~/util/timelineCategories';
+import TimelineComponent from '~/views/Timeline.vue';
+import { optionsApi } from '../helpers/vue';
 
-// Tests call Options API members directly, which the Vue constructor type doesn't expose.
-const Timeline: any = TimelineComponent;
+const Timeline = optionsApi(TimelineComponent);
 
 const mockQuery = jest.fn().mockResolvedValue([[]]);
 const mockGetBucketsWithEvents = jest.fn();
@@ -11,7 +11,7 @@ jest.mock('~/util/awclient', () => ({ getClient: () => ({ query: mockQuery }) })
 jest.mock('~/stores/buckets', () => ({
   useBucketsStore: () => ({
     getBucketsWithEvents: mockGetBucketsWithEvents,
-    bucketsAFK: host => (host === 'laptop' ? ['afk_laptop'] : []),
+    bucketsAFK: (host) => (host === 'laptop' ? ['afk_laptop'] : []),
   }),
 }));
 jest.mock('~/stores/categories', () => ({
@@ -61,14 +61,14 @@ test('queries all visible window buckets and merges only contiguous final catego
   expect(code).toContain('window_desktop');
   expect(code).toContain('categorize(events,');
   expect(code).toContain('union_no_overlap');
-  expect(vm.categorizedEvents.map(e => e.duration)).toEqual([30, 5, 5]);
+  expect(vm.categorizedEvents.map((e) => e.duration)).toEqual([30, 5, 5]);
   expect(vm.categorizedEvents[0].data).toEqual({ $category: ['Work'] });
   expect(vm.categorizedEvents[0].id).toBeUndefined();
 });
 
 test('categorized row is AFK-filtered by default while raw rows stay unfiltered', async () => {
   const vm = context();
-  vm._applyAfkFilter = jest.fn(async rows => rows);
+  vm._applyAfkFilter = jest.fn(async (rows) => rows);
   expect(vm.filter_afk).toBe(false);
   await vm.getBuckets();
   const code = mockQuery.mock.calls[0][1].join('\n');
@@ -109,7 +109,7 @@ test('duration filtering applies after merging rather than dropping short source
   const vm = context();
   vm.filter_duration = 25;
   await vm.getBuckets();
-  expect(vm.categorizedEvents.map(e => e.duration)).toEqual([30]);
+  expect(vm.categorizedEvents.map((e) => e.duration)).toEqual([30]);
 });
 
 test('query failure clears the old row and shows an explicit warning alongside raw events', async () => {
@@ -126,12 +126,12 @@ test('query failure clears the old row and shows an explicit warning alongside r
 
 test('a slow old query cannot overwrite the newly selected day', async () => {
   const vm = context();
-  let finishOld;
+  let finishOld: (rows: ReturnType<typeof event>[][]) => void;
   mockQuery.mockImplementationOnce(
     () =>
-      new Promise(resolve => {
+      new Promise((resolve) => {
         finishOld = resolve;
-      })
+      }),
   );
   const old = vm.getBuckets();
   await Promise.resolve();
@@ -145,7 +145,7 @@ test('a slow old query cannot overwrite the newly selected day', async () => {
 
 test.each(['resolve', 'reject'])(
   'publishes new raw rows and clears old categories before a slow category query can %s',
-  async outcome => {
+  async (outcome) => {
     const vm = context();
     await vm.getBuckets();
     expect(vm.categorizedEvents).not.toHaveLength(0);
@@ -154,12 +154,12 @@ test.each(['resolve', 'reject'])(
     const raw = buckets();
     raw[0].events = [event(60, 15)];
     mockGetBucketsWithEvents.mockResolvedValueOnce(raw);
-    let finishCategory;
+    let finishCategory: (result: ReturnType<typeof event>[][] | Error) => void;
     mockQuery.mockImplementationOnce(
       () =>
-        new Promise((resolve, reject) => {
+        new Promise<ReturnType<typeof event>[][] | Error>((resolve, reject) => {
           finishCategory = outcome === 'resolve' ? resolve : reject;
-        })
+        }),
     );
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
     const loading = vm.getBuckets();
@@ -175,28 +175,28 @@ test.each(['resolve', 'reject'])(
     expect(vm.categorizedEvents).toHaveLength(outcome === 'resolve' ? 1 : 0);
     expect(vm.categoryError).toBe(outcome === 'reject');
     warn.mockRestore();
-  }
+  },
 );
 
 test('an obsolete raw AFK response cannot replace the new range or its category row', async () => {
   const vm = context();
   vm.filter_afk = true;
-  let finishOldAfk;
-  let finishOldCategory;
+  let finishOldAfk: (rows: ReturnType<typeof buckets>) => void;
+  let finishOldCategory: (rows: ReturnType<typeof event>[][]) => void;
   vm._applyAfkFilter = jest
     .fn()
     .mockImplementationOnce(
       () =>
-        new Promise(resolve => {
+        new Promise((resolve) => {
           finishOldAfk = resolve;
-        })
+        }),
     )
-    .mockImplementation(async rows => rows);
+    .mockImplementation(async (rows) => rows);
   mockQuery.mockImplementationOnce(
     () =>
-      new Promise(resolve => {
+      new Promise((resolve) => {
         finishOldCategory = resolve;
-      })
+      }),
   );
   const old = vm.getBuckets();
   await Promise.resolve();
@@ -237,7 +237,7 @@ test('parent category filters include descendants after resolving source overlap
   }).join('\n');
   expect(code).toContain('filter_keyvals(events, "$category", [["Work"],["Work","Programming"]])');
   expect(code.indexOf('filter_keyvals(events, "$category"')).toBeGreaterThan(
-    code.lastIndexOf('union_no_overlap')
+    code.lastIndexOf('union_no_overlap'),
   );
 });
 
@@ -251,7 +251,7 @@ test('merging preserves real gaps, category boundaries, and immutable source dat
     event(30, 5),
   ];
   const original = JSON.parse(JSON.stringify(events));
-  expect(mergeCategoryIntervals(events).map(e => [e.duration, e.data.$category])).toEqual([
+  expect(mergeCategoryIntervals(events).map((e) => [e.duration, e.data.$category])).toEqual([
     [10, ['Work']],
     [5, ['Play']],
     [15, ['Work']],
@@ -273,7 +273,7 @@ test('a saved edit refetches the raw buckets for the same range', async () => {
   mockGetBucketsWithEvents.mockResolvedValueOnce(edited);
   Timeline.methods.onEventSaved.call(vm);
   await vm.bucketsRequest;
-  await new Promise(resolve => setTimeout(resolve, 0));
+  await new Promise((resolve) => setTimeout(resolve, 0));
   expect(mockGetBucketsWithEvents).toHaveBeenCalledTimes(2);
   expect(vm.buckets[0].events[0].duration).toBe(99);
 });

@@ -1,5 +1,11 @@
-import { setActivePinia, createPinia } from 'pinia';
-import { useViewsStore, androidViews, defaultViews, migrateStoredViews } from '~/stores/views';
+import { createPinia, setActivePinia } from 'pinia';
+import {
+  androidViews,
+  defaultViews,
+  migrateStoredViews,
+  useViewsStore,
+  type View,
+} from '~/stores/views';
 
 describe('views store', () => {
   setActivePinia(createPinia());
@@ -73,7 +79,7 @@ describe('migrateStoredViews', () => {
 
   test('replaces the pre-top_browser_titles desktop default on Android', () => {
     const stored = storedDesktopDefault();
-    stored[2].elements = stored[2].elements.filter(el => el.type !== 'top_browser_titles');
+    stored[2].elements = stored[2].elements.filter((el) => el.type !== 'top_browser_titles');
     expect(migrateStoredViews(stored, true)).toEqual(androidViews);
   });
 
@@ -83,7 +89,7 @@ describe('migrateStoredViews', () => {
       defaultViews[0].elements.push({ type: 'future_visualization', size: 3 });
       const stored = storedDesktopDefault();
       expect(migrateStoredViews(stored, true)).toEqual(androidViews);
-      stored[2].elements = stored[2].elements.filter(el => el.type !== 'top_browser_titles');
+      stored[2].elements = stored[2].elements.filter((el) => el.type !== 'top_browser_titles');
       expect(migrateStoredViews(stored, true)).toEqual(androidViews);
     } finally {
       defaultViews[0].elements = original;
@@ -125,17 +131,19 @@ describe('views store on an Android build', () => {
   });
 
   // Fresh module instances, so `onAndroid` is read from the env set here.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async function loadOnAndroid(stored: any[]) {
+  async function loadOnAndroid(stored: View[]) {
     process.env.VUE_APP_ON_ANDROID = 'true';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let mods: any;
+    const mods = {} as {
+      pinia: typeof import('pinia');
+      views: typeof import('~/stores/views');
+      settings: typeof import('~/stores/settings');
+    };
     jest.isolateModules(() => {
-      mods = {
+      Object.assign(mods, {
         pinia: require('pinia'),
         views: require('~/stores/views'),
         settings: require('~/stores/settings'),
-      };
+      });
     });
     mods.pinia.setActivePinia(mods.pinia.createPinia());
     const settingsStore = mods.settings.useSettingsStore();
@@ -165,7 +173,7 @@ describe('views store on an Android build', () => {
 
   test('saving an edit persists the migrated Android layout', async () => {
     const { viewsStore, settingsStore, expected, save, update } = await loadOnAndroid(
-      storedDesktopDefault()
+      storedDesktopDefault(),
     );
     viewsStore.addVisualization({ view_id: 'summary', type: 'top_titles' });
     await viewsStore.save();

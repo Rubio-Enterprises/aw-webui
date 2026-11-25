@@ -1,12 +1,13 @@
 import { createLocalVue, shallowMount } from '@vue/test-utils';
 import { BootstrapVue } from 'bootstrap-vue';
 import moment from 'moment';
-import Stopwatch from '~/views/Stopwatch.vue';
-import StopwatchEntry from '~/components/StopwatchEntry.vue';
+import type { VueConstructor } from 'vue';
 import EventEditorComponent from '~/components/EventEditor.vue';
+import StopwatchEntry from '~/components/StopwatchEntry.vue';
+import Stopwatch from '~/views/Stopwatch.vue';
+import { optionsApi } from '../helpers/vue';
 
-// Tests call Options API members directly, which the Vue constructor type doesn't expose.
-const EventEditor: any = EventEditorComponent;
+const EventEditor = optionsApi(EventEditorComponent);
 
 const localVue = createLocalVue();
 localVue.use(BootstrapVue);
@@ -23,6 +24,19 @@ const flush = async () => {
   for (let i = 0; i < 10; i++) await Promise.resolve();
 };
 
+type TimerFixture = ReturnType<typeof event>;
+type StopwatchVm = InstanceType<typeof Stopwatch> & {
+  events: TimerFixture[];
+  runningTimers: (Omit<TimerFixture, 'timestamp'> & { timestamp: Date })[];
+  stoppedTimers: TimerFixture[];
+  historyLimit: number;
+  refreshing: boolean;
+  getEvents(runningLimit?: number, historyLimit?: number): Promise<void>;
+  startTimer(label: string): Promise<void>;
+  removeTimer(timer: TimerFixture): Promise<void>;
+};
+type TimerResponse = { data: { running: TimerFixture[]; history: TimerFixture[] }[] };
+
 function mountStopwatch(result = { running: [oldRunning], history: stoppedEvents }) {
   const aw = {
     ensureBucket: jest.fn().mockResolvedValue(undefined),
@@ -30,7 +44,7 @@ function mountStopwatch(result = { running: [oldRunning], history: stoppedEvents
     heartbeat: jest.fn().mockResolvedValue(undefined),
     req: { post: jest.fn().mockResolvedValue({ data: [result] }) },
   };
-  const wrapper = shallowMount(Stopwatch, {
+  const wrapper = shallowMount(Stopwatch as VueConstructor<StopwatchVm>, {
     localVue,
     mocks: { $aw: aw },
     stubs: {
@@ -44,12 +58,16 @@ function mountStopwatch(result = { running: [oldRunning], history: stoppedEvents
 }
 
 function button(wrapper, label) {
-  return wrapper.findAll('button').wrappers.find(b => b.text() === label);
+  return wrapper.findAll('button').wrappers.find((b) => b.text() === label);
 }
 
 describe('Stopwatch retrieval', () => {
-  let wrapper;
-  beforeEach(() => jest.spyOn(global, 'setInterval').mockImplementation(() => 1 as any));
+  let wrapper: ReturnType<typeof mountStopwatch>['wrapper'];
+  beforeEach(() =>
+    jest
+      .spyOn(global, 'setInterval')
+      .mockImplementation(() => 1 as unknown as ReturnType<typeof setInterval>),
+  );
   afterEach(() => {
     if (wrapper) wrapper.destroy();
     jest.restoreAllMocks();
@@ -58,14 +76,14 @@ describe('Stopwatch retrieval', () => {
   test('finds an old running timer outside the newest 100 events', async () => {
     ({ wrapper } = mountStopwatch());
     await flush();
-    expect(wrapper.vm.runningTimers.map(e => e.id)).toEqual([1]);
+    expect(wrapper.vm.runningTimers.map((e) => e.id)).toEqual([1]);
     expect(wrapper.vm.runningTimers[0].timestamp).toEqual(new Date(oldRunning.timestamp));
     expect(wrapper.vm.stoppedTimers).toHaveLength(100);
     expect(wrapper.findAllComponents({ name: 'StopwatchEntry' })).toHaveLength(101);
   });
 
   test('offers older history and keeps running timers visible while expanding it', async () => {
-    let aw;
+    let aw: ReturnType<typeof mountStopwatch>['aw'];
     ({ wrapper, aw } = mountStopwatch());
     await flush();
     const more = button(wrapper, 'Show more history');
@@ -74,22 +92,22 @@ describe('Stopwatch retrieval', () => {
     await flush();
     expect(wrapper.vm.stoppedTimers).toHaveLength(101);
     expect(wrapper.vm.stoppedTimers[100].id).toBe(2);
-    expect(wrapper.vm.runningTimers.map(e => e.id)).toEqual([1]);
+    expect(wrapper.vm.runningTimers.map((e) => e.id)).toEqual([1]);
     expect(button(wrapper, 'Show more history')).toBeUndefined();
     expect(aw.req.post).toHaveBeenCalledTimes(2);
   });
 
   test('bounds both groups independently and fetches fresh data after starting a timer', async () => {
-    let aw;
+    let aw: ReturnType<typeof mountStopwatch>['aw'];
     ({ wrapper, aw } = mountStopwatch());
     await flush();
     const [path, payload] = aw.req.post.mock.calls[0];
     expect(path).toBe('/0/query/');
     expect(payload.query[0]).toContain(
-      'limit_events(filter_keyvals(events, "running", [true]), 101)'
+      'limit_events(filter_keyvals(events, "running", [true]), 101)',
     );
     expect(payload.query[0]).toContain(
-      'limit_events(exclude_keyvals(events, "running", [true]), 101)'
+      'limit_events(exclude_keyvals(events, "running", [true]), 101)',
     );
     const fresh = event(103, true);
     aw.req.post.mockResolvedValue({
@@ -102,14 +120,14 @@ describe('Stopwatch retrieval', () => {
       1,
       expect.objectContaining({
         data: { running: true, label: 'New timer' },
-      })
+      }),
     );
-    expect(wrapper.vm.runningTimers.map(e => e.id)).toEqual([103, 1]);
+    expect(wrapper.vm.runningTimers.map((e) => e.id)).toEqual([103, 1]);
   });
 
   test('offers more than 100 running timers without expanding history', async () => {
-    let aw;
-    const running = stoppedEvents.map(e => ({ ...e, data: { ...e.data, running: true } }));
+    let aw: ReturnType<typeof mountStopwatch>['aw'];
+    const running = stoppedEvents.map((e) => ({ ...e, data: { ...e.data, running: true } }));
     ({ wrapper, aw } = mountStopwatch({ running, history: [] }));
     await flush();
     expect(wrapper.vm.runningTimers).toHaveLength(100);
@@ -118,15 +136,15 @@ describe('Stopwatch retrieval', () => {
     expect(wrapper.vm.runningTimers).toHaveLength(101);
     expect(button(wrapper, 'Show more running timers')).toBeUndefined();
     expect(aw.req.post.mock.calls[1][1].query[0]).toContain(
-      'limit_events(filter_keyvals(events, "running", [true]), 201)'
+      'limit_events(filter_keyvals(events, "running", [true]), 201)',
     );
     expect(aw.req.post.mock.calls[1][1].query[0]).toContain(
-      'limit_events(exclude_keyvals(events, "running", [true]), 101)'
+      'limit_events(exclude_keyvals(events, "running", [true]), 101)',
     );
   });
 
   test('refreshes running and history groups after stopping an old timer', async () => {
-    let aw;
+    let aw: ReturnType<typeof mountStopwatch>['aw'];
     ({ wrapper, aw } = mountStopwatch());
     await flush();
     await button(wrapper, 'Show more history').trigger('click');
@@ -138,7 +156,7 @@ describe('Stopwatch retrieval', () => {
     await wrapper.findAllComponents({ name: 'StopwatchEntry' }).at(0).vm.$emit('update', stopped);
     await flush();
     expect(wrapper.vm.runningTimers).toHaveLength(0);
-    expect(wrapper.vm.stoppedTimers.find(e => e.id === 1)).toEqual({
+    expect(wrapper.vm.stoppedTimers.find((e) => e.id === 1)).toEqual({
       ...stopped,
       timestamp: new Date(stopped.timestamp),
     });
@@ -147,7 +165,7 @@ describe('Stopwatch retrieval', () => {
   });
 
   test('refills history after a confirmed deletion', async () => {
-    let aw;
+    let aw: ReturnType<typeof mountStopwatch>['aw'];
     ({ wrapper, aw } = mountStopwatch());
     await flush();
     aw.req.post.mockResolvedValue({
@@ -156,13 +174,13 @@ describe('Stopwatch retrieval', () => {
     await wrapper.vm.removeTimer(stoppedEvents[0]);
     await flush();
     expect(wrapper.vm.stoppedTimers).toHaveLength(100);
-    expect(wrapper.vm.stoppedTimers.some(e => e.id === stoppedEvents[0].id)).toBe(false);
+    expect(wrapper.vm.stoppedTimers.some((e) => e.id === stoppedEvents[0].id)).toBe(false);
     expect(wrapper.vm.stoppedTimers[99].id).toBe(2);
     expect(button(wrapper, 'Show more history')).toBeUndefined();
   });
 
   test('retains rows after a failed expansion and retries the requested limit', async () => {
-    let aw;
+    let aw: ReturnType<typeof mountStopwatch>['aw'];
     ({ wrapper, aw } = mountStopwatch());
     await flush();
     aw.req.post.mockRejectedValueOnce(new Error('offline'));
@@ -175,27 +193,27 @@ describe('Stopwatch retrieval', () => {
     await button(wrapper, 'Retry').trigger('click');
     await flush();
     expect(aw.req.post.mock.calls[2][1].query[0]).toContain(
-      'limit_events(exclude_keyvals(events, "running", [true]), 201)'
+      'limit_events(exclude_keyvals(events, "running", [true]), 201)',
     );
     expect(wrapper.vm.stoppedTimers).toHaveLength(101);
     expect(wrapper.text()).not.toContain('Unable to load stopwatch timers');
   });
 
   test('preserves a pending expansion when a timer write refreshes the lists', async () => {
-    let aw;
+    let aw: ReturnType<typeof mountStopwatch>['aw'];
     ({ wrapper, aw } = mountStopwatch());
     await flush();
-    let resolveExpansion;
+    let resolveExpansion: (response: TimerResponse) => void;
     aw.req.post.mockImplementationOnce(
       () =>
-        new Promise(resolve => {
+        new Promise((resolve) => {
           resolveExpansion = resolve;
-        })
+        }),
     );
     const expansion = wrapper.vm.getEvents(100, 200);
     await wrapper.vm.startTimer('New timer');
     expect(aw.req.post.mock.calls[2][1].query[0]).toContain(
-      'limit_events(exclude_keyvals(events, "running", [true]), 201)'
+      'limit_events(exclude_keyvals(events, "running", [true]), 201)',
     );
     resolveExpansion({ data: [{ running: [oldRunning], history: stoppedEvents }] });
     await expansion;
@@ -204,15 +222,15 @@ describe('Stopwatch retrieval', () => {
   });
 
   test('does not let an older response overwrite a later refresh', async () => {
-    let aw;
+    let aw: ReturnType<typeof mountStopwatch>['aw'];
     ({ wrapper, aw } = mountStopwatch());
     await flush();
-    let resolveOld;
+    let resolveOld: (response: TimerResponse) => void;
     aw.req.post.mockImplementationOnce(
       () =>
-        new Promise(resolve => {
+        new Promise((resolve) => {
           resolveOld = resolve;
-        })
+        }),
     );
     const oldRequest = wrapper.vm.getEvents();
     aw.req.post.mockResolvedValueOnce({ data: [{ running: [], history: [] }] });
@@ -224,18 +242,21 @@ describe('Stopwatch retrieval', () => {
     expect(wrapper.vm.refreshing).toBe(false);
   });
 
-  test.each([0, 100])('does not offer extra pages for exactly %i history entries', async count => {
-    ({ wrapper } = mountStopwatch({ running: [], history: stoppedEvents.slice(0, count) }));
-    await flush();
-    expect(wrapper.vm.stoppedTimers).toHaveLength(count);
-    expect(button(wrapper, 'Show more history')).toBeUndefined();
-    expect(button(wrapper, 'Show more running timers')).toBeUndefined();
-    expect(wrapper.text()).toContain('No stopwatch running');
-  });
+  test.each([0, 100])(
+    'does not offer extra pages for exactly %i history entries',
+    async (count) => {
+      ({ wrapper } = mountStopwatch({ running: [], history: stoppedEvents.slice(0, count) }));
+      await flush();
+      expect(wrapper.vm.stoppedTimers).toHaveLength(count);
+      expect(button(wrapper, 'Show more history')).toBeUndefined();
+      expect(button(wrapper, 'Show more running timers')).toBeUndefined();
+      expect(wrapper.text()).toContain('No stopwatch running');
+    },
+  );
 });
 
 describe('Stopwatch editor completion', () => {
-  const editorVm = overrides => ({
+  const editorVm = (overrides) => ({
     ...EventEditor.data(),
     ...EventEditor.methods,
     $refs: {},
@@ -250,9 +271,9 @@ describe('Stopwatch editor completion', () => {
       localVue,
       propsData: { event: oldRunning, bucket_id: 'aw-stopwatch', now: moment() },
       stubs: { icon: true },
-      filters: { shorttime: v => v, friendlyduration: v => v },
+      filters: { shorttime: (v) => v, friendlyduration: (v) => v },
     });
-    const editor = wrapper.findComponent(EventEditor);
+    const editor = wrapper.findComponent(EventEditorComponent);
     editor.vm.$emit(early, oldRunning);
     expect(wrapper.emitted(forwarded)).toBeUndefined();
     editor.vm.$emit(completed, oldRunning, 'aw-stopwatch');
@@ -261,8 +282,8 @@ describe('Stopwatch editor completion', () => {
   });
 
   test('emits deleted only after the request succeeds, retaining the original target', async () => {
-    let complete;
-    const mutation = new Promise(resolve => {
+    let complete: () => void;
+    const mutation = new Promise<void>((resolve) => {
       complete = resolve;
     });
     const vm = editorVm({

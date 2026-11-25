@@ -1,11 +1,11 @@
 import {
   buildActivityContext,
+  type ContextEvent,
   computeFocusStats,
   formatActivityContext,
   isUnderCategory,
-  privateCategoriesFrom,
-  type ContextEvent,
   type PrivacyOptions,
+  privateCategoriesFrom,
 } from '~/util/activityContext';
 
 const NO_PRIVACY: PrivacyOptions = { excludeUncategorized: false, privateCategories: [] };
@@ -13,7 +13,7 @@ const NO_PRIVACY: PrivacyOptions = { excludeUncategorized: false, privateCategor
 function event(
   app: string,
   duration: number,
-  opts: { title?: string; category?: string[]; timestamp?: string } = {}
+  opts: { title?: string; category?: string[]; timestamp?: string } = {},
 ): ContextEvent {
   return {
     timestamp: opts.timestamp ?? '2026-08-01T09:00:00+00:00',
@@ -26,7 +26,10 @@ function event(
   };
 }
 
-function build(events: ContextEvent[], overrides: Record<string, any> = {}) {
+function build(
+  events: ContextEvent[],
+  overrides: Partial<Parameters<typeof buildActivityContext>[0]> = {},
+) {
   return buildActivityContext({
     events,
     trackedSeconds: events.reduce((s, e) => s + e.duration, 0),
@@ -42,7 +45,7 @@ function build(events: ContextEvent[], overrides: Record<string, any> = {}) {
 describe('buildActivityContext — aggregation', () => {
   test('aggregates app durations and sorts descending', () => {
     const ctx = build([event('Firefox', 300), event('Terminal', 60), event('Firefox', 120)]);
-    expect(ctx.apps.map(a => a.app)).toEqual(['Firefox', 'Terminal']);
+    expect(ctx.apps.map((a) => a.app)).toEqual(['Firefox', 'Terminal']);
     expect(ctx.apps[0].duration).toBe(420);
   });
 
@@ -99,7 +102,7 @@ describe('buildActivityContext — aggregation', () => {
         event('vim', 3600, { timestamp: '2026-08-01T23:30:00Z' }),
         event('vim', 100, { timestamp: '2026-08-02T09:00:00Z' }),
       ]);
-      expect(ctx.daily.map(d => d.date)).toEqual(['2026-08-01', '2026-08-02']);
+      expect(ctx.daily.map((d) => d.date)).toEqual(['2026-08-01', '2026-08-02']);
       expect(ctx.daily.reduce((sum, d) => sum + d.duration, 0)).toBeCloseTo(3700, 0);
       expect(formatter).toHaveBeenCalledTimes(1);
     } finally {
@@ -111,13 +114,13 @@ describe('buildActivityContext — aggregation', () => {
     const ctx = build([event('vim', 3600, { timestamp: '2026-08-01T23:30:00Z' })], {
       timezone: 'Invalid/Timezone',
     });
-    expect(ctx.daily.map(d => d.date)).toEqual(['2026-08-01', '2026-08-02']);
+    expect(ctx.daily.map((d) => d.date)).toEqual(['2026-08-01', '2026-08-02']);
     expect(ctx.daily[0].duration).toBeCloseTo(1800, 0);
     expect(ctx.daily[1].duration).toBeCloseTo(1800, 0);
   });
 
   test('assembles date keys from parts without using locale-ordered format output', () => {
-    const format = jest.spyOn(Intl.DateTimeFormat.prototype as any, 'format', 'get');
+    const format = jest.spyOn(Intl.DateTimeFormat.prototype, 'format', 'get');
     format.mockImplementation(() => () => '8/1/2026');
     try {
       const ctx = build([event('vim', 100)]);
@@ -142,7 +145,7 @@ describe('buildActivityContext — aggregation', () => {
       timezone: 'UTC',
     });
     const byDate: Record<string, number> = Object.fromEntries(
-      ctx.daily.map(d => [d.date, d.duration])
+      ctx.daily.map((d) => [d.date, d.duration]),
     );
     expect(Object.keys(byDate).sort()).toEqual(['2026-08-01', '2026-08-02']);
     expect(byDate['2026-08-01']).toBeCloseTo(1800, 0); // 30 min before midnight
@@ -167,7 +170,7 @@ describe('buildActivityContext — coverage and denominators', () => {
   test('shares use exported time, not active time, when privacy drops events', () => {
     const ctx = build(
       [event('vim', 300, { category: ['Work'] }), event('Signal', 100, { category: ['Private'] })],
-      { privacy: { excludeUncategorized: false, privateCategories: [['Private']] } }
+      { privacy: { excludeUncategorized: false, privateCategories: [['Private']] } },
     );
     expect(ctx.coverage.activeSeconds).toBe(400);
     expect(ctx.coverage.exportedSeconds).toBe(300);
@@ -222,7 +225,7 @@ describe('buildActivityContext — truncation', () => {
     expect(ctx.truncation.apps.total).toBe(20);
     // The 15 dropped apps have durations 95..81.
     expect(ctx.truncation.apps.otherSeconds).toBe(
-      Array.from({ length: 15 }, (_, i) => 95 - i).reduce((s, d) => s + d, 0)
+      Array.from({ length: 15 }, (_, i) => 95 - i).reduce((s, d) => s + d, 0),
     );
   });
 
@@ -230,7 +233,7 @@ describe('buildActivityContext — truncation', () => {
     const ctx = build([event('a', 10), event('b', 500), event('c', 250)], {
       limits: { apps: 2 },
     });
-    expect(ctx.apps.map(a => a.app)).toEqual(['b', 'c']);
+    expect(ctx.apps.map((a) => a.app)).toEqual(['b', 'c']);
   });
 
   test('does not truncate when under the limit', () => {
@@ -247,9 +250,9 @@ describe('privacy filter', () => {
         event('Signal', 300, { category: ['Private', 'Messaging'] }),
         event('Browser', 100, { category: ['Private'] }),
       ],
-      { privacy: { excludeUncategorized: false, privateCategories: [['Private']] } }
+      { privacy: { excludeUncategorized: false, privateCategories: [['Private']] } },
     );
-    expect(ctx.apps.map(a => a.app)).toEqual(['vim']);
+    expect(ctx.apps.map((a) => a.app)).toEqual(['vim']);
     expect(ctx.privacy.excludedSeconds).toBe(400);
     expect(ctx.privacy.coverage).toBe(600 / 1000);
     expect(JSON.stringify(ctx.apps)).not.toContain('Signal');
@@ -259,7 +262,7 @@ describe('privacy filter', () => {
     const ctx = build([event('vim', 600, { category: ['Work'] }), event('mystery-app', 400)], {
       privacy: { excludeUncategorized: true, privateCategories: [] },
     });
-    expect(ctx.apps.map(a => a.app)).toEqual(['vim']);
+    expect(ctx.apps.map((a) => a.app)).toEqual(['vim']);
     expect(ctx.privacy.excludedCategories).toEqual([['Uncategorized']]);
     expect(ctx.privacy.excludedSeconds).toBe(400);
   });
@@ -366,7 +369,7 @@ describe('computeFocusStats', () => {
         event('Signal', 100, { category: ['Private'], timestamp: '2026-08-01T09:01:40Z' }),
         event('vim', 200, { category: ['Work'], timestamp: '2026-08-01T09:03:20Z' }),
       ],
-      { privacy: { excludeUncategorized: false, privateCategories: [['Private']] } }
+      { privacy: { excludeUncategorized: false, privateCategories: [['Private']] } },
     );
     expect(ctx.focus).toEqual({
       appSwitches: 0,
@@ -408,7 +411,7 @@ describe('formatActivityContext', () => {
   test('states what the privacy filter withheld without leaking category names', () => {
     const ctx = build(
       [event('vim', 600, { category: ['Work'] }), event('Signal', 600, { category: ['Health'] })],
-      { privacy: { excludeUncategorized: false, privateCategories: [['Health']] } }
+      { privacy: { excludeUncategorized: false, privateCategories: [['Health']] } },
     );
     const text = formatActivityContext(ctx);
     expect(text).toContain('Privacy filter: withheld');
@@ -431,7 +434,7 @@ describe('formatActivityContext', () => {
           excludeUncategorized: false,
           privateCategories: [['Health'], ['Finance']],
         },
-      }
+      },
     );
     const text = formatActivityContext(ctx);
     expect(text).toContain('2 excluded categories');

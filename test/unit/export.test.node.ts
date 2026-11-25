@@ -13,7 +13,7 @@ import {
 
 describe('androidExportFromUrl', () => {
   afterEach(() => {
-    delete (global as any).window;
+    delete (global as Partial<typeof global>).window;
   });
 
   test('returns false when the Android bridge is absent', () => {
@@ -40,15 +40,15 @@ describe('CSV formula neutralization', () => {
     ' =1+1',
     '\t=1+1',
     '\r\n@SUM(A1)',
-  ])('prefixes formula-like cell %j', value => {
+  ])('prefixes formula-like cell %j', (value) => {
     expect(neutralizeCsvFormula(value)).toBe(`'${value}`);
   });
 
   test.each(['GitHub - Mozilla Firefox', 'a=b', '', '1+1', 'email@example.com'])(
     'leaves plain cell %j unchanged',
-    value => {
+    (value) => {
       expect(neutralizeCsvFormula(value)).toBe(value);
-    }
+    },
   );
 
   test('Papa.unparse with the pattern escapes string cells only', () => {
@@ -63,7 +63,7 @@ describe('CSV formula neutralization', () => {
 describe('reportEventsCsv', () => {
   test.each(['=1+1', '+1+1', '-1+1', '@SUM(A1)', ' =1+1', '\t=1+1', '\r\n@SUM(A1)'])(
     'neutralizes array-valued category paths starting with %j',
-    category => {
+    (category) => {
       const csv = reportEventsCsv([
         {
           timestamp: '2026-10-26T08:00:00Z',
@@ -79,7 +79,7 @@ describe('reportEventsCsv', () => {
         'Firefox',
         'Example',
       ]);
-    }
+    },
   );
 
   test.each([

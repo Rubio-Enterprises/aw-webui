@@ -1,18 +1,29 @@
-import { createLocalVue, mount } from '@vue/test-utils';
+import { createLocalVue, mount, type Wrapper } from '@vue/test-utils';
 import BootstrapVue from 'bootstrap-vue';
-
+import type Vue from 'vue';
 import EventEditor from '~/components/EventEditor.vue';
+import { withVm } from '../helpers/vue';
+
+interface EditorVm {
+  busy: boolean;
+  error: string;
+  editedEvent: { duration: number; data: { title: string } };
+  $refs: { eventEditModal: { show: () => void; hide: () => void } };
+  save: () => Promise<void>;
+  delete_: () => Promise<void>;
+  close: () => void;
+}
 
 const localVue = createLocalVue();
 localVue.use(BootstrapVue);
-localVue.filter('friendlyduration', v => String(v));
+localVue.filter('friendlyduration', (v) => String(v));
 
 // A promise whose settlement the test controls, so "request in flight" is an
 // observable state rather than a race.
 function deferred() {
-  let resolve;
-  let reject;
-  const promise = new Promise((res, rej) => {
+  let resolve: () => void;
+  let reject: (error: unknown) => void;
+  const promise = new Promise<void>((res, rej) => {
     resolve = res;
     reject = rej;
   });
@@ -25,7 +36,7 @@ const flush = async () => {
 
 // BootstrapVue renders modal body content into document.body, and only once
 // the modal is shown — so visible-text assertions have to open it first.
-async function showModal(wrapper) {
+async function showModal(wrapper: Wrapper<Vue & EditorVm>) {
   wrapper.vm.$refs.eventEditModal.show();
   await flush();
   await wrapper.vm.$nextTick();
@@ -44,20 +55,30 @@ function makeEvent(id = 1) {
 
 // Mounts the editor with a stubbed client. getEvent resolves immediately with a
 // copy, mirroring the real flow where the editor re-fetches the event.
-function mountEditor({ event = makeEvent(), replaceEvent, deleteEvent }: any = {}) {
+function mountEditor({
+  event = makeEvent(),
+  replaceEvent,
+  deleteEvent,
+}: {
+  event?: ReturnType<typeof makeEvent>;
+  replaceEvent?: jest.Mock;
+  deleteEvent?: jest.Mock;
+} = {}) {
   const $aw = {
     getEvent: jest.fn().mockImplementation(async () => JSON.parse(JSON.stringify(event))),
     replaceEvent: replaceEvent || jest.fn().mockResolvedValue(undefined),
     deleteEvent: deleteEvent || jest.fn().mockResolvedValue(undefined),
   };
 
-  const wrapper: any = mount(EventEditor, {
-    localVue,
-    propsData: { event, bucket_id: 'test-bucket' },
-    mocks: { $aw },
-    stubs: { datetime: true, icon: true },
-    attachTo: document.body,
-  });
+  const wrapper = withVm<EditorVm>(
+    mount(EventEditor, {
+      localVue,
+      propsData: { event, bucket_id: 'test-bucket' },
+      mocks: { $aw },
+      stubs: { datetime: true, icon: true },
+      attachTo: document.body,
+    }),
+  );
 
   return { wrapper, $aw };
 }
@@ -382,13 +403,13 @@ describe('EventEditor inside a parent that reacts to success', () => {
 
   // Mirrors VisTimeline/EventList: the editor is rendered behind a v-if on the
   // event being edited, so a parent clearing it on save destroys the editor.
-  function mountParent({ replaceEvent }: any = {}) {
+  function mountParent({ replaceEvent }: { replaceEvent?: jest.Mock } = {}) {
     const $aw = {
       getEvent: jest.fn().mockImplementation(async () => makeEvent()),
       replaceEvent: replaceEvent || jest.fn().mockResolvedValue(undefined),
       deleteEvent: jest.fn().mockResolvedValue(undefined),
     };
-    const saved = [];
+    const saved: unknown[] = [];
 
     const Parent = {
       components: { EventEditor },
@@ -412,12 +433,12 @@ describe('EventEditor inside a parent that reacts to success', () => {
                   on: { save: this.onSave },
                 }),
               ]
-            : []
+            : [],
         );
       },
     };
 
-    const wrapper: any = mount(Parent, {
+    const wrapper = mount(Parent, {
       localVue,
       mocks: { $aw },
       stubs: { datetime: true, icon: true },
@@ -430,7 +451,7 @@ describe('EventEditor inside a parent that reacts to success', () => {
     const { wrapper, saved } = mountParent();
     await flush();
 
-    const editor = wrapper.findComponent(EventEditor);
+    const editor = withVm<EditorVm>(wrapper.findComponent(EventEditor));
     await editor.vm.save();
     await flush();
 
@@ -446,7 +467,7 @@ describe('EventEditor inside a parent that reacts to success', () => {
     });
     await flush();
 
-    const editor = wrapper.findComponent(EventEditor);
+    const editor = withVm<EditorVm>(wrapper.findComponent(EventEditor));
     await showModal(editor);
     await editor.vm.save();
     await flush();

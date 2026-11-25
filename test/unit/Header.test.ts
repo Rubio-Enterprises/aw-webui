@@ -1,7 +1,16 @@
-import { createLocalVue, mount, shallowMount } from '@vue/test-utils';
+import { createLocalVue, mount, shallowMount, type Wrapper } from '@vue/test-utils';
 import BootstrapVue from 'bootstrap-vue';
+import type Vue from 'vue';
 import VueRouter from 'vue-router';
-const flushPromises = () => new Promise(resolve => setTimeout(resolve));
+
+const flushPromises = () => new Promise((resolve) => setTimeout(resolve));
+
+// Compile-time constants the build defines; tests set them per case.
+const buildFlags = globalThis as typeof globalThis & { AW_RESEARCH_EDITION?: boolean };
+
+const isDrawerOpen = (wrapper: Wrapper<Vue>) =>
+  (wrapper.vm as unknown as { drawerOpen: boolean }).drawerOpen;
+
 import { createPinia, setActivePinia } from 'pinia';
 import Header from '~/components/Header.vue';
 
@@ -17,7 +26,7 @@ jest.mock('~/stores/buckets', () => ({
 
 describe('Header research edition badge', () => {
   afterEach(() => {
-    delete (global as any).AW_RESEARCH_EDITION;
+    delete buildFlags.AW_RESEARCH_EDITION;
   });
 
   beforeEach(() => {
@@ -27,15 +36,15 @@ describe('Header research edition badge', () => {
 
   function mountHeader(buildFlag) {
     if (buildFlag === undefined) {
-      delete (global as any).AW_RESEARCH_EDITION;
+      delete buildFlags.AW_RESEARCH_EDITION;
     } else {
-      (global as any).AW_RESEARCH_EDITION = buildFlag;
+      buildFlags.AW_RESEARCH_EDITION = buildFlag;
     }
 
     return shallowMount(Header, {
       mocks: {
         $isAndroid: false,
-        $t: key => key,
+        $t: (key) => key,
       },
       stubs: {
         'b-navbar': passthroughStub,
@@ -69,7 +78,7 @@ describe('Header research edition badge', () => {
     const wrapper = mountHeader(false);
 
     expect(wrapper.find('[data-testid="nav-category-builder"]').attributes('to')).toBe(
-      '/category-builder'
+      '/category-builder',
     );
   });
 
@@ -81,7 +90,7 @@ describe('Header research edition badge', () => {
 });
 
 describe('Header phone navigation drawer', () => {
-  let mediaListeners;
+  let mediaListeners: ((event: Pick<MediaQueryListEvent, 'matches'>) => void)[];
 
   beforeEach(() => {
     setActivePinia(createPinia());
@@ -110,7 +119,7 @@ describe('Header phone navigation drawer', () => {
       attachTo: document.body,
       mocks: {
         $isAndroid: false,
-        $t: key => key,
+        $t: (key) => key,
       },
       stubs: { icon: true },
     });
@@ -123,14 +132,14 @@ describe('Header phone navigation drawer', () => {
     const toggle = wrapper.find('[data-testid="nav-drawer-toggle"]');
     expect(toggle.attributes('aria-controls')).toBe('nav-drawer');
     expect(toggle.attributes('aria-expanded')).toBe('false');
-    expect((wrapper.vm as any).drawerOpen).toBe(false);
+    expect(isDrawerOpen(wrapper)).toBe(false);
 
     // v-b-toggle attaches its click listener in requestAnimationFrame
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
     await toggle.trigger('click');
     await flushPromises();
 
-    expect((wrapper.vm as any).drawerOpen).toBe(true);
+    expect(isDrawerOpen(wrapper)).toBe(true);
     expect(toggle.attributes('aria-expanded')).toBe('true');
     expect(wrapper.find('#nav-drawer').attributes('aria-modal')).toBe('true');
     wrapper.destroy();
@@ -138,7 +147,7 @@ describe('Header phone navigation drawer', () => {
 
   test('the drawer lists the same entries as the desktop navbar', () => {
     const wrapper = shallowMount(Header, {
-      mocks: { $isAndroid: false, $t: key => key },
+      mocks: { $isAndroid: false, $t: (key) => key },
       stubs: {
         'b-navbar': passthroughStub,
         'b-navbar-nav': passthroughStub,
@@ -169,8 +178,8 @@ describe('Header phone navigation drawer', () => {
   test('navigating to another page closes the drawer', async () => {
     const router = new VueRouter({
       routes: [
-        { path: '/', component: { render: h => h('div') } },
-        { path: '/stopwatch', component: { render: h => h('div') } },
+        { path: '/', component: { render: (h) => h('div') } },
+        { path: '/stopwatch', component: { render: (h) => h('div') } },
       ],
     });
     const wrapper = mountFullHeader(router);
@@ -182,7 +191,7 @@ describe('Header phone navigation drawer', () => {
     await flushPromises();
 
     expect(wrapper.vm.$route.path).toBe('/stopwatch');
-    expect((wrapper.vm as any).drawerOpen).toBe(false);
+    expect(isDrawerOpen(wrapper)).toBe(false);
     wrapper.destroy();
   });
 
@@ -195,7 +204,7 @@ describe('Header phone navigation drawer', () => {
     await wrapper.find('#nav-drawer').trigger('keydown', { keyCode: 27 });
     await flushPromises();
 
-    expect((wrapper.vm as any).drawerOpen).toBe(false);
+    expect(isDrawerOpen(wrapper)).toBe(false);
     wrapper.destroy();
   });
 
@@ -204,17 +213,17 @@ describe('Header phone navigation drawer', () => {
     const removeListener = jest.fn();
     window.matchMedia = jest.fn().mockReturnValue({
       matches: false,
-      addListener: fn => legacyListeners.push(fn),
+      addListener: (fn) => legacyListeners.push(fn),
       removeListener,
     });
     const wrapper = mountFullHeader();
     await flushPromises();
     await wrapper.setData({ drawerOpen: true });
 
-    legacyListeners.forEach(fn => fn({ matches: true }));
+    for (const listener of legacyListeners) listener({ matches: true });
     await flushPromises();
 
-    expect((wrapper.vm as any).drawerOpen).toBe(false);
+    expect(isDrawerOpen(wrapper)).toBe(false);
     wrapper.destroy();
     expect(removeListener).toHaveBeenCalledWith(legacyListeners[0]);
   });
@@ -224,34 +233,44 @@ describe('Header phone navigation drawer', () => {
     await flushPromises();
     await wrapper.setData({ drawerOpen: true });
 
-    mediaListeners.forEach(fn => fn({ matches: true }));
+    for (const listener of mediaListeners) listener({ matches: true });
     await flushPromises();
 
-    expect((wrapper.vm as any).drawerOpen).toBe(false);
+    expect(isDrawerOpen(wrapper)).toBe(false);
     wrapper.destroy();
   });
 });
 
 describe('Header native Android actions', () => {
-  let bridge;
+  let bridge: {
+    sent: unknown[];
+    postMessage(message: string): void;
+    addEventListener(type: string, callback: (event: { data: string }) => void): void;
+    removeEventListener(type: string, callback: (event: { data: string }) => void): void;
+    emit(data: string): void;
+  };
 
   // Mirrors the object aw-android injects through WebMessageListener.
   function installBridge({ actions }: { actions?: string[] } = {}) {
     const listeners = [];
     bridge = {
       sent: [],
-      postMessage: jest.fn(msg => {
+      postMessage: jest.fn((msg) => {
         bridge.sent.push(JSON.parse(msg));
         if (actions && JSON.parse(msg).type === 'hello') {
           const reply = JSON.stringify({ type: 'capabilities', version: 1, actions });
-          listeners.forEach(fn => fn({ data: reply }));
+          for (const listener of listeners) listener({ data: reply });
         }
       }),
       addEventListener: jest.fn((_type, fn) => listeners.push(fn)),
       removeEventListener: jest.fn(),
-      emit: data => listeners.forEach(fn => fn({ data })),
+      emit: (data) => {
+        listeners.forEach((listener) => {
+          listener({ data });
+        });
+      },
     };
-    (window as any).awNativeBridge = bridge;
+    window.awNativeBridge = bridge;
   }
 
   beforeEach(() => {
@@ -264,7 +283,7 @@ describe('Header native Android actions', () => {
   });
 
   afterEach(() => {
-    delete (window as any).awNativeBridge;
+    delete window.awNativeBridge;
     delete window.matchMedia;
   });
 
@@ -274,7 +293,7 @@ describe('Header native Android actions', () => {
     return mount(Header, {
       localVue,
       attachTo: document.body,
-      mocks: { $isAndroid: false, $t: key => key },
+      mocks: { $isAndroid: false, $t: (key) => key },
       stubs: { icon: true },
     });
   }
@@ -317,14 +336,14 @@ describe('Header native Android actions', () => {
     await flushPromises();
 
     expect(bridge.sent).toContainEqual({ type: 'action', action: 'sync-settings' });
-    expect((wrapper.vm as any).drawerOpen).toBe(false);
+    expect(isDrawerOpen(wrapper)).toBe(false);
     wrapper.destroy();
   });
 
   test('native actions render in the phone drawer as well as the desktop navbar', () => {
     installBridge({ actions: ['sync-settings', 'auth-settings', 'open-in-browser'] });
     const wrapper = shallowMount(Header, {
-      mocks: { $isAndroid: false, $t: key => key },
+      mocks: { $isAndroid: false, $t: (key) => key },
       stubs: {
         'b-navbar': passthroughStub,
         'b-navbar-nav': passthroughStub,
@@ -382,7 +401,7 @@ describe('Header native Android actions', () => {
 
     bridge.emit(JSON.stringify({ type: 'close-menu' }));
     await flushPromises();
-    expect((wrapper.vm as any).drawerOpen).toBe(false);
+    expect(isDrawerOpen(wrapper)).toBe(false);
     expect(bridge.sent).toContainEqual({ type: 'menu', open: false });
 
     // Malformed or unexpected messages are ignored.
@@ -390,7 +409,7 @@ describe('Header native Android actions', () => {
     bridge.emit('not json');
     bridge.emit(JSON.stringify({ type: 'capabilities', version: 2, actions: ['auth-settings'] }));
     await flushPromises();
-    expect((wrapper.vm as any).drawerOpen).toBe(true);
+    expect(isDrawerOpen(wrapper)).toBe(true);
     expect(wrapper.findAll('[data-testid$="native-auth-settings"]')).toHaveLength(0);
 
     wrapper.destroy();

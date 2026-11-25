@@ -1,17 +1,18 @@
 import moment from 'moment';
+import { optionsApi, withVm } from '../helpers/vue';
 import 'moment/locale/de';
-import { createPinia, setActivePinia, PiniaVuePlugin } from 'pinia';
 import { createTestingPinia } from '@pinia/testing';
 import { createLocalVue, shallowMount } from '@vue/test-utils';
+import { createPinia, PiniaVuePlugin, setActivePinia } from 'pinia';
 import { useSettingsStore } from '~/stores/settings';
 import { getClient as getClientImpl } from '~/util/awclient';
-import WorkReportComponent from '~/views/WorkReport.vue';
 import BillingViewComponent from '~/views/BillingView.vue';
+import WorkReportComponent from '~/views/WorkReport.vue';
+
 const getClient = getClientImpl as jest.Mock;
 
-// Tests call Options API members directly, which the Vue constructor type doesn't expose.
-const WorkReport: any = WorkReportComponent;
-const BillingView: any = BillingViewComponent;
+const WorkReport = optionsApi(WorkReportComponent);
+const BillingView = optionsApi(BillingViewComponent);
 
 jest.mock('~/util/awclient', () => ({ getClient: jest.fn() }));
 
@@ -30,10 +31,10 @@ function expectWindow({ work, billing }, firstDate, lastDate, offset) {
   }
   expect(work).toHaveLength(dates.length);
   work.forEach((period, i) => {
-    const [start, end] = period.split('/').map(value => moment(value));
+    const [start, end] = period.split('/').map((value) => moment(value));
     expect(start.format('YYYY-MM-DD HH:mm:ss.SSS')).toBe(`${dates[i]} ${offset}:00.000`);
     expect(end.format('YYYY-MM-DD HH:mm:ss.SSS')).toBe(
-      `${moment(dates[i]).add(1, 'day').format('YYYY-MM-DD')} ${offset}:00.000`
+      `${moment(dates[i]).add(1, 'day').format('YYYY-MM-DD')} ${offset}:00.000`,
     );
     if (i > 0) expect(period.split('/')[0]).toBe(work[i - 1].split('/')[1]);
   });
@@ -41,7 +42,7 @@ function expectWindow({ work, billing }, firstDate, lastDate, offset) {
 }
 
 describe('report calendar week start', () => {
-  let previousLocale;
+  let previousLocale: string;
 
   beforeEach(() => {
     previousLocale = moment.locale();
@@ -67,7 +68,7 @@ describe('report calendar week start', () => {
     expectWindow(reportPeriods(), firstDate, '2026-10-19', '04:00');
   });
 
-  test.each(['en', 'de'])('ignores %s locale week rules with midnight/custom offsets', locale => {
+  test.each(['en', 'de'])('ignores %s locale week rules with midnight/custom offsets', (locale) => {
     moment.locale(locale);
     useSettingsStore().startOfWeek = 'Sunday';
     for (const offset of ['00:00', '05:30']) {
@@ -108,11 +109,11 @@ describe('report calendar week start', () => {
 
   test.each(['Saturday', 'Sunday', 'Monday'])(
     'mounted reports pass configured %s windows to the query client',
-    async startOfWeek => {
+    async (startOfWeek) => {
       const query = jest
         .fn()
-        .mockImplementation(periods =>
-          Promise.resolve(periods.map(() => ({ events: [], duration: 0, sessions: 0 })))
+        .mockImplementation((periods) =>
+          Promise.resolve(periods.map(() => ({ events: [], duration: 0, sessions: 0 }))),
         );
       getClient.mockReturnValue({ query });
       const pinia = createTestingPinia({
@@ -130,7 +131,7 @@ describe('report calendar week start', () => {
       const firstDate = { Saturday: '2026-10-17', Sunday: '2026-10-18', Monday: '2026-10-19' }[
         startOfWeek
       ];
-      const queried: Record<string, any> = {};
+      const queried: Record<string, string[]> = {};
       const localVue = createLocalVue();
       localVue.use(PiniaVuePlugin);
       const stubs = [
@@ -146,8 +147,10 @@ describe('report calendar week start', () => {
         'b-card',
         'icon',
       ];
-      for (const component of [WorkReport, BillingView]) {
-        const wrapper: any = shallowMount(component, { localVue, pinia, stubs });
+      for (const component of [WorkReportComponent, BillingViewComponent]) {
+        const wrapper = withVm<{ loadData: () => Promise<void> }>(
+          shallowMount(component, { localVue, pinia, stubs }),
+        );
         try {
           // Allow the real mounted hook to select supported hosts.
           await wrapper.vm.$nextTick();
@@ -164,8 +167,8 @@ describe('report calendar week start', () => {
         { work: queried.WorkReport, billing: queried.BillingView[0] },
         firstDate,
         '2026-10-19',
-        '04:00'
+        '04:00',
       );
-    }
+    },
   );
 });
