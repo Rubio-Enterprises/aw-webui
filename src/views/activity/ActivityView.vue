@@ -82,7 +82,14 @@ import 'vue-awesome/icons/undo';
 
 import draggable from 'vuedraggable';
 
-import { useViewsStore } from '~/stores/views';
+import { useViewsStore, type IElement, type View } from '~/stores/views';
+
+// The view is missing while views load or when the URL names an unknown one;
+// the template only shows the controls once it exists.
+function requireView(view: View | undefined): View {
+  if (!view) throw new Error('No view is selected');
+  return view;
+}
 
 export default defineComponent({
   name: 'ActivityView',
@@ -105,7 +112,7 @@ export default defineComponent({
     views: function () {
       return useViewsStore().viewsForHost(this.$route.params.host || '');
     },
-    view: function () {
+    view: function (): View | undefined {
       if (this.view_id == 'default') {
         return this.views[0];
       } else {
@@ -119,11 +126,11 @@ export default defineComponent({
       return this.views.length > 0 && this.view_id !== 'default' && !this.view;
     },
     elements: {
-      get() {
-        return this.view.elements;
+      get(): IElement[] {
+        return requireView(this.view).elements;
       },
-      set(elements) {
-        useViewsStore().setElements({ view_id: this.view.id, elements });
+      set(elements: IElement[]) {
+        useViewsStore().setElements({ view_id: requireView(this.view).id, elements });
       },
     },
   },
@@ -135,7 +142,7 @@ export default defineComponent({
       useViewsStore().load();
     },
     remove() {
-      useViewsStore().removeView({ view_id: this.view.id });
+      useViewsStore().removeView({ view_id: requireView(this.view).id });
       // If we're on an URL that'll be invalid after removing the view, navigate to the main/default view
       if (!this.$route.path.includes('default')) {
         this.$router.replace('./default');
@@ -150,9 +157,9 @@ export default defineComponent({
       }
     },
     addVisualization: function () {
-      useViewsStore().addVisualization({ view_id: this.view.id, type: 'top_apps' });
+      useViewsStore().addVisualization({ view_id: requireView(this.view).id, type: 'top_apps' });
     },
-    async onTypeChange(id, type) {
+    async onTypeChange(id: number, type: string) {
       if (type === 'custom_vis') {
         // Show modal to collect watcher name and visualization title
         this.pendingCustomVisId = id;
@@ -162,9 +169,14 @@ export default defineComponent({
         return;
       }
 
-      await useViewsStore().editView({ view_id: this.view.id, el_id: id, type, props: {} });
+      await useViewsStore().editView({
+        view_id: requireView(this.view).id,
+        el_id: id,
+        type,
+        props: {},
+      });
     },
-    async onCustomVisConfirm(event) {
+    async onCustomVisConfirm(event: Event) {
       if (!this.customVisWatcherName.trim() || !this.customVisTitle.trim()) {
         event.preventDefault();
         return;
@@ -173,17 +185,19 @@ export default defineComponent({
         visname: this.customVisWatcherName,
         title: this.customVisTitle,
       };
+      // Set by onTypeChange, which opens the modal
+      if (this.pendingCustomVisId === null) return;
       await useViewsStore().editView({
-        view_id: this.view.id,
+        view_id: requireView(this.view).id,
         el_id: this.pendingCustomVisId,
         type: 'custom_vis',
         props,
       });
     },
-    async onRemove(id) {
-      await useViewsStore().removeVisualization({ view_id: this.view.id, el_id: id });
+    async onRemove(id: number) {
+      await useViewsStore().removeVisualization({ view_id: requireView(this.view).id, el_id: id });
     },
-    isVisLarge(el) {
+    isVisLarge(el: IElement) {
       return el.type == 'sunburst_clock' || el.type == 'vis_timeline';
     },
   },

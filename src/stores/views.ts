@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { useSettingsStore } from './settings';
 
-interface IElement {
+export interface IElement {
   type: string;
   size?: number;
   props?: Record<string, unknown>;
