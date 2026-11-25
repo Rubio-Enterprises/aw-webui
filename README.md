@@ -4,6 +4,16 @@ A web-based UI for ActivityWatch, built with Vue.js
 
 Rubio Enterprises maintains this repository independently of [ActivityWatch/aw-webui](https://github.com/ActivityWatch/aw-webui). See [repository maintenance](docs/fork-maintenance.md) for build and test coverage.
 
+## Table of Contents
+
+- [Getting started](#getting-started)
+- [Building](#building)
+- [Using a pre-release with your main install](#using-a-pre-release-with-your-main-install)
+- [Tests](#tests)
+- [Development](#development)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## Getting started
 
 Getting started with setting up the development environment is pretty straightforward:
@@ -81,7 +91,6 @@ If you want to actively iterate on `aw-webui` with your local production data (w
 AW_SERVER_URL="'http://localhost:5600'" npx vue-cli-service build --watch --dest=../aw-server/static
 ```
 
-If you want to add `debugger` statements in your code and otherwise break linting rules, you'll need to add a `--skip-plugins=no-debugger` to that command.
 Then, in another terminal (with your venv activated) run:
 
 ```shell
@@ -160,6 +169,14 @@ configuration file `/activitywatch/aw-server/aw-server.toml` under respective se
 
 ### Code structure
 
-One of the first things that happen in the application is the execution of `src/main.js`. This loads things such as bootstrap-vue and a bunch of other stuff that's globally used (filters, resources).
+The application starts in `src/main.ts`, which loads BootstrapVue and registers shared resources such as filters.
 
-The main.js file then loads the `src/App.vue` file, which is the root component of the application.
+The entry point then loads `src/App.vue`, which is the root component of the application.
+
+## Contributing
+
+Report bugs and ask questions in the [issue tracker](https://github.com/Rubio-Enterprises/aw-webui/issues). Pull requests are welcome. Run `just check` and `just test` before submitting a change.
+
+## License
+
+[Mozilla Public License 2.0 (MPL-2.0)](LICENSE.txt). Copyright ActivityWatch developers and aw-webui contributors.
