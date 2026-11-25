@@ -573,4 +573,17 @@ describe('strict-typing regressions', () => {
     categoryStore.restoreDefaultClasses();
     expect(() => categoryStore.appendClassRule(9999, 'foo')).toThrow(/unknown category 9999/);
   });
+
+  test('a string score from the editor input counts like a numeric one', () => {
+    // The editor's score input binds a string, so "5" can reach the store
+    categoryStore.classes = [
+      { id: 0, name: ['Work'], rule: { type: 'none' }, data: { score: '5' } },
+      { id: 1, name: ['Work', 'Code'], rule: { type: 'none' } },
+    ] as Category[];
+    expect(categoryStore.get_category_score(['Work'])).toBe(5);
+    // inherited from the parent
+    expect(categoryStore.get_category_score(['Work', 'Code'])).toBe(5);
+    // the old code returned the string, so sums concatenated ("1" + "5" = "15")
+    expect(1 + categoryStore.get_category_score(['Work'])).toBe(6);
+  });
 });
