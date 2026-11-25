@@ -45,22 +45,26 @@ div
 import { defineComponent } from 'vue';
 import { useBucketsStore } from '~/stores/buckets';
 import { getClient } from '~/util/awclient';
+import type { IBucket, IEvent } from '~/util/interfaces';
+
+// What InputTimeInterval emits: the start and end of the range (moments)
+type DateRange = [{ format(): string }, { format(): string }];
 
 export default defineComponent({
   name: 'Bucket',
   props: {
-    id: String,
+    id: { type: String, required: true },
   },
   data: () => {
     return {
       bucketsStore: useBucketsStore(),
 
-      events: [],
-      eventcount: '?',
+      events: [] as IEvent[],
+      eventcount: '?' as string | number,
       loaded: false,
       showingMostRecent: false,
-      lastEventTime: null,
-      daterange: null,
+      lastEventTime: null as string | null,
+      daterange: null as DateRange | null,
       maxDuration: 31 * 24 * 60 * 60,
       // Incremented per request, so only the latest response is applied.
       eventsRequestId: 0,
@@ -68,14 +72,16 @@ export default defineComponent({
     };
   },
   computed: {
-    bucket() {
+    bucket(): IBucket | undefined {
       return this.bucketsStore.getBucket(this.id);
     },
     notFound() {
       return this.loaded && !this.bucket;
     },
-    bucket_with_events() {
+    // Only shown once the bucket exists, but built from whatever is loaded
+    bucket_with_events(): Partial<IBucket> & { id: string; events: IEvent[] } {
       return {
+        id: this.id,
         ...this.bucket,
         events: this.events,
       };
@@ -87,7 +93,7 @@ export default defineComponent({
     },
     // The router reuses this component when navigating between buckets, so
     // reload everything for the new bucket instead of showing the old one's events.
-    id: async function (bucket_id) {
+    id: async function (bucket_id: string) {
       this.events = [];
       this.eventcount = '?';
       this.showingMostRecent = false;
@@ -115,22 +121,24 @@ export default defineComponent({
     }
   },
   methods: {
-    getEvents: async function (bucket_id) {
+    getEvents: async function (bucket_id: string) {
       // A newer request (other bucket or time range) supersedes this one; drop late responses.
       const requestId = ++this.eventsRequestId;
       const daterange = this.daterange;
+      // The events are loaded for a range, which the interval input provides
+      if (!daterange) return;
       const bucket = await this.bucketsStore.getBucketWithEvents({
         id: bucket_id,
         start: daterange[0].format(),
         end: daterange[1].format(),
       });
       if (requestId !== this.eventsRequestId) return;
-      this.events = bucket.events;
+      this.events = bucket.events ?? [];
       this.showingMostRecent = false;
 
       // Stale or imported buckets have nothing in the selected range (#136):
       // fall back to the latest events so the view stays useful for debugging.
-      const hasData = this.bucket.metadata && this.bucket.metadata.end;
+      const hasData = this.bucket?.metadata?.end;
       if (this.events.length == 0 && hasData) {
         try {
           const recent = await this.bucketsStore.getBucketWithEvents({
@@ -138,10 +146,11 @@ export default defineComponent({
             limit: 100,
           });
           if (requestId !== this.eventsRequestId) return;
-          if (recent.events.length > 0) {
+          const [newest] = recent.events ?? [];
+          if (newest && recent.events) {
             this.events = recent.events;
             // The API returns newest first.
-            this.lastEventTime = recent.events[0].timestamp;
+            this.lastEventTime = newest.timestamp;
             this.showingMostRecent = true;
           }
         } catch (e) {
@@ -149,7 +158,7 @@ export default defineComponent({
         }
       }
     },
-    getEventCount: async function (bucket_id) {
+    getEventCount: async function (bucket_id: string) {
       const requestId = ++this.countRequestId;
       const count = await getClient().countEvents(bucket_id);
       if (requestId !== this.countRequestId) return;
@@ -157,7 +166,7 @@ export default defineComponent({
       // raw response when the body is falsy (a count of 0).
       this.eventcount = typeof count === 'number' ? count : count.data;
     },
-    updateEvent: function (event) {
+    updateEvent: function (event: IEvent) {
       const i = this.events.findIndex(e => e.id == event.id);
       if (i != -1) {
         // This is needed instead of this.events[i] because insides of arrays
