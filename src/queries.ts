@@ -54,6 +54,9 @@ interface Rule {
 
 type Category = [string[], Rule];
 
+// A category path with the rule that selects its events, as the queries take them
+export type QueryCategory = Category;
+
 export interface BaseQueryParams {
   include_audible?: boolean;
   // `null` leaves the corresponding step out of the query.
