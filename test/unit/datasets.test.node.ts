@@ -1,6 +1,6 @@
+import type { Category } from '~/util/classes';
 import { buildBarchartDataset, groupDaysIntoWeeks } from '~/util/datasets';
-import { Category } from '~/util/classes';
-import { IEvent } from '~/util/interfaces';
+import type { IEvent } from '~/util/interfaces';
 
 const event = (path: string[] | undefined, duration: number): IEvent => ({
   timestamp: '2026-09-10T10:00:00Z',
@@ -39,7 +39,7 @@ test('preserves missing paths, distinct separator-containing paths, and every pe
 
 test('retains unclassified events and handles empty input', () => {
   expect(
-    buildBarchartDataset([{ cat_events: [event([], 1800), event(undefined, 1800)] }], [])
+    buildBarchartDataset([{ cat_events: [event([], 1800), event(undefined, 1800)] }], []),
   ).toEqual([{ label: 'Uncategorized', backgroundColor: '#CCC', data: [1] }]);
   expect(buildBarchartDataset([], [])).toEqual([]);
   expect(buildBarchartDataset(null, [])).toEqual([]);
@@ -81,7 +81,7 @@ describe('groupDaysIntoWeeks', () => {
     // Monday 00:30 in UTC+2 is Sunday 22:30 UTC; it must stay in Monday's week.
     const { byWeek } = groupDaysIntoWeeks(
       { '2026-10-19T00:30:00+02:00/2026-10-20T00:30:00+02:00': { cat_events: [] } },
-      'Monday'
+      'Monday',
     );
     expect(Object.keys(byWeek)).toEqual(['2026-10-19']);
   });

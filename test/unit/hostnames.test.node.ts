@@ -1,8 +1,8 @@
 import {
+  categoryBuilderHostnameEmptyKind,
   deviceHostnames,
   preferKnownHostnames,
   selectSoleKnownHostname,
-  categoryBuilderHostnameEmptyKind,
 } from '~/util/hostnames';
 
 describe('preferKnownHostnames', () => {
@@ -60,7 +60,7 @@ describe('categoryBuilderHostnameEmptyKind', () => {
 
   test('is hostname-unselected when hosts exist but none is chosen', () => {
     expect(categoryBuilderHostnameEmptyKind(['laptop', 'desktop'], undefined)).toBe(
-      'hostname-unselected'
+      'hostname-unselected',
     );
   });
 

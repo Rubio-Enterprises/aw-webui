@@ -1,6 +1,6 @@
 import path from 'node:path';
-import { defineConfig, type Plugin } from 'vite';
 import vue from '@vitejs/plugin-vue2';
+import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
@@ -36,7 +36,7 @@ export default defineConfig(({ mode }) => {
           }
           return html.replace(
             pattern,
-            '<!-- Vite injected! --><script type="module" src="/src/main.ts"></script>'
+            '<!-- Vite injected! --><script type="module" src="/src/main.ts"></script>',
           );
         },
       },

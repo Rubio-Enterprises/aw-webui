@@ -1,6 +1,6 @@
+import moment from 'moment';
 import Vue from 'vue';
 import VueI18n from 'vue-i18n';
-import moment from 'moment';
 import 'moment/locale/ar';
 import 'moment/locale/bn';
 import 'moment/locale/de';
@@ -227,12 +227,7 @@ moment.updateLocale('bn', {
   postformat: (s: string) => s,
 });
 
-// One entry per line (prettier would join them), so RTL locale PRs never edit the same line.
-// prettier-ignore
-const RTL_LOCALES: AppLocale[] = [
-  'ar',
-  'ur',
-];
+const RTL_LOCALES: AppLocale[] = ['ar', 'ur'];
 
 export function isRtlLocale(locale: AppLocale): boolean {
   return RTL_LOCALES.includes(locale);

@@ -1,4 +1,4 @@
-import { IEvent } from './interfaces';
+import type { IEvent } from './interfaces';
 
 export const window_events: Array<Pick<IEvent, 'duration' | 'data'>> = [
   {

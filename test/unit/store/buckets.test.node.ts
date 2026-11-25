@@ -1,8 +1,8 @@
-import { setActivePinia, createPinia } from 'pinia';
+import { createPinia, setActivePinia } from 'pinia';
 
 import { useBucketsStore } from '~/stores/buckets';
 import { useServerStore } from '~/stores/server';
-import { IBucket } from '~/util/interfaces';
+import type { IBucket } from '~/util/interfaces';
 
 function bucket(partial: Partial<IBucket> & { id: string }): IBucket {
   return {

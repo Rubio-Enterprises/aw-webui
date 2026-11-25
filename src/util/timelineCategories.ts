@@ -1,6 +1,6 @@
 import _ from 'lodash';
-import { canonicalEvents, querystr_to_array, BaseQueryParams } from '~/queries';
-import { IEvent } from './interfaces';
+import { type BaseQueryParams, canonicalEvents, querystr_to_array } from '~/queries';
+import type { IEvent } from './interfaces';
 
 interface TimelineBucket {
   id: string;
@@ -17,10 +17,11 @@ interface TimelineBucket {
 export function categoryTimelineQuery(
   visible: TimelineBucket[],
   all: TimelineBucket[],
-  params: BaseQueryParams & { always_active_pattern?: string }
+  params: BaseQueryParams & { always_active_pattern?: string },
 ): string[] | null {
   const sources = visible.filter(
-    b => b.type === 'currentwindow' || (b.type === 'app' && b.id.startsWith('aw-import-screentime'))
+    (b) =>
+      b.type === 'currentwindow' || (b.type === 'app' && b.id.startsWith('aw-import-screentime')),
   );
   if (!sources.length) return null;
   const queries = sources.map((bucket, i) => {
@@ -36,7 +37,7 @@ export function categoryTimelineQuery(
         keep_event_timestamps: true,
       });
     }
-    const afk = all.find(b => b.type === 'afkstatus' && b.hostname === bucket.hostname);
+    const afk = all.find((b) => b.type === 'afkstatus' && b.hostname === bucket.hostname);
     return canonicalEvents({
       ...common,
       bid_window: bucket.id,
@@ -55,11 +56,13 @@ export function categoryTimelineQuery(
         ...params.filter_categories,
         ...params.categories
           .map(([name]) => name)
-          .filter(name =>
-            params.filter_categories.some(parent => _.isEqual(name.slice(0, parent.length), parent))
+          .filter((name) =>
+            params.filter_categories.some((parent) =>
+              _.isEqual(name.slice(0, parent.length), parent),
+            ),
           ),
       ],
-      _.isEqual
+      _.isEqual,
     );
     queries.push(`events = filter_keyvals(events, "$category", ${JSON.stringify(selected)});`);
   }

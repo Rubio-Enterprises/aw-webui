@@ -1,4 +1,4 @@
-import moment, { Moment } from 'moment';
+import moment, { type Moment } from 'moment';
 
 export interface SavedQuery {
   id: string;
@@ -19,7 +19,7 @@ function referenceDay(now: Moment | string = moment()) {
 function resolveDayOffset(
   dayOffset: number | undefined,
   legacyHourOffset: number | undefined,
-  defaultValue: number
+  defaultValue: number,
 ) {
   if (dayOffset !== undefined) {
     return dayOffset;
@@ -73,7 +73,7 @@ export function resolveSavedQueryDates(savedQuery: SavedQuery, now: Moment | str
 export function getDefaultSavedQueryName(queryCode: string, now: Moment | string = moment()) {
   const firstLine = queryCode
     .split('\n')
-    .map(line => line.trim())
+    .map((line) => line.trim())
     .find(Boolean);
 
   if (firstLine) {

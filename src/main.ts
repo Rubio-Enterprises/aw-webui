@@ -1,16 +1,17 @@
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 
-import Vue from 'vue';
-
 // Load the Bootstrap CSS
 import BootstrapVue from 'bootstrap-vue';
+import Vue from 'vue';
 import 'bootstrap/dist/css/bootstrap.css';
 import 'bootstrap-vue/dist/bootstrap-vue.css';
+
 Vue.use(BootstrapVue);
 
 import { Datetime } from 'vue-datetime';
 import 'vue-datetime/dist/vue-datetime.css';
+
 Vue.component('datetime', Datetime);
 
 // Load the Varela Round font
@@ -48,7 +49,7 @@ Vue.component('aw-query-options', () => import('./components/QueryOptions.vue'))
 Vue.component('aw-select-categories', () => import('./components/SelectCategories.vue'));
 Vue.component(
   'aw-select-categories-or-pattern',
-  () => import('./components/SelectCategoriesOrPattern.vue')
+  () => import('./components/SelectCategoriesOrPattern.vue'),
 );
 
 // Visualization components
@@ -69,6 +70,7 @@ Vue.component('aw-score', () => import('./visualizations/Score.vue'));
 
 // A mixin to make async method errors propagate
 import asyncErrorCapturedMixin from './mixins/asyncErrorCaptured';
+
 Vue.mixin(asyncErrorCapturedMixin);
 
 // Set the PRODUCTION constant
@@ -82,16 +84,18 @@ Vue.prototype.$isAndroid = process.env.VUE_APP_ON_ANDROID;
 // Create an instance of AWClient as this.$aw
 // NOTE: needs to be created before the Vue app is created,
 //       since stores rely on it having been run.
-import { createClient, getClient, configureClient } from './util/awclient';
+import { configureClient, createClient, getClient } from './util/awclient';
+
 createClient();
 
 // Setup Vue app
 import App from './App.vue';
+
 new Vue({
   el: '#app',
   router: router,
   i18n,
-  render: h => h(App),
+  render: (h) => h(App),
   pinia,
 });
 

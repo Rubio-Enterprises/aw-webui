@@ -1,4 +1,4 @@
-import { IEvent } from '~/util/interfaces';
+import type { IEvent } from '~/util/interfaces';
 
 // Regex used to split event titles into words
 const SPLIT_REGEX = /[\s\-,:()[\]/]/;
@@ -23,7 +23,7 @@ export interface WordEntry {
  */
 export function findCommonPhrases(
   events: IEvent[],
-  ignored_words: string[]
+  ignored_words: string[],
 ): Map<string, WordEntry> {
   const words = new Map<string, WordEntry>();
   const bigrams = new Map<string, { bigram: string; duration: number; events: IEvent[] }>();
@@ -75,7 +75,7 @@ export function findCommonPhrases(
   // "Alpha Beta" is promoted, making 10/0 = Infinity pass the check for "Beta Gamma"
   // even though only 10/110 ≈ 9% of Beta's original time was spent in that bigram.
   const originalDurations = new Map<string, number>(
-    Array.from(words.entries(), ([w, e]) => [w, e.duration])
+    Array.from(words.entries(), ([w, e]) => [w, e.duration]),
   );
   for (const [bigram, bigramEntry] of bigrams) {
     const spaceIdx = bigram.indexOf(' ');
@@ -85,7 +85,7 @@ export function findCommonPhrases(
     const w2Entry = words.get(word2);
     const w1OrigDuration = originalDurations.get(word1);
     const w2OrigDuration = originalDurations.get(word2);
-    if (!w1Entry || !w2Entry || w1OrigDuration === undefined || w2OrigDuration === undefined)
+    if (!(w1Entry && w2Entry) || w1OrigDuration === undefined || w2OrigDuration === undefined)
       continue;
 
     const bigram_duration = bigramEntry.duration;

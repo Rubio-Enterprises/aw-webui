@@ -4,7 +4,7 @@
 // reused at all (cache identity), and which periods still need to be fetched
 // (freshness).
 
-import { ActivityQuerySource } from '~/queries';
+import type { ActivityQuerySource } from '~/queries';
 
 // Everything that changes what the active-duration query would return. If any
 // of it differs, previously fetched periods describe a different question and
@@ -29,20 +29,20 @@ export interface ActiveHistoryContext {
 // otherwise-identical cache.
 export function activeHistoryCacheKey(
   context: ActiveHistoryContext,
-  sources: (ActivityQuerySource | string)[]
+  sources: (ActivityQuerySource | string)[],
 ): string {
   const normalized_sources = sources
-    .map(source => {
+    .map((source) => {
       if (typeof source === 'string') return { bid_afk: source };
       return source;
     })
-    .map(source => [
+    .map((source) => [
       source.bid_afk || '',
       source.bid_window || '',
       source.bid_android || '',
       [...(source.bid_browsers || [])].sort().join(','),
     ])
-    .map(parts => parts.join('|'))
+    .map((parts) => parts.join('|'))
     .sort();
 
   return JSON.stringify({
@@ -81,11 +81,11 @@ function periodBounds(period_str: string): { start: number; end: number } {
 export function selectPeriodsToQuery(
   period_strs: string[],
   cached: Record<string, unknown>,
-  now: Date = new Date()
+  now: Date = new Date(),
 ): string[] {
   const now_ms = now.getTime();
 
-  return period_strs.filter(period_str => {
+  return period_strs.filter((period_str) => {
     const { start, end } = periodBounds(period_str);
 
     // Unparseable period: query it rather than silently dropping it.
@@ -97,6 +97,6 @@ export function selectPeriodsToQuery(
     // The open period is always refreshed so its duration can grow.
     if (now_ms < end) return true;
 
-    return !Object.prototype.hasOwnProperty.call(cached, period_str);
+    return !Object.hasOwn(cached, period_str);
   });
 }

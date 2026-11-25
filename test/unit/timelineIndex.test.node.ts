@@ -1,5 +1,5 @@
-import { indexTimelineEvents, visibleTimelineEvents, syncTimelineData } from '~/util/timelineIndex';
 import { DataSet } from 'vis-data';
+import { indexTimelineEvents, syncTimelineData, visibleTimelineEvents } from '~/util/timelineIndex';
 
 const event = (id, start, duration) => ({
   id,
@@ -15,10 +15,10 @@ test('includes overlapping long events and boundaries, excludes offscreen events
     event(4, 200_000, 5),
   ];
   const index = indexTimelineEvents([{ id: 'a', events }]);
-  expect(visibleTimelineEvents(index, 95_000, 100_000).map(e => e.event.id)).toEqual([1, 3]);
-  expect(visibleTimelineEvents(index, 100_000, 110_000).map(e => e.event.id)).toEqual([1, 3]);
+  expect(visibleTimelineEvents(index, 95_000, 100_000).map((e) => e.event.id)).toEqual([1, 3]);
+  expect(visibleTimelineEvents(index, 100_000, 110_000).map((e) => e.event.id)).toEqual([1, 3]);
   expect(visibleTimelineEvents(index, 110_001, 120_000)).toEqual([]);
-  expect(events.map(e => e.id)).toEqual([1, 2, 3, 4]);
+  expect(events.map((e) => e.id)).toEqual([1, 2, 3, 4]);
 });
 
 test('IDs distinguish buckets and remain stable across viewport changes and event edits', () => {
@@ -26,7 +26,7 @@ test('IDs distinguish buckets and remain stable across viewport changes and even
     { id: 'a', events: [event(1, 0, 10)] },
     { id: 'b', events: [event(1, 0, 10)] },
   ]);
-  expect(new Set(index.entries.map(e => e.id)).size).toBe(2);
+  expect(new Set(index.entries.map((e) => e.id)).size).toBe(2);
   const changed = indexTimelineEvents([{ id: 'a', events: [event(1, 1000, 20)] }]);
   expect(changed.entries[0].id).toBe(index.entries[0].id);
 });
@@ -64,10 +64,10 @@ const groupedIndex = (
   buckets,
   threshold: Parameters<typeof indexTimelineEvents>[3] = 5,
   displayEvent?: Parameters<typeof indexTimelineEvents>[2],
-  expandedGroups: string[] = []
+  expandedGroups: string[] = [],
 ) => indexTimelineEvents(buckets, false, displayEvent, threshold, expandedGroups);
 const memberIds = (index: ReturnType<typeof indexTimelineEvents>) =>
-  index.entries.map(item => (item.members || [item]).map(member => member.event.id));
+  index.entries.map((item) => (item.members || [item]).map((member) => member.event.id));
 
 test('grouping is disabled by default and by nonpositive or nonfinite thresholds', () => {
   const buckets = [{ id: 'a', events: [event(1, 0, 2), event(2, 2000, 2)] }];
@@ -83,7 +83,7 @@ test('groups sorted full-bucket runs and flushes when their span reaches the thr
   const before = JSON.stringify(buckets);
   const index = groupedIndex(buckets);
   expect(memberIds(index)).toEqual([[1, 2, 3], [4, 5, 6], [7]]);
-  expect(index.entries.map(item => [item.start, item.end, item.event.duration])).toEqual([
+  expect(index.entries.map((item) => [item.start, item.end, item.event.duration])).toEqual([
     [0, 6000, 6],
     [6000, 12000, 6],
     [12000, 14000, 2],
@@ -97,7 +97,7 @@ test('groups sorted full-bucket runs and flushes when their span reaches the thr
 test('reaches the exact threshold and preserves the sum of member durations', () => {
   const index = groupedIndex(
     [{ id: 'a', events: [event(1, 0, 0.1), event(2, 100, 0.2), event(3, 300, 0.1)] }],
-    0.3
+    0.3,
   );
   expect(memberIds(index)).toEqual([[1, 2], [3]]);
   expect(index.entries[0].event.duration).toBeCloseTo(0.3);
@@ -106,16 +106,16 @@ test('reaches the exact threshold and preserves the sum of member durations', ()
 });
 
 test('never groups across buckets and supports per-bucket thresholds', () => {
-  const buckets = ['a', 'b', 'c'].map(id => ({
+  const buckets = ['a', 'b', 'c'].map((id) => ({
     id,
     events: [event(1, 0, 2), event(2, 2000, 2)],
   }));
-  const index = groupedIndex(buckets, bucket => (bucket.id === 'c' ? 0 : 5));
-  const groups = index.entries.filter(item => item.members);
+  const index = groupedIndex(buckets, (bucket) => (bucket.id === 'c' ? 0 : 5));
+  const groups = index.entries.filter((item) => item.members);
   expect(groups).toHaveLength(2);
-  expect(groups.map(item => item.bucket.id)).toEqual(['a', 'b']);
+  expect(groups.map((item) => item.bucket.id)).toEqual(['a', 'b']);
   expect(groups[0].id).not.toBe(groups[1].id);
-  expect(index.entries.filter(item => item.bucket.id === 'c')).toHaveLength(2);
+  expect(index.entries.filter((item) => item.bucket.id === 'c')).toHaveLength(2);
 });
 
 test('gaps, overlaps and events at least as long as the threshold split runs', () => {
@@ -134,7 +134,7 @@ test('gaps, overlaps and events at least as long as the threshold split runs', (
     },
   ]);
   expect(memberIds(index)).toEqual([[1, 2], [3], [4], [5], [6, 7]]);
-  expect(index.entries.map(item => item.event.duration)).toEqual([4, 2, 2, 5, 4]);
+  expect(index.entries.map((item) => item.event.duration)).toEqual([4, 2, 2, 5, 4]);
 });
 
 test('uses display overrides for grouping and keeps the displayed originals as members', () => {
@@ -148,9 +148,9 @@ test('uses display overrides for grouping and keeps the displayed originals as m
   const index = groupedIndex([{ id: 'a', events }], 5, (_bucketId, item) => displayed[item.id - 1]);
   expect(memberIds(index)).toEqual([[1, 2]]);
   expect(index.entries[0].event.duration).toBe(4);
-  expect(index.entries[0].members.map(item => item.event)).toEqual(displayed);
+  expect(index.entries[0].members.map((item) => item.event)).toEqual(displayed);
   expect(index.entries[0].event.data).toEqual({});
-  expect(events.map(item => item.duration)).toEqual([10, 10]);
+  expect(events.map((item) => item.duration)).toEqual([10, 10]);
 });
 
 test('caller short-event filtering remains authoritative', () => {
@@ -204,8 +204,10 @@ test('group membership and IDs remain stable through viewport changes and regrou
   expect(first).toBe(panned);
   expect(first.id).toBe(groupedIndex(buckets).entries[0].id);
   const originals = indexTimelineEvents(buckets, false).entries;
-  expect(first.members.map(item => item.id)).toEqual(originals.slice(0, 3).map(item => item.id));
-  expect(originals.map(item => item.id)).not.toContain(first.id);
+  expect(first.members.map((item) => item.id)).toEqual(
+    originals.slice(0, 3).map((item) => item.id),
+  );
+  expect(originals.map((item) => item.id)).not.toContain(first.id);
   expect(first.id).not.toBe(index.entries[1].id);
 });
 
@@ -214,7 +216,7 @@ test('expands selected groups before constructing the viewport index', () => {
   const collapsed = groupedIndex(buckets);
   const index = groupedIndex(buckets, 5, undefined, [collapsed.entries[0].id]);
   expect(memberIds(index)).toEqual([[0], [1], [2], [3, 4, 5]]);
-  expect(visibleTimelineEvents(index, 2100, 3900).map(item => item.event.id)).toEqual([1]);
+  expect(visibleTimelineEvents(index, 2100, 3900).map((item) => item.event.id)).toEqual([1]);
   expect(index.ends).toEqual([2000, 4000, 6000, 12000]);
   expect(index.entries[3].id).toBe(collapsed.entries[1].id);
 });
@@ -224,7 +226,7 @@ test('invalid intervals split runs even when supplied after a valid event with t
     const index = groupedIndex([
       { id: 'a', events: [event(1, 0, 2), event(3, 2000, 2), event(2, 2000, duration)] },
     ]);
-    expect(index.entries.every(item => !item.members)).toBe(true);
+    expect(index.entries.every((item) => !item.members)).toBe(true);
   }
 });
 
@@ -244,7 +246,7 @@ test('tolerates only submillisecond adjacency differences without adding to trac
   for (const duration of [0.9995, 1.0005]) {
     const index = groupedIndex(
       [{ id: 'a', events: [event(1, 0, duration), event(2, 1000, 1)] }],
-      3
+      3,
     );
     expect(memberIds(index)).toEqual([[1, 2]]);
     expect(index.entries[0].event.duration).toBe(duration + 1);

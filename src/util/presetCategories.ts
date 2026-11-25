@@ -87,7 +87,7 @@ function parseRule(raw: unknown, context: string): Rule | null {
 
 function parsePresetPriority(
   raw: Record<string, unknown>,
-  context: string
+  context: string,
 ): number | null | undefined {
   const value = raw.priority !== undefined ? raw.priority : raw.weight;
   if (value === undefined) {
@@ -122,7 +122,7 @@ function parseCategory(raw: unknown, context: string): Category | null {
   if (
     !Array.isArray(name) ||
     name.length === 0 ||
-    !name.every(n => typeof n === 'string' && n.length > 0)
+    !name.every((n) => typeof n === 'string' && n.length > 0)
   ) {
     console.warn(`[presets] ${context}: category name must be a non-empty list of strings`);
     return null;
@@ -149,7 +149,7 @@ function parseSet(raw: unknown, index: number): CategorySet | null {
     return null;
   }
   const categories = raw.categories
-    .map(c => parseCategory(c, `set "${raw.id}"`))
+    .map((c) => parseCategory(c, `set "${raw.id}"`))
     .filter((c): c is Category => c !== null);
   if (categories.length === 0) {
     console.warn(`[presets] set "${raw.id}" has no valid categories, skipping`);
@@ -219,13 +219,13 @@ export function getPresetCategorySets(): CategorySet[] {
     const source = runtime !== undefined && runtime !== null ? runtime : readBuildConstant();
     cached = parsePresetCategorySets(source);
     if (cached.length > 0) {
-      console.info('[presets] loaded preset category sets:', cached.map(s => s.id).join(', '));
+      console.info('[presets] loaded preset category sets:', cached.map((s) => s.id).join(', '));
     }
   }
   // Deep enough copy to keep callers from mutating the cache
-  return cached.map(s => ({
+  return cached.map((s) => ({
     id: s.id,
-    categories: s.categories.map(c => ({ ...c, name: [...c.name], rule: { ...c.rule } })),
+    categories: s.categories.map((c) => ({ ...c, name: [...c.name], rule: { ...c.rule } })),
   }));
 }
 

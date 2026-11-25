@@ -1,6 +1,6 @@
-import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { expect, test } from '@playwright/test';
 
 const fixtures: Record<string, string> = {
   '/api/0/info': 'info.json',
@@ -13,7 +13,7 @@ const fixtures: Record<string, string> = {
 
 test('inspect a recorded bucket', async ({ page }) => {
   const unexpected: string[] = [];
-  await page.route('**/api/0/**', async route => {
+  await page.route('**/api/0/**', async (route) => {
     const path = new URL(route.request().url()).pathname.replace(/\/$/, '');
     const fixture = fixtures[path];
     if (route.request().method() !== 'GET' || !fixture) {
@@ -21,7 +21,11 @@ test('inspect a recorded bucket', async ({ page }) => {
       await route.abort();
       return;
     }
-    await route.fulfill({ status: 200, contentType: 'application/json', body: readFileSync(join('fork/e2e/fixtures', fixture), 'utf8') });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: readFileSync(join('fork/e2e/fixtures', fixture), 'utf8'),
+    });
   });
   await page.goto('/#/buckets');
   await expect(page.getByText('fixture-host', { exact: true })).toBeVisible();
