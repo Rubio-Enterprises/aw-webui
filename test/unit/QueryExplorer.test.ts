@@ -165,3 +165,29 @@ describe('QueryExplorer saveCurrentQuery', () => {
     expect(vm.showRenameQueryModal).toBe(false);
   });
 });
+
+describe('QueryExplorer query errors (strict-typing regression)', () => {
+  function queryVm(reject: unknown) {
+    return {
+      query_code: 'RETURN = [];',
+      startdate: '2026-05-20',
+      enddate: '2026-05-21',
+      error: '',
+      events: [],
+      $aw: { query: jest.fn().mockRejectedValue(reject) },
+    };
+  }
+
+  test('shows the server message of a failed query', async () => {
+    const vm = queryVm({ response: { data: { message: 'bad query' } } });
+    await QueryExplorer.methods.query.call(vm);
+    expect(vm.error).toBe('bad query');
+  });
+
+  test('shows the message of a network failure, which has no server response', async () => {
+    const vm = queryVm(new Error('Network Error'));
+    // The handler used to read e.response.data and throw a TypeError here
+    await expect(QueryExplorer.methods.query.call(vm)).resolves.toBeUndefined();
+    expect(vm.error).toBe('Network Error');
+  });
+});
