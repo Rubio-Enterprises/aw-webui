@@ -45,7 +45,7 @@ export default defineComponent({
       get() {
         return useSettingsStore().devmode;
       },
-      set(devmode) {
+      set(devmode: boolean) {
         useSettingsStore().update({ devmode });
       },
     },
@@ -53,7 +53,7 @@ export default defineComponent({
       get() {
         return useSettingsStore().requestTimeout;
       },
-      set(requestTimeout) {
+      set(requestTimeout: number) {
         useSettingsStore().update({ requestTimeout });
       },
     },
@@ -61,7 +61,7 @@ export default defineComponent({
       get() {
         return useSettingsStore().hideUnsupportedVisualizations;
       },
-      set(hideUnsupportedVisualizations) {
+      set(hideUnsupportedVisualizations: boolean) {
         useSettingsStore().update({ hideUnsupportedVisualizations });
       },
     },

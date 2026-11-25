@@ -135,13 +135,14 @@ $border-color: #ddd;
 </style>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
+import { defineComponent, type PropType } from 'vue';
 import 'vue-awesome/icons/edit';
 import 'vue-awesome/icons/tags';
 import 'vue-awesome/icons/clock';
 import 'vue-awesome/icons/calendar';
 
 import EventEditor from '~/components/EventEditor.vue';
+import type { IEvent } from '~/util/interfaces';
 
 export default defineComponent({
   name: 'EventList',
@@ -150,7 +151,7 @@ export default defineComponent({
   },
   props: {
     bucket_id: String,
-    events: Array,
+    events: Array as PropType<IEvent[]>,
     editable: {
       default: false,
       type: Boolean,
@@ -160,16 +161,16 @@ export default defineComponent({
     return {
       isListExpanded: false,
       limit: 100,
-      editableEvent: null,
+      editableEvent: null as IEvent | null,
     };
   },
   computed: {
-    displayed_events: function () {
-      return this.events.slice(0, this.limit);
+    displayed_events: function (): IEvent[] {
+      return (this.events ?? []).slice(0, this.limit);
     },
   },
   methods: {
-    editEvent: function (event) {
+    editEvent: function (event: IEvent) {
       this.editableEvent = event;
       this.$nextTick(() => {
         this.$bvModal.show('edit-modal-' + event.id);
@@ -179,7 +180,7 @@ export default defineComponent({
       this.isListExpanded = !this.isListExpanded;
       console.log('List should be expanding: ', this.isListExpanded);
     },
-    removeEvent: function (_event) {
+    removeEvent: function (_event: IEvent) {
       // FIXME: Illegal mutation of prop, need to propagate upwards or move into vuex.
       //this.events = this.events.filter(e => e.id != event.id);
     },

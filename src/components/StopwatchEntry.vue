@@ -39,7 +39,8 @@ div
 </style>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
+import { defineComponent, type PropType } from 'vue';
+import type { IEvent } from 'aw-client';
 import moment from 'moment';
 import 'vue-awesome/icons/edit';
 import 'vue-awesome/icons/stop';
@@ -53,8 +54,8 @@ export default defineComponent({
     'event-editor': EventEditor,
   },
   props: {
-    event: Object,
-    bucket_id: String,
+    event: Object as PropType<IEvent>,
+    bucket_id: { type: String, required: true },
     now: {
       type: moment,
       default: moment(),
@@ -68,10 +69,10 @@ export default defineComponent({
       await this.$aw.replaceEvent(this.bucket_id, new_event);
       this.$emit('update', new_event);
     },
-    save: async function (new_event) {
+    save: async function (new_event: IEvent) {
       this.$emit('update', new_event);
     },
-    delete_: async function (new_event) {
+    delete_: async function (new_event: IEvent) {
       this.$emit('delete', new_event);
     },
   },
