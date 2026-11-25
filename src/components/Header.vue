@@ -212,11 +212,20 @@ import { IBucket } from '~/util/interfaces';
 import { ALL_DEVICES, formatHostParam } from '~/util/multidevice';
 import { connectNativeBridge, NATIVE_MENU_ACTIONS, NativeBridge } from '~/util/nativeBridge';
 
+// A device's entry in the Activity menu
+interface ActivityViewLink {
+  name: string;
+  hostname: string;
+  type: 'android' | 'default';
+  pathUrl: string;
+  icon: string;
+}
+
 export default defineComponent({
   name: 'Header',
   data() {
     return {
-      activityViews: null,
+      activityViews: null as ActivityViewLink[] | null,
       // Sticky on every platform: tall pages (the timeline, a long activity
       // view) otherwise scroll the navigation out of reach.
       // See https://github.com/ActivityWatch/aw-webui/issues/299
@@ -224,7 +233,7 @@ export default defineComponent({
       researchEdition: typeof AW_RESEARCH_EDITION !== 'undefined' && AW_RESEARCH_EDITION,
       allDevicesPathUrl: `/activity/${ALL_DEVICES}`,
       drawerOpen: false,
-      desktopQuery: null,
+      desktopQuery: null as MediaQueryList | null,
       nativeBridge: null as NativeBridge | null,
       nativeActions: [] as string[],
     };
@@ -255,27 +264,30 @@ export default defineComponent({
     // The drawer only exists below the lg breakpoint: close it (and its backdrop)
     // when the viewport grows to desktop width.
     if (typeof window !== 'undefined' && window.matchMedia) {
-      this.desktopQuery = window.matchMedia('(min-width: 992px)');
+      const query = window.matchMedia('(min-width: 992px)');
+      this.desktopQuery = query;
       // Safari < 14 and old WebViews only have the legacy addListener API.
-      if (typeof this.desktopQuery.addEventListener === 'function') {
-        this.desktopQuery.addEventListener('change', this.onDesktopQueryChange);
-      } else if (typeof this.desktopQuery.addListener === 'function') {
-        this.desktopQuery.addListener(this.onDesktopQueryChange);
+      if (typeof query.addEventListener === 'function') {
+        query.addEventListener('change', this.onDesktopQueryChange);
+      } else if (typeof query.addListener === 'function') {
+        query.addListener(this.onDesktopQueryChange);
       }
     }
 
     const bucketStore = useBucketsStore();
     await bucketStore.ensureLoaded();
     const buckets: IBucket[] = bucketStore.buckets;
-    const types_by_host = {};
+    const types_by_host: Record<string, { afk: boolean; window: boolean; android: boolean }> = {};
 
-    const activityViews = [];
+    const activityViews: ActivityViewLink[] = [];
 
     _.each(buckets, v => {
-      types_by_host[v.hostname] = types_by_host[v.hostname] || {};
-      types_by_host[v.hostname].afk ||= v.type == 'afkstatus';
-      types_by_host[v.hostname].window ||= v.type == 'currentwindow';
-      types_by_host[v.hostname].android ||= v.type == 'currentwindow' && v.id.includes('android');
+      // A bucket without a hostname belongs to no device that could be opened
+      if (v.hostname === undefined) return;
+      const types = (types_by_host[v.hostname] ||= { afk: false, window: false, android: false });
+      types.afk ||= v.type == 'afkstatus';
+      types.window ||= v.type == 'currentwindow';
+      types.android ||= v.type == 'currentwindow' && v.id.includes('android');
     });
 
     _.each(types_by_host, (types, hostname) => {
