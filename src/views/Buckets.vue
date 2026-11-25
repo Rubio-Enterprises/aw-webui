@@ -248,6 +248,7 @@ div
 
 <script lang="ts">
 import { defineComponent } from 'vue';
+import type { AWClient } from 'aw-client';
 import 'vue-awesome/icons/trash';
 import 'vue-awesome/icons/download';
 import 'vue-awesome/icons/folder-open';
@@ -261,7 +262,8 @@ import _ from 'lodash';
 import moment from 'moment';
 
 import { useServerStore } from '~/stores/server';
-import { useBucketsStore } from '~/stores/buckets';
+import { useBucketsStore, type BucketDevice } from '~/stores/buckets';
+import type { IBucket } from '~/util/interfaces';
 import { getStoredApiToken } from '~/util/awclient';
 import { androidExportFromUrl, downloadBlob } from '~/util/export';
 import { compact_relative_time } from '~/util/time';
@@ -272,7 +274,10 @@ import { compact_relative_time } from '~/util/time';
 // A wrapped `importBuckets` would therefore never reject inside the
 // `import_file` watcher below, and a failed import would still set
 // `import_success = true` (showing a success alert next to the error).
-async function importBuckets(aw, importFile) {
+// The error shape of a failed aw-client request
+type RequestError = { message?: string; response?: { data?: { message?: string } } };
+
+async function importBuckets(aw: AWClient, importFile: File) {
   const formData = new FormData();
   formData.append('buckets.json', importFile);
   const headers = { 'Content-Type': 'multipart/form-data' };
@@ -291,13 +296,17 @@ export default defineComponent({
       bucketsStore: useBucketsStore(),
       serverStore: useServerStore(),
 
-      import_file: null,
-      import_error: null,
+      import_file: null as File | null,
+      import_error: null as string | null,
       import_success: false,
-      delete_bucket_selected: null,
-      delete_host_selected: null,
+      delete_bucket_selected: null as string | null,
+      delete_host_selected: null as {
+        hostname: string | undefined;
+        bucketCount: number;
+        bucketIds: string[];
+      } | null,
       deleting_host: false,
-      delete_host_error: null,
+      delete_host_error: null as string | null,
       export_inflight: 0,
       export_error: null as string | null,
     };
@@ -306,13 +315,13 @@ export default defineComponent({
     exporting() {
       return this.export_inflight > 0;
     },
-    deleteHostModalTitle() {
+    deleteHostModalTitle(): string {
       if (this.delete_host_selected) {
         return this.$t('buckets.deleteHostTitleNamed', {
           hostname: this.delete_host_selected.hostname,
-        });
+        }) as string;
       }
-      return this.$t('buckets.deleteHostTitle');
+      return this.$t('buckets.deleteHostTitle') as string;
     },
   },
   watch: {
@@ -327,8 +336,8 @@ export default defineComponent({
           this.import_error = null;
           this.import_success = true;
         } catch (err) {
-          const serverMessage = err?.response?.data?.message;
-          this.import_error = serverMessage || this.$t('buckets.importFailedGeneric');
+          const serverMessage = (err as RequestError | undefined)?.response?.data?.message;
+          this.import_error = serverMessage || (this.$t('buckets.importFailedGeneric') as string);
           this.import_success = false;
         }
         await this.bucketsStore.loadBuckets();
@@ -340,22 +349,22 @@ export default defineComponent({
     await this.bucketsStore.loadBuckets();
   },
   methods: {
-    sortedBuckets: function (device) {
+    sortedBuckets: function (device: BucketDevice) {
       return [...device.buckets].sort((a, b) => a.id.localeCompare(b.id));
     },
     compactRelativeTime: function (timestamp: string, unitOnly = false) {
       return compact_relative_time(timestamp, this.$i18n.locale, unitOnly);
     },
-    isRecent: function (date) {
+    isRecent: function (date: Date | string | undefined) {
       return moment().diff(date) / 1000 < 120;
     },
-    bucketHasEvents: function (bucket) {
+    bucketHasEvents: function (bucket: IBucket | undefined) {
       return Boolean(bucket && bucket.last_updated);
     },
-    deviceHasEvents: function (device) {
+    deviceHasEvents: function (device: BucketDevice) {
       return _.some(device.buckets, b => this.bucketHasEvents(b));
     },
-    runChecks: function (device) {
+    runChecks: function (device: BucketDevice) {
       const checks = [
         {
           msg: () => {
@@ -387,11 +396,11 @@ export default defineComponent({
       await this.bucketsStore.deleteBucket({ bucketId });
       this.$root.$emit('bv::hide::modal', 'delete-modal');
     },
-    openDeleteHostModal: function (device) {
+    openDeleteHostModal: function (device: BucketDevice) {
       this.delete_host_selected = {
         hostname: device.hostname,
         bucketCount: device.buckets.length,
-        bucketIds: device.buckets.map(b => b.id),
+        bucketIds: device.buckets.map((b: IBucket) => b.id),
       };
       this.$root.$emit('bv::show::modal', 'delete-host-modal');
     },
@@ -405,7 +414,8 @@ export default defineComponent({
         });
         this.$root.$emit('bv::hide::modal', 'delete-host-modal');
       } catch (err) {
-        this.delete_host_error = err?.message || this.$t('buckets.deleteFailed');
+        this.delete_host_error =
+          (err as RequestError | undefined)?.message || (this.$t('buckets.deleteFailed') as string);
       } finally {
         this.deleting_host = false;
       }
@@ -437,7 +447,7 @@ export default defineComponent({
         await downloadBlob(filename, response.data, 'application/json');
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
-        this.export_error = this.$t('buckets.exportFailed', { error: msg });
+        this.export_error = this.$t('buckets.exportFailed', { error: msg }) as string;
         console.error('JSON export failed:', e);
       } finally {
         this.export_inflight = Math.max(0, this.export_inflight - 1);
@@ -477,7 +487,7 @@ export default defineComponent({
         await downloadBlob(filename, response.data, 'text/csv');
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
-        this.export_error = this.$t('buckets.exportFailed', { error: msg });
+        this.export_error = this.$t('buckets.exportFailed', { error: msg }) as string;
         console.error('CSV export failed:', e);
       } finally {
         this.export_inflight = Math.max(0, this.export_inflight - 1);

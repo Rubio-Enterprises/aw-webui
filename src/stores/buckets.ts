@@ -22,6 +22,17 @@ interface State {
   buckets: IBucket[];
 }
 
+// The buckets of one device, as the Buckets view lists them
+export interface BucketDevice {
+  buckets: IBucket[];
+  device_id: string | undefined;
+  device_ids: string[];
+  hostname: string | undefined;
+  hostnames: (string | undefined)[];
+  first_seen: Date | string | undefined;
+  last_updated: Date | string | undefined;
+}
+
 export const useBucketsStore = defineStore('buckets', {
   state: (): State => ({
     buckets: [],
@@ -172,8 +183,8 @@ export const useBucketsStore = defineStore('buckets', {
     //
     // First element will be the current hostname/device, if present.
     // Others sorted by last_updated.
-    bucketsByDevice(this: State) {
-      let devices = _.mapValues(
+    bucketsByDevice(this: State): Record<string, BucketDevice> {
+      let devices: Record<string, BucketDevice> = _.mapValues(
         _.groupBy(this.buckets, (b) => b.hostname || b.device_id),
         (d) => {
           const hostnames = _.uniq(_.map(d, (b) => b.hostname || b.data.hostname));
