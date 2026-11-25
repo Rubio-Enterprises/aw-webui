@@ -105,6 +105,10 @@ import { defineComponent } from 'vue';
 import sunburst from './sunburst-clock';
 import moment from 'moment';
 import _ from 'lodash';
+import type { IEvent } from '~/util/interfaces';
+
+// An event with the events that fall inside it, as the clock draws them
+type ClockEvent = IEvent & { children?: ClockEvent[] };
 
 export default defineComponent({
   name: 'aw-sunburst-clock',
@@ -123,44 +127,49 @@ export default defineComponent({
   },
 
   watch: {
-    date: function (to) {
+    date: function (to: string) {
       this.starttime = moment(to);
       this.endtime = moment(this.starttime).add(1, 'days');
       this.visualize();
     },
   },
   mounted: function () {
-    this.centerMsg = this.$t('common.loading');
-    sunburst.create(this.$el);
+    this.centerMsg = this.$t('common.loading') as string;
+    sunburst.create(this.$el as HTMLElement);
     this.starttime = moment(this.date);
     this.endtime = moment(this.date).add(1, 'days');
     this.visualize();
   },
 
   methods: {
-    todaysEvents: async function (bucket_id) {
+    todaysEvents: async function (bucket_id: string | undefined): Promise<IEvent[]> {
+      // Without a bucket there is nothing to query; the clock then shows "No data"
+      if (bucket_id === undefined) return [];
       const querystr = [`RETURN = flood(query_bucket("${bucket_id}"));`];
       const data = await this.$aw.query(
         [`${this.starttime.format()}/${this.endtime.format()}`],
         querystr
       );
-      return data[0];
+      // aw-client types event timestamps as Date, but the JSON response carries ISO strings.
+      return data[0] as unknown as IEvent[];
     },
 
     visualize: function () {
-      function buildHierarchy(parents: any[], children: any[]) {
-        parents = _.sortBy(parents, 'timestamp', 'desc');
-        children = _.sortBy(children, 'timestamp', 'desc');
+      function buildHierarchy(parentEvents: IEvent[], childEvents: IEvent[]) {
+        const parents: ClockEvent[] = _.sortBy(parentEvents, 'timestamp', 'desc');
+        const children: ClockEvent[] = _.sortBy(childEvents, 'timestamp', 'desc');
 
         let i_child = 0;
         for (let i_parent = 0; i_parent < parents.length; i_parent++) {
           const p = parents[i_parent];
+          if (!p) continue;
           const p_start = moment(p.timestamp);
           const p_end = p_start.clone().add(p.duration, 'seconds');
 
           p.children = [];
           while (i_child < children.length) {
             const e = children[i_child];
+            if (!e) break;
             const e_start = moment(e.timestamp);
             const e_end = e_start.clone().add(e.duration, 'seconds');
 
@@ -192,11 +201,14 @@ export default defineComponent({
 
         // Build the root node
         //console.log(parents);
-        const m_start = moment(_.first(parents).timestamp);
-        const m_end = moment((_.tail(parents) as any).timestamp);
+        const first = parents[0];
+        const last = parents[parents.length - 1];
+        if (!first || !last) throw new Error('Cannot build a clock without events');
+        const m_start = moment(first.timestamp);
+        const m_end = moment(last.timestamp);
         const duration = (m_end.valueOf() - m_start.valueOf()) / 1000;
         return {
-          timestamp: _.first(parents).timestamp,
+          timestamp: first.timestamp,
           // TODO: If we want a 12/24h clock, this has to change
           duration: duration,
           data: { title: 'ROOT' },
@@ -206,10 +218,10 @@ export default defineComponent({
 
       this.todaysEvents(this.afkBucketId).then(events_afk => {
         this.todaysEvents(this.windowBucketId).then(events_window => {
-          let hierarchy = null;
+          let hierarchy: ClockEvent & { children: ClockEvent[] };
           if (events_afk.length > 0 && events_window.length > 0) {
             hierarchy = buildHierarchy(events_afk, events_window);
-            this.centerMsg = this.$t('ui.sunburstClock.hoverToInspect');
+            this.centerMsg = this.$t('ui.sunburstClock.hoverToInspect') as string;
           } else {
             // FIXME: This should do the equivalent of "No data" when such is the case, but it doesn't.
             hierarchy = {
@@ -219,9 +231,9 @@ export default defineComponent({
               data: { title: 'ROOT' },
               children: [],
             };
-            this.centerMsg = this.$t('visualizations.noData');
+            this.centerMsg = this.$t('visualizations.noData') as string;
           }
-          sunburst.update(this.$el, hierarchy, this.starttime);
+          sunburst.update(this.$el as HTMLElement, hierarchy, this.starttime);
         });
       });
     },
