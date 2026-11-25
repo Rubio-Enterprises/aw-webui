@@ -11,8 +11,12 @@ jest.mock('aw-client', () => ({
 }));
 
 describe('awclient auth bootstrap', () => {
-  let AWClient;
-  let createClient, getApiTokenFromLocation, getStoredApiToken, loadApiTokenFromBrowser;
+  type ClientHelpers = typeof import('~/util/awclient');
+  let AWClient: typeof import('aw-client').AWClient;
+  let createClient: ClientHelpers['createClient'];
+  let getApiTokenFromLocation: ClientHelpers['getApiTokenFromLocation'];
+  let getStoredApiToken: ClientHelpers['getStoredApiToken'];
+  let loadApiTokenFromBrowser: ClientHelpers['loadApiTokenFromBrowser'];
 
   beforeEach(async () => {
     jest.resetModules();
@@ -55,7 +59,7 @@ describe('awclient auth bootstrap', () => {
       expect.objectContaining({
         baseURL: 'http://127.0.0.1:5666',
         testing: true,
-      })
+      }),
     );
     expect(client.req.defaults.headers.common.Authorization).toBe('Bearer secret');
     expect(window.location.search).toBe('');

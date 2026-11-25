@@ -1,7 +1,7 @@
 import _ from 'lodash';
-import { IEvent } from './interfaces';
 import { useSettingsStore } from '~/stores/settings';
 import { getPresetCategorySets } from '~/util/presetCategories';
+import type { IEvent } from './interfaces';
 
 const level_sep = '>';
 export const CLASSIFY_KEYS = ['app', 'title'] as const;
@@ -14,7 +14,8 @@ export const CANONICAL_SELECT_KEYS = CLASSIFY_KEYS;
 export const DEFAULT_SET_ID = 'default';
 
 export interface Rule {
-  type: 'regex' | 'none';
+  // `null` is what the server returns for a category without a rule.
+  type: 'regex' | 'none' | null;
   regex?: string;
   ignore_case?: boolean;
   priority?: number;
@@ -43,9 +44,15 @@ export interface Category {
   name_pretty?: string;
   subname?: string;
   rule: Rule;
-  data?: Record<string, any>;
+  data?: {
+    [key: string]: unknown;
+    // null: cleared in the editor. score is a string when typed into the editor's input.
+    color?: string | null;
+    score?: number | string | null;
+    private?: boolean;
+  };
   depth?: number;
-  parent?: string[];
+  parent?: string[] | null;
   children?: Category[];
 }
 
@@ -190,7 +197,7 @@ const PRE_COMMON_APP_RULES = new Map<string, string>([
   ],
   ['Comms>Email', 'Gmail|Thunderbird|mutt|alpine'],
 ]);
-const preCommonAppCategories = defaultCategories.map(cat => {
+const preCommonAppCategories = defaultCategories.map((cat) => {
   const regex = PRE_COMMON_APP_RULES.get(cat.name.join('>'));
   return regex === undefined ? cat : { ...cat, rule: { ...cat.rule, regex } };
 });
@@ -214,9 +221,9 @@ export function getDefaultClasses(setId?: string): Category[] {
     return _.cloneDeep(defaultCategories);
   }
   if (setId === undefined) {
-    return presets[0].categories;
+    return presets.slice(0, 1).flatMap((preset) => preset.categories);
   }
-  const preset = presets.find(p => p.id === setId);
+  const preset = presets.find((p) => p.id === setId);
   return preset ? preset.categories : _.cloneDeep(defaultCategories);
 }
 
@@ -232,14 +239,14 @@ export function annotate(c: Category) {
 export function createMissingParents(classes: Category[]): Category[] {
   // Creates parents for categories that are missing theirs (implicit parents)
   classes = _.cloneDeep(classes);
-  classes = classes.slice().map(c => annotate(c));
-  const all_full_names = new Set(classes.map(c => c.name.join(level_sep)));
+  classes = classes.slice().map((c) => annotate(c));
+  const all_full_names = new Set(classes.map((c) => c.name.join(level_sep)));
 
   function _createMissing(children: Category[]) {
     children
-      .map(c => c.parent)
-      .filter(p => !!p)
-      .map(p => {
+      .map((c) => c.parent)
+      .filter((p): p is string[] => !!p)
+      .forEach((p) => {
         const name = p.join(level_sep);
         if (p && !all_full_names.has(name)) {
           const new_parent = annotate({ name: p, rule: { type: null } });
@@ -260,10 +267,10 @@ export function build_category_hierarchy(classes: Category[]): Category[] {
   classes = createMissingParents(classes);
 
   function assignChildren(classes_at_level: Category[]) {
-    return classes_at_level.map(cls => {
-      cls.children = classes.filter(child => {
+    return classes_at_level.map((cls) => {
+      cls.children = classes.filter((child) => {
         return child.parent && cls.name
-          ? JSON.stringify(child.parent) == JSON.stringify(cls.name)
+          ? JSON.stringify(child.parent) === JSON.stringify(cls.name)
           : false;
       });
       assignChildren(cls.children);
@@ -271,16 +278,16 @@ export function build_category_hierarchy(classes: Category[]): Category[] {
     });
   }
 
-  return assignChildren(classes.filter(c => !c.parent));
+  return assignChildren(classes.filter((c) => !c.parent));
 }
 
 export function flatten_category_hierarchy(hier: Category[]): Category[] {
   return _.flattenDeep(
-    hier.map(h => {
-      const level = [h, flatten_category_hierarchy(h.children)];
+    hier.map((h) => {
+      const level = [h, flatten_category_hierarchy(h.children ?? [])];
       h.children = [];
       return level;
-    })
+    }),
   );
 }
 
@@ -337,10 +344,10 @@ export function saveCategories(sets: CategorySet[], activeIds: string[]) {
     return;
   }
   const settingsStore = useSettingsStore();
-  const cleanSets = sets.map(s => ({ ...s, categories: s.categories.map(cleanCategory) }));
+  const cleanSets = sets.map((s) => ({ ...s, categories: s.categories.map(cleanCategory) }));
   // Merge in active_set_ids priority order (first = highest), matching the store.
   const orderedSets = activeIds
-    .map(id => sets.find(s => s.id === id))
+    .map((id) => sets.find((s) => s.id === id))
     .filter((s): s is CategorySet => !!s);
   const effectiveClasses = mergeCategorySets(orderedSets).map(cleanCategory);
   return settingsStore.update({
@@ -366,7 +373,7 @@ function ruleSignature(c: Category): string {
   return JSON.stringify([
     // `null` and `'none'` are the same rule type after cleanCategory
     c.rule?.type === 'regex' ? 'regex' : 'none',
-    c.rule?.type === 'regex' ? c.rule?.regex ?? null : null,
+    c.rule?.type === 'regex' ? (c.rule?.regex ?? null) : null,
     Boolean(c.rule?.ignore_case),
     c.rule?.select_keys ?? null,
     c.rule?.priority ?? c.rule?.weight ?? null,
@@ -374,7 +381,7 @@ function ruleSignature(c: Category): string {
 }
 
 function categoryColor(c: Category): string | null {
-  const color = c.data && c.data.color;
+  const color = c.data?.color;
   return typeof color === 'string' && color.length > 0 ? color : null;
 }
 
@@ -386,9 +393,9 @@ function isLegacyDefaultColor(c: Category): boolean {
 
 /** Show stored legacy default colors in the current default color; keep all other colors. */
 export function migrateLegacyDefaultColors(classes: Category[]): Category[] {
-  return classes.map(c => {
+  return classes.map((c) => {
     if (!isLegacyDefaultColor(c)) return c;
-    const ref = defaultCategories.find(d => categoryNameKey(d) === categoryNameKey(c));
+    const ref = defaultCategories.find((d) => categoryNameKey(d) === categoryNameKey(c));
     const color = ref && categoryColor(ref);
     return color ? { ...c, data: { ...c.data, color } } : c;
   });
@@ -412,14 +419,14 @@ export function migrateLegacyDefaultColors(classes: Category[]): Category[] {
 function matchesInstallDefault(
   stored: Category[],
   reference: Category[],
-  allowLegacyColors = false
+  allowLegacyColors = false,
 ): boolean {
   if (stored.length !== reference.length) return false;
-  const refByName = new Map(reference.map(c => [categoryNameKey(c), c]));
+  const refByName = new Map(reference.map((c) => [categoryNameKey(c), c]));
   if (refByName.size !== reference.length) return false;
   // Require one-to-one name matching: duplicates in stored would let a renamed/
   // deleted category slip through as "matching" by piggy-backing on a sibling.
-  const storedNames = stored.map(c => categoryNameKey(c));
+  const storedNames = stored.map((c) => categoryNameKey(c));
   if (new Set(storedNames).size !== stored.length) return false;
   for (const cat of stored) {
     const ref = refByName.get(categoryNameKey(cat));
@@ -443,7 +450,7 @@ function matchesInstallDefault(
 
 // Retain the install-default signature from before the Kate whole-field fix.
 // This is only a detection reference; persisted rules are never rewritten.
-const preKateFixDefaults: Category[] = defaultCategories.map(c =>
+const preKateFixDefaults: Category[] = defaultCategories.map((c) =>
   categoryNameKey(c) === 'Work>Programming'
     ? {
         ...c,
@@ -453,7 +460,7 @@ const preKateFixDefaults: Category[] = defaultCategories.map(c =>
             'GitHub|Stack Overflow|BitBucket|Gitlab|vim|Spyder|kate|Ghidra|Scite|iTerm|Visual Studio Code',
         },
       }
-    : c
+    : c,
 );
 
 export function classesLookUnconfigured(classes: Category[] | undefined | null): boolean {
@@ -463,7 +470,7 @@ export function classesLookUnconfigured(classes: Category[] | undefined | null):
   if (matchesInstallDefault(classes, defaultCategories, true)) return true;
   if (matchesInstallDefault(classes, preCommonAppCategories, true)) return true;
   if (matchesInstallDefault(classes, preKateFixDefaults, true)) return true;
-  return getPresetCategorySets().some(p => matchesInstallDefault(classes, p.categories));
+  return getPresetCategorySets().some((p) => matchesInstallDefault(classes, p.categories));
 }
 
 /**
@@ -498,9 +505,11 @@ export function loadCategories(): { sets: CategorySet[]; activeIds: string[] } {
     !classesLookUnconfigured(settingsStore.classes);
 
   if (storedOwnSets) {
-    sets = storedSets.map(s => ({ ...s, categories: migrateLegacyDefaultColors(s.categories) }));
+    sets = storedSets.map((s) => ({ ...s, categories: migrateLegacyDefaultColors(s.categories) }));
     activeIds =
-      storedActiveIds && storedActiveIds.length > 0 ? [...storedActiveIds] : [storedSets[0].id];
+      storedActiveIds && storedActiveIds.length > 0
+        ? [...storedActiveIds]
+        : storedSets.slice(0, 1).map((s) => s.id);
   } else if (presets.length > 0 && !storedCustomClasses) {
     // First run on a build that ships presets: activate the first preset only.
     //
@@ -513,7 +522,7 @@ export function loadCategories(): { sets: CategorySet[]; activeIds: string[] } {
     // The remaining presets are still appended below and are available in the UI
     // for the user to activate manually.
     sets = [];
-    activeIds = [presets[0].id];
+    activeIds = presets.slice(0, 1).map((p) => p.id);
   } else {
     // Migration path: no sets defined yet — wrap the existing flat classes into a "default" set
     const legacyClasses = settingsStore.classes || defaultCategories;
@@ -524,7 +533,7 @@ export function loadCategories(): { sets: CategorySet[]; activeIds: string[] } {
   // Presets are always offered as sets the user can switch to/combine,
   // unless a set with the same id is already stored (that one is authoritative).
   for (const preset of presets) {
-    if (!sets.some(s => s.id === preset.id)) {
+    if (!sets.some((s) => s.id === preset.id)) {
       sets.push(preset);
     }
   }
@@ -533,9 +542,9 @@ export function loadCategories(): { sets: CategorySet[]; activeIds: string[] } {
   if (sets.length === 0) {
     sets = [{ id: DEFAULT_SET_ID, categories: defaultCategories }];
   }
-  activeIds = activeIds.filter(id => sets.some(s => s.id === id));
+  activeIds = activeIds.filter((id) => sets.some((s) => s.id === id));
   if (activeIds.length === 0) {
-    activeIds = [sets[0].id];
+    activeIds = sets.slice(0, 1).map((s) => s.id);
   }
 
   return { sets, activeIds };
@@ -558,20 +567,24 @@ function categoryRank(category: Category): number {
  * into a blank-regex category while server-categorized views (Sunburst,
  * Timeline, Top Categories) ignore it (#382).
  */
-export function hasMatchableRegex(c: Category): boolean {
-  return c.rule.type == 'regex' && !!c.rule.regex;
+export type MatchableCategory = Category & { rule: Rule & { type: 'regex'; regex: string } };
+
+export function hasMatchableRegex(c: Category): c is MatchableCategory {
+  return c.rule.type === 'regex' && !!c.rule.regex;
 }
 
-function pickHighestRanked(categories: Category[]) {
-  return _.maxBy(categories, categoryRank);
+function pickHighestRanked(categories: Category[]): Category {
+  const best = _.maxBy(categories, categoryRank);
+  if (best === undefined) throw new Error('pickHighestRanked needs at least one category');
+  return best;
 }
 
 // Rules can be edited in place by the category editor, so a cached regex is
 // only reused while the rule's pattern and flags are unchanged.
 const regexCache = new WeakMap<Rule, { source: string; flags: string; re: RegExp }>();
-function ruleRegExp(rule: Rule): RegExp {
+function ruleRegExp(rule: Rule & { regex: string }): RegExp {
   // using 'm' flag to make `$` and `^` in rules work
-  const flags = (rule.ignore_case ? 'i' : '') + 'm';
+  const flags = rule.ignore_case ? 'im' : 'm';
   const cached = regexCache.get(rule);
   if (cached && cached.source === rule.regex && cached.flags === flags) return cached.re;
   const re = new RegExp(rule.regex, flags);
@@ -582,17 +595,17 @@ function ruleRegExp(rule: Rule): RegExp {
 export function matchString(
   str: string,
   categories: Category[] | null,
-  event?: IEvent
+  event?: IEvent,
 ): Category | null {
   if (!categories) {
     console.log(
-      'Categories not passed, loading... (if you see this outside of a test, you should probably pass them)'
+      'Categories not passed, loading... (if you see this outside of a test, you should probably pass them)',
     );
     categories = loadClasses();
   }
 
   // Compile regexes
-  const regexes: [Category, RegExp][] = categories.filter(hasMatchableRegex).map(c => {
+  const regexes: [Category, RegExp][] = categories.filter(hasMatchableRegex).map((c) => {
     return [c, ruleRegExp(c.rule)];
   });
 
@@ -601,7 +614,7 @@ export function matchString(
   const matchingCats: [Category, RegExp][] = regexes.filter(([category, re]) => {
     const selectKeys = normalizeSelectKeys(category.rule.select_keys);
     if (event && selectKeys) {
-      return selectKeys.some(key => {
+      return selectKeys.some((key) => {
         const value = event.data[key];
         return typeof value === 'string' && re.test(value);
       });
@@ -609,14 +622,14 @@ export function matchString(
     return re.test(str);
   });
   if (matchingCats.length > 0) {
-    return pickHighestRanked(matchingCats.map(c => c[0]));
+    return pickHighestRanked(matchingCats.map((c) => c[0]));
   }
   return null;
 }
 
 // this is used only in tests
 export function classifyEvents(events: IEvent[], categories: Category[]): IEvent[] {
-  const regexes: [Category, RegExp][] = categories.filter(hasMatchableRegex).map(c => {
+  const regexes: [Category, RegExp][] = categories.filter(hasMatchableRegex).map((c) => {
     const re = RegExp(c.rule.regex, c.rule.ignore_case ? 'i' : '');
     return [c, re];
   });
@@ -624,7 +637,7 @@ export function classifyEvents(events: IEvent[], categories: Category[]): IEvent
   return events.map((e: IEvent) => {
     const matchingCats = regexes.filter(([category, re]) => {
       const keys = normalizeSelectKeys(category.rule.select_keys) || CLASSIFY_KEYS;
-      return keys.some(key => {
+      return keys.some((key) => {
         const value = e.data[key];
         return typeof value === 'string' && re.test(value);
       });

@@ -1,12 +1,12 @@
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
-import SunburstCategoriesComponent from '~/visualizations/SunburstCategories.vue';
 import { useCategoryStore } from '~/stores/categories';
 import { useSettingsStore } from '~/stores/settings';
 import { DARK_THEME_HREF } from '~/util/theme';
+import SunburstCategoriesComponent from '~/visualizations/SunburstCategories.vue';
+import { optionsApi } from '../helpers/vue';
 
-// Tests call Options API members directly, which the Vue constructor type doesn't expose.
-const SunburstCategories: any = SunburstCategoriesComponent;
+const SunburstCategories = optionsApi(SunburstCategoriesComponent);
 
 jest.mock('vue-d3-sunburst/dist/vue-d3-sunburst.css', () => ({}));
 
@@ -35,7 +35,7 @@ describe('SunburstCategories', () => {
   });
 
   test('renders the vue-d3-sunburst graph with the overridden d3-color dependency', async () => {
-    const wrapper = mount(SunburstCategories, {
+    const wrapper = mount(SunburstCategoriesComponent, {
       attachTo: document.body,
       propsData: {
         data: {
@@ -59,14 +59,14 @@ describe('SunburstCategories', () => {
   });
 
   describe('root ("All") color', () => {
-    const rootColor = theme => {
+    const rootColor = (theme) => {
       useSettingsStore().theme = theme;
       return SunburstCategories.methods.colorfunc('All');
     };
     // Mimic how App.vue/Theme.vue apply the dark theme: by adding/removing
     // the dark stylesheet <link> in the document head. Shares DARK_THEME_HREF
     // with production so this tracks the real stylesheet path, not a copy.
-    const setDarkApplied = dark => {
+    const setDarkApplied = (dark) => {
       document.querySelector(`head link[href="${DARK_THEME_HREF}"]`)?.remove();
       if (dark) {
         const link = document.createElement('link');
@@ -92,7 +92,7 @@ describe('SunburstCategories', () => {
 
   test('truncates labels that would overflow their ring instead of clipping them', async () => {
     const longName = 'ActivityWatch Development';
-    const wrapper = mount(SunburstCategories, {
+    const wrapper = mount(SunburstCategoriesComponent, {
       attachTo: document.body,
       propsData: {
         data: {
@@ -107,9 +107,9 @@ describe('SunburstCategories', () => {
     // jsdom has no layout, so the ring itself is 0px wide: only a leaf, which
     // may overflow past its ring, gets a (truncated) label. The parent would be
     // covered by its child ring, so it gets no overflow allowance and no label.
-    const labels = wrapper.findAll('text.node-info').wrappers.map(w => w.text());
+    const labels = wrapper.findAll('text.node-info').wrappers.map((w) => w.text());
     expect(labels).not.toContain('Work');
-    const truncated = labels.find(l => l.endsWith('…'));
+    const truncated = labels.find((l) => l.endsWith('…'));
     expect(truncated).toBeDefined();
     expect(longName.startsWith(truncated.slice(0, -1))).toBe(true);
 

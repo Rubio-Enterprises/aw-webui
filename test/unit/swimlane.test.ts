@@ -1,8 +1,8 @@
+import type { IEvent } from '~/util/interfaces';
 import { getSwimlane } from '~/util/swimlane';
-import { IEvent } from '~/util/interfaces';
 
 // Only `data` matters to getSwimlane
-const event = (data: object) => ({ data } as IEvent);
+const event = (data: object) => ({ data }) as IEvent;
 
 describe('getSwimlane', () => {
   test('uses the color argument when grouping by category', () => {
@@ -11,7 +11,7 @@ describe('getSwimlane', () => {
 
   test('uses sanitized app name for currentwindow when grouping by bucketType', () => {
     expect(
-      getSwimlane({ type: 'currentwindow' }, '#fff', 'bucketType', event({ app: 'Firefox' }))
+      getSwimlane({ type: 'currentwindow' }, '#fff', 'bucketType', event({ app: 'Firefox' })),
     ).toBe('Firefox');
   });
 
@@ -21,8 +21,8 @@ describe('getSwimlane', () => {
         { type: 'web.tab.current' },
         '#fff',
         'bucketType',
-        event({ url: 'https://www.example.com/path' })
-      )
+        event({ url: 'https://www.example.com/path' }),
+      ),
     ).toBe('example.com');
   });
 

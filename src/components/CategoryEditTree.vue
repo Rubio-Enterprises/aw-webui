@@ -35,6 +35,7 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent, type PropType } from 'vue';
 import 'vue-awesome/icons/regular/plus-square';
 import 'vue-awesome/icons/regular/minus-square';
 import 'vue-awesome/icons/circle';
@@ -45,16 +46,17 @@ import 'vue-awesome/icons/edit';
 
 import CategoryEditModal from './CategoryEditModal.vue';
 import { useCategoryStore } from '~/stores/categories';
+import type { Category } from '~/util/classes';
 
 import _ from 'lodash';
 
-export default {
+export default defineComponent({
   name: 'CategoryEditTree',
   components: {
     CategoryEditModal,
   },
   props: {
-    _class: Object,
+    _class: { type: Object as PropType<Category>, required: true },
     depth: {
       type: Number,
       default: 0,
@@ -65,21 +67,22 @@ export default {
       categoryStore: useCategoryStore(),
 
       expanded: this.depth < 1,
-      editingId: null,
+      editingId: null as number | null,
     };
   },
   computed: {
-    totalChildren: function () {
-      function countChildren(node) {
-        return node.children.length + _.sum(_.map(node.children, countChildren));
+    totalChildren: function (): number {
+      function countChildren(node: Category): number {
+        const children = node.children ?? [];
+        return children.length + _.sum(_.map(children, countChildren));
       }
       return countChildren(this._class);
     },
   },
   methods: {
-    addSubclass: function (parent) {
+    addSubclass: function (parent: Category) {
       // Generate a unique default name to prevent duplicate name conflicts (#702)
-      const baseName = this.$t('ui.categoryEditor.newClass');
+      const baseName = this.$t('ui.categoryEditor.newClass') as string;
       let name = baseName;
       let counter = 2;
       const existingNames = this.categoryStore.classes.map(c => JSON.stringify(c.name));
@@ -90,19 +93,20 @@ export default {
 
       const lastId = this.categoryStore.addClass({
         name: parent.name.concat([name]),
-        rule: { type: 'regex', regex: this.$t('ui.categoryEditor.regexPlaceholder') },
+        rule: { type: 'regex', regex: this.$t('ui.categoryEditor.regexPlaceholder') as string },
       });
 
       this.editingId = lastId;
     },
     showEditModal: function () {
-      this.editingId = this._class.id;
+      // A category without an id (not yet in the store) has nothing to edit
+      this.editingId = this._class.id ?? null;
     },
     hideEditModal: function () {
       this.editingId = null;
     },
   },
-};
+});
 </script>
 
 <style scoped lang="scss">

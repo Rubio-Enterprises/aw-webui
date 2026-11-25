@@ -14,35 +14,52 @@ svg {
 </style>
 
 <script lang="ts">
+import { defineComponent, type PropType } from 'vue';
 // NOTE: This is just a Vue.js component wrapper for periodusage.ts
 //       Code should generally go in the framework-independent file.
 
 import periodusage from './periodusage';
+import type { TimePeriod } from '~/util/timeperiod';
+import type { IEvent } from '~/util/interfaces';
 
-export default {
+export default defineComponent({
   name: 'aw-periodusage',
   props: {
     periodusage_arr: {
-      type: Array,
+      type: Array as PropType<{ period: TimePeriod; events: IEvent[] }[]>,
       default: () => [],
     },
   },
   watch: {
     periodusage_arr: function () {
-      periodusage.update(this.$el, this.periodusage_arr, this.onPeriodClicked, this.chartLabels());
+      periodusage.update(
+        this.$el as SVGElement,
+        this.periodusage_arr,
+        this.onPeriodClicked,
+        this.chartLabels()
+      );
     },
   },
   mounted: function () {
-    periodusage.create(this.$el);
-    periodusage.update(this.$el, this.periodusage_arr, this.onPeriodClicked, this.chartLabels());
+    // This component's root element is the <svg>
+    periodusage.create(this.$el as SVGElement);
+    periodusage.update(
+      this.$el as SVGElement,
+      this.periodusage_arr,
+      this.onPeriodClicked,
+      this.chartLabels()
+    );
   },
   methods: {
-    chartLabels() {
-      return { noData: this.$t('visualizations.noData'), today: this.$t('common.today') };
+    chartLabels(): { noData: string; today: string } {
+      return {
+        noData: this.$t('visualizations.noData') as string,
+        today: this.$t('common.today') as string,
+      };
     },
-    onPeriodClicked: function (period) {
+    onPeriodClicked: function (period: TimePeriod) {
       this.$emit('update', period);
     },
   },
-};
+});
 </script>

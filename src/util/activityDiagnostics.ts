@@ -59,7 +59,7 @@ export function activityDiagnostic({
   const exactHost = (bucket: DiagnosticBucket) => bucketHost(bucket) === host;
   const sameDevice = (bucket: DiagnosticBucket) =>
     canonicalHostname(bucketHost(bucket)) === canonicalHostname(host);
-  const windows = buckets.filter(bucket => bucket.type === 'currentwindow' && sameDevice(bucket));
+  const windows = buckets.filter((bucket) => bucket.type === 'currentwindow' && sameDevice(bucket));
 
   const hasExactWindow = windows.some(exactHost);
   const hasWindowActivity = (rawWindowDuration ?? 0) > 0;
@@ -69,27 +69,27 @@ export function activityDiagnostic({
     return { kind: 'missing-window', host };
   }
 
-  const hasAfk = buckets.some(bucket => bucket.type === 'afkstatus' && exactHost(bucket));
-  const afks = buckets.filter(bucket => bucket.type === 'afkstatus' && sameDevice(bucket));
+  const hasAfk = buckets.some((bucket) => bucket.type === 'afkstatus' && exactHost(bucket));
+  const afks = buckets.filter((bucket) => bucket.type === 'afkstatus' && sameDevice(bucket));
   const afkHosts = unique(afks.map(bucketHost));
   // Window buckets under another hostname variant ("laptop.local" vs
   // "laptop") that also has an AFK bucket: selecting that variant would
   // give the query a complete pair.
   const pairedWindows = windows.filter(
-    bucket => !exactHost(bucket) && afkHosts.includes(bucketHost(bucket))
+    (bucket) => !exactHost(bucket) && afkHosts.includes(bucketHost(bucket)),
   );
 
   // The desktop query needs a window AND an afkstatus bucket under the exact
   // selected hostname (`set_available`). When that pair is missing, only
   // suggest a remedy that would actually produce one.
-  if (!hasExactWindow || !hasAfk) {
+  if (!(hasExactWindow && hasAfk)) {
     const windowHosts = unique(windows.map(bucketHost));
 
     if (pairedWindows.length > 0) {
       return {
         kind: 'ambiguous-window',
         host,
-        bucketIds: pairedWindows.map(bucket => bucket.id),
+        bucketIds: pairedWindows.map((bucket) => bucket.id),
       };
     }
 
@@ -113,8 +113,8 @@ export function activityDiagnostic({
       kind: 'ambiguous-window',
       host,
       bucketIds: windows
-        .filter(bucket => exactHost(bucket) || pairedWindows.includes(bucket))
-        .map(bucket => bucket.id),
+        .filter((bucket) => exactHost(bucket) || pairedWindows.includes(bucket))
+        .map((bucket) => bucket.id),
     };
   }
 

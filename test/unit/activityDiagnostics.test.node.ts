@@ -12,7 +12,7 @@ describe('activityDiagnostic', () => {
         isMobile: false,
         queryComplete: true,
         rawWindowDuration: 0,
-      })
+      }),
     ).toEqual({ kind: 'missing-window', host: 'laptop' });
   });
 
@@ -25,7 +25,7 @@ describe('activityDiagnostic', () => {
         isMobile: false,
         queryComplete: true,
         rawWindowDuration: 0,
-      })
+      }),
     ).toEqual({ kind: 'missing-afk', host: 'laptop' });
   });
 
@@ -44,7 +44,7 @@ describe('activityDiagnostic', () => {
         isMobile: false,
         queryComplete: true,
         rawWindowDuration: 0,
-      })
+      }),
     ).toEqual({ kind: 'missing-afk', host: 'laptop' });
   });
 
@@ -61,7 +61,7 @@ describe('activityDiagnostic', () => {
         isMobile: false,
         queryComplete: true,
         rawWindowDuration: 0,
-      })
+      }),
     ).toEqual({ kind: 'missing-afk', host: 'laptop.local' });
   });
 
@@ -80,7 +80,7 @@ describe('activityDiagnostic', () => {
         isMobile: false,
         queryComplete: true,
         rawWindowDuration: 0,
-      })
+      }),
     ).toEqual({
       kind: 'mismatched-hostnames',
       host: 'laptop',
@@ -101,7 +101,7 @@ describe('activityDiagnostic', () => {
         isMobile: false,
         queryComplete: true,
         rawWindowDuration: 0,
-      })
+      }),
     ).toEqual({
       kind: 'mismatched-hostnames',
       host: 'laptop',
@@ -123,7 +123,7 @@ describe('activityDiagnostic', () => {
         isMobile: false,
         queryComplete: true,
         rawWindowDuration: 0,
-      })
+      }),
     ).toEqual({
       kind: 'ambiguous-window',
       host: 'laptop',
@@ -147,7 +147,7 @@ describe('activityDiagnostic', () => {
         isMobile: false,
         queryComplete: true,
         rawWindowDuration: 0,
-      })
+      }),
     ).toEqual({
       kind: 'ambiguous-window',
       host: 'laptop',
@@ -169,7 +169,7 @@ describe('activityDiagnostic', () => {
         isMobile: false,
         queryComplete: true,
         rawWindowDuration: 0,
-      })
+      }),
     ).toEqual({
       kind: 'ambiguous-window',
       host: 'laptop',
@@ -190,7 +190,7 @@ describe('activityDiagnostic', () => {
         isMobile: false,
         queryComplete: true,
         rawWindowDuration: 42,
-      })
+      }),
     ).toBeNull();
   });
 
@@ -208,7 +208,7 @@ describe('activityDiagnostic', () => {
         isMobile: false,
         queryComplete: true,
         rawWindowDuration: 120,
-      })
+      }),
     ).toBeNull();
   });
 
@@ -227,7 +227,7 @@ describe('activityDiagnostic', () => {
         isMobile: false,
         queryComplete: true,
         rawWindowDuration: 0,
-      })
+      }),
     ).toEqual({ kind: 'no-window-events', host: 'laptop' });
   });
 
@@ -244,7 +244,7 @@ describe('activityDiagnostic', () => {
         isMobile: false,
         queryComplete: true,
         rawWindowDuration: 0,
-      })
+      }),
     ).toEqual({ kind: 'no-window-events', host: 'laptop' });
   });
 
@@ -259,7 +259,7 @@ describe('activityDiagnostic', () => {
         isMobile: true,
         queryComplete: true,
         rawWindowDuration: 0,
-      })
+      }),
     ).toBeNull();
   });
 

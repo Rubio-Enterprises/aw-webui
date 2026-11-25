@@ -1,19 +1,19 @@
-import Vue from 'vue';
-import moment from 'moment';
-import { createLocalVue, shallowMount } from '@vue/test-utils';
 import { createTestingPinia } from '@pinia/testing';
-import TrendsComponent from '~/views/Trends.vue';
+import { createLocalVue, shallowMount } from '@vue/test-utils';
+import moment from 'moment';
+import Vue, { type VueConstructor } from 'vue';
 import { useBucketsStore } from '~/stores/buckets';
 import { getClient as getClientImpl } from '~/util/awclient';
+import TrendsComponent from '~/views/Trends.vue';
+import { optionsApi } from '../helpers/vue';
 
 jest.mock('~/util/awclient', () => ({ getClient: jest.fn() }));
 
-// Tests call Options API members directly, which the Vue constructor type doesn't expose.
-const Trends: any = TrendsComponent;
+const Trends = optionsApi(TrendsComponent);
 const getClient = getClientImpl as jest.Mock;
 
 const localVue = createLocalVue();
-localVue.filter('friendlyduration', value => String(value));
+localVue.filter('friendlyduration', (value) => String(value));
 
 const STUBS = [
   'b-button-group',
@@ -35,9 +35,9 @@ const flush = async () => {
 };
 
 const deferred = () => {
-  let resolve;
-  let reject;
-  const promise = new Promise((res, rej) => {
+  let resolve: (rows: TrendRows[]) => void;
+  let reject: (error: unknown) => void;
+  const promise = new Promise<TrendRows[]>((res, rej) => {
     resolve = res;
     reject = rej;
   });
@@ -52,7 +52,8 @@ const bucket = (host, type) => ({
   data: {},
 });
 
-const workEvent = seconds => ({ data: { $category: ['Work'] }, duration: seconds });
+const workEvent = (seconds: number) => ({ data: { $category: ['Work'] }, duration: seconds });
+type TrendRows = { cat_events: ReturnType<typeof workEvent>[] };
 
 describe('Trends view', () => {
   describe('host computed', () => {
@@ -111,7 +112,7 @@ describe('Trends view', () => {
       const periods = Trends.methods.dayPeriods.call(
         vm,
         moment('2026-10-18'),
-        moment('2026-10-20')
+        moment('2026-10-20'),
       );
       expect(periods).toEqual([
         `${moment('2026-10-18T04:00:00').format()}/${moment('2026-10-19T04:00:00').format()}`,
@@ -124,7 +125,7 @@ describe('Trends view', () => {
       const periods = Trends.methods.dayPeriods.call(
         vm,
         moment('2026-10-19'),
-        moment('2026-10-20')
+        moment('2026-10-20'),
       );
       expect(periods).toEqual([
         `${moment('2026-10-19').format()}/${moment('2026-10-20').format()}`,
@@ -138,7 +139,7 @@ describe('Trends view', () => {
         .fn()
         .mockResolvedValue([{ cat_events: [{ data: { $category: ['Work'] }, duration: 600 }] }]);
       getClient.mockReturnValue({ query });
-      const vm: any = {
+      const vm: Record<string, unknown> = {
         settingsStore: { startOfDay: '04:00' },
         buildCategoryQuery: () => ['RETURN = {};'],
       };
@@ -148,13 +149,13 @@ describe('Trends view', () => {
         vm,
         'host-a',
         moment('2026-10-05'),
-        moment('2026-10-12')
+        moment('2026-10-12'),
       );
       const current = await Trends.methods.queryByDay.call(
         vm,
         'host-a',
         moment('2026-10-12'),
-        moment('2026-10-19')
+        moment('2026-10-19'),
       );
 
       const boundary = moment('2026-10-12T04:00:00').format();
@@ -162,13 +163,13 @@ describe('Trends view', () => {
         1,
         [`${moment('2026-10-05T04:00:00').format()}/${boundary}`],
         ['RETURN = {};'],
-        { name: 'trendsTotals', verbose: true }
+        { name: 'trendsTotals', verbose: true },
       );
       expect(query).toHaveBeenNthCalledWith(
         2,
         [`${boundary}/${moment('2026-10-13T04:00:00').format()}`],
         ['RETURN = {};'],
-        { name: 'trendsByDay', verbose: true }
+        { name: 'trendsByDay', verbose: true },
       );
       expect(query).toHaveBeenCalledTimes(8);
       expect(query.mock.calls[0][0][0].split('/')[1]).toBe(query.mock.calls[1][0][0].split('/')[0]);
@@ -198,21 +199,40 @@ describe('Trends view', () => {
   });
 });
 
-describe('Trends refresh ownership', () => {
-  let wrapper;
-  let route;
-  let calls;
-  let store;
+type TrendsVm = Vue & {
+  byPeriod: Record<string, TrendRows> | null;
+  currentTotals: Record<string, number>;
+  previousTotals: Record<string, number>;
+  host?: string;
+  loading: boolean;
+  periodDays: number;
+  selectedCategory: string[];
+  setPeriod(days: number): void;
+};
 
-  const hostOf = call => {
+const TrendsForMount = TrendsComponent as VueConstructor<TrendsVm>;
+
+describe('Trends refresh ownership', () => {
+  let wrapper: ReturnType<typeof shallowMount<TrendsVm>> | null;
+  let route: { params: { host: string } };
+  let calls: {
+    periods: string[];
+    query: string[];
+    name?: string | null;
+    settled: boolean;
+    deferred: ReturnType<typeof deferred>;
+  }[];
+  let store: ReturnType<typeof useBucketsStore>;
+
+  const hostOf = (call) => {
     const query = (call.query || []).join(' ');
     if (query.includes('aw-watcher-window_b')) return 'b';
     if (query.includes('aw-watcher-window_a')) return 'a';
-    return undefined;
+    return;
   };
 
   const callsFor = (host, name) =>
-    calls.filter(call => !call.settled && hostOf(call) === host && call.name === name);
+    calls.filter((call) => !call.settled && hostOf(call) === host && call.name === name);
 
   // Resolve every query belonging to `host`, in order. The first per-day query
   // returns `dayEvents`, all following days are empty, and the totals query
@@ -241,7 +261,7 @@ describe('Trends refresh ownership', () => {
   const resolveNewest = async (days, { dayEvents = [], totalsEvents = [] } = {}) => {
     let firstDay = true;
     for (let k = 0; k < days; k++) {
-      const pendingDays = calls.filter(call => !call.settled && call.name === 'trendsByDay');
+      const pendingDays = calls.filter((call) => !call.settled && call.name === 'trendsByDay');
       if (!pendingDays.length) break;
       const call = pendingDays[pendingDays.length - 1];
       call.settled = true;
@@ -249,7 +269,7 @@ describe('Trends refresh ownership', () => {
       firstDay = false;
       await flush();
     }
-    const pendingTotals = calls.filter(call => !call.settled && call.name === 'trendsTotals');
+    const pendingTotals = calls.filter((call) => !call.settled && call.name === 'trendsTotals');
     if (pendingTotals.length) {
       const totals = pendingTotals[pendingTotals.length - 1];
       totals.settled = true;
@@ -258,7 +278,7 @@ describe('Trends refresh ownership', () => {
     }
   };
 
-  const rejectRefresh = async host => {
+  const rejectRefresh = async (host) => {
     const dayCall = callsFor(host, 'trendsByDay')[0];
     if (dayCall) {
       dayCall.settled = true;
@@ -287,7 +307,7 @@ describe('Trends refresh ownership', () => {
         const call = {
           periods,
           query,
-          name: options && options.name,
+          name: options === null ? null : options?.name,
           settled: false,
           deferred: deferred(),
         };
@@ -305,7 +325,7 @@ describe('Trends refresh ownership', () => {
   });
 
   const mount = async () => {
-    wrapper = shallowMount(Trends, {
+    wrapper = shallowMount(TrendsForMount, {
       localVue,
       mocks: { $route: route },
       stubs: STUBS,
@@ -397,7 +417,7 @@ describe('Trends refresh ownership', () => {
     await flush();
 
     // Three refreshes are in flight: 7, 30 and 90 days.
-    expect(calls.filter(call => !call.settled)).toHaveLength(6);
+    expect(calls.filter((call) => !call.settled)).toHaveLength(6);
 
     // The newest (90 days) finishes first, then the older ones land.
     await resolveNewest(90, { dayEvents: [workEvent(90)], totalsEvents: [workEvent(80)] });
@@ -416,11 +436,11 @@ describe('Trends refresh ownership', () => {
     wrapper.vm.selectedCategory = ['Work'];
     await flush();
     expect(callsFor('a', 'trendsByDay')).toHaveLength(2);
-    const unresolved = calls.filter(call => !call.settled);
-    const selected = unresolved.filter(call => call.query.join(' ').includes('[["Work"]]'));
-    expect(selected.map(call => call.name).sort()).toEqual(['trendsByDay', 'trendsTotals']);
+    const unresolved = calls.filter((call) => !call.settled);
+    const selected = unresolved.filter((call) => call.query.join(' ').includes('[["Work"]]'));
+    expect(selected.map((call) => call.name).sort()).toEqual(['trendsByDay', 'trendsTotals']);
 
-    const stale = unresolved.filter(call => !selected.includes(call));
+    const stale = unresolved.filter((call) => !selected.includes(call));
     for (const call of stale) {
       call.settled = true;
       call.deferred.resolve([{ cat_events: [workEvent(999)] }]);
@@ -468,7 +488,7 @@ describe('Trends refresh ownership', () => {
     const vm = {
       host: 'b',
       bucketsStore: {
-        desktopBucketIds: host => ({ bid_window: `window_${host}`, bid_afk: `afk_${host}` }),
+        desktopBucketIds: (host) => ({ bid_window: `window_${host}`, bid_afk: `afk_${host}` }),
       },
       categoryStore: { classes_for_query: [[], []] },
       settingsStore: { always_active_pattern: '' },
@@ -517,7 +537,7 @@ describe('Trends category selection', () => {
       Trends.computed.filterCategories.call({
         selectedCategory: ['Uncategorized'],
         categoryStore: { all_categories: [['Work']] },
-      })
+      }),
     ).toEqual([['Uncategorized']]);
   });
 
@@ -540,7 +560,10 @@ describe('Trends category selection', () => {
 });
 
 describe('Trends weekly grouping', () => {
-  const byPeriod: Record<string, any> = {};
+  const byPeriod: Record<
+    string,
+    { cat_events: { duration: number; data: { $category: string[] } }[] }
+  > = {};
   // Thu 2026-10-15 .. Sat 2026-10-24 (ten days, two Monday-start weeks)
   for (let d = 15; d <= 24; d++) {
     byPeriod[`2026-10-${d}T04:00:00+02:00/2026-10-${d + 1}T04:00:00+02:00`] = {
@@ -548,7 +571,7 @@ describe('Trends weekly grouping', () => {
     };
   }
   const vm = (groupBy: string) => {
-    const ctx: any = {
+    const ctx: Record<string, unknown> = {
       groupBy,
       byPeriod,
       loading: false,

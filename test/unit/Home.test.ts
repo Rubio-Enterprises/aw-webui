@@ -1,9 +1,10 @@
-import { shallowMount } from '@vue/test-utils';
 import { createTestingPinia } from '@pinia/testing';
+import { shallowMount, type Wrapper } from '@vue/test-utils';
+import type Vue from 'vue';
 import HomeComponent from '~/views/Home.vue';
+import { optionsApi, withVm } from '../helpers/vue';
 
-// Tests call Options API members directly, which the Vue constructor type doesn't expose.
-const Home: any = HomeComponent;
+const Home = optionsApi(HomeComponent);
 
 describe('Home supporter nudge', () => {
   test('does not show after another tab snoozes during async evaluation', () => {
@@ -21,11 +22,11 @@ describe('Home supporter nudge', () => {
   });
 
   test('hides a visible nudge when another tab snoozes it', () => {
-    const listeners: Record<string, any> = {};
+    const listeners: Record<string, (event: StorageEvent) => void> = {};
     const addEventListenerSpy = jest
       .spyOn(window, 'addEventListener')
       .mockImplementation((type, listener) => {
-        listeners[type] = listener;
+        listeners[type] = listener as (event: StorageEvent) => void;
       });
     const removeEventListenerSpy = jest.spyOn(window, 'removeEventListener');
     const vm = {
@@ -35,7 +36,7 @@ describe('Home supporter nudge', () => {
     };
 
     Home.methods.startSupporterStorageSync.call(vm);
-    listeners.storage({ key: 'aw-supporter-nudge-dismissed-until' });
+    listeners.storage({ key: 'aw-supporter-nudge-dismissed-until' } as StorageEvent);
 
     expect(vm.supporterNudgeVisible).toBe(false);
 
@@ -48,7 +49,7 @@ describe('Home supporter nudge', () => {
 });
 
 describe('Home subscribe CTA src', () => {
-  let wrapper: any;
+  let wrapper: Wrapper<Vue> | null = null;
 
   afterEach(() => {
     if (wrapper) {
@@ -59,17 +60,20 @@ describe('Home subscribe CTA src', () => {
 
   function mountHome(isAndroid: boolean) {
     createTestingPinia();
-    wrapper = shallowMount(Home, {
-      mocks: { $isAndroid: isAndroid },
-      stubs: ['b-alert', 'b-button', 'router-link'],
-    });
-    return wrapper;
+    const mounted = withVm<{ subscribeUrl: string }>(
+      shallowMount(HomeComponent, {
+        mocks: { $isAndroid: isAndroid },
+        stubs: ['b-alert', 'b-button', 'router-link'],
+      }),
+    );
+    wrapper = mounted;
+    return mounted;
   }
 
-  function subscribeHref(vmWrapper: any): string {
+  function subscribeHref(vmWrapper: Wrapper<Vue>): string {
     const link = vmWrapper
       .findAll('a')
-      .wrappers.find((a: any) => a.text().includes('Support ActivityWatch'));
+      .wrappers.find((a) => a.text().includes('Support ActivityWatch'));
     expect(link).toBeTruthy();
     return link.attributes('href');
   }

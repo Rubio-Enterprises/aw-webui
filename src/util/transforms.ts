@@ -2,18 +2,24 @@ import _ from 'lodash';
 import moment from 'moment';
 import { get_hour_offset } from '~/util/time';
 
+interface TimedEvent {
+  timestamp: string;
+  duration: number;
+}
+
 // TODO: Move somewhere else, possibly turn into a serverside transform
-export function split_by_hour_into_data(events) {
-  if (events === undefined || events === null || events.length == 0) return [];
-  const d = moment(events[0].timestamp).startOf('day');
+export function split_by_hour_into_data(events: TimedEvent[] | null | undefined): number[] {
+  const [first] = events ?? [];
+  if (events === undefined || events === null || first === undefined) return [];
+  const d = moment(first.timestamp).startOf('day');
   const hoursOffset = get_hour_offset();
-  return _.range(0, 24).map(h => {
+  return _.range(0, 24).map((h) => {
     h += hoursOffset;
     let duration = 0;
     const d_start = d.clone().hour(h);
     const d_end = d.clone().hour(h + 1);
     // This can be made faster by not checking every event per hour, but since number of events is small anyway this and this is a lot shorter and easier to read it doesn't really matter.
-    events.map(e => {
+    events.forEach((e) => {
       const e_start = moment(e.timestamp);
       const e_end = e_start.clone().add(e.duration, 'seconds');
       if (
@@ -40,38 +46,39 @@ export function split_by_hour_into_data(events) {
   });
 }
 
-type OverlapPart = {
+type OverlapPart<E> = {
   start: Date;
   end: Date;
-  event: object;
+  event: E;
 };
-type Overlap = [OverlapPart, OverlapPart];
+type Overlap<E> = [OverlapPart<E>, OverlapPart<E>];
 
-function eventBounds(event): { start: Date; end: Date; end_ms: number } {
+function eventBounds(event: TimedEvent): { start: Date; end: Date; end_ms: number } {
   const start = new Date(event.timestamp);
   const end_ms = start.valueOf() + 1000 * event.duration;
   return { start, end: new Date(end_ms), end_ms };
 }
 
-export function overlappingEvents(events1, events2): Overlap[] {
+export function overlappingEvents<E extends TimedEvent>(events1: E[], events2: E[]): Overlap<E>[] {
   // Compared before sorting, since sorting a copy keeps the caller's lists untouched.
   const same_list = events1 === events2;
 
   const sorted1 = [...events1].sort(
-    (a, b) => new Date(a.timestamp).valueOf() - new Date(b.timestamp).valueOf()
+    (a, b) => new Date(a.timestamp).valueOf() - new Date(b.timestamp).valueOf(),
   );
   const sorted2 = same_list
     ? sorted1
     : [...events2].sort(
-        (a, b) => new Date(a.timestamp).valueOf() - new Date(b.timestamp).valueOf()
+        (a, b) => new Date(a.timestamp).valueOf() - new Date(b.timestamp).valueOf(),
       );
 
   let i = 0;
   let j = 0;
-  const overlapping = [];
+  const overlapping: Overlap<E>[] = [];
   while (i < sorted1.length && j < sorted2.length) {
     const e1 = sorted1[i];
     const e2 = sorted2[j];
+    if (e1 === undefined || e2 === undefined) break;
 
     // If `events1` and `events2` are the same list, we need to check if we are comparing the same event
     if (same_list && e1 === e2) {

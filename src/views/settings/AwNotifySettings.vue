@@ -64,6 +64,7 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import 'vue-awesome/icons/plus';
 import 'vue-awesome/icons/trash';
 
@@ -76,6 +77,9 @@ import {
 } from '~/util/aw-notify';
 
 const SETTINGS_KEY = 'aw-notify';
+
+// The error shape of a failed aw-client request
+type RequestError = { message?: string; response?: { status?: number } };
 
 interface AlertRow {
   label: string;
@@ -106,7 +110,7 @@ function rowToDto(row: AlertRow): AwNotifyAlert {
   };
 }
 
-export default {
+export default defineComponent({
   name: 'AwNotifySettings',
   data() {
     return {
@@ -146,11 +150,14 @@ export default {
         this.config = config;
         this.enabled = config.enabled ?? false;
         this.alerts = config.alerts.map(dtoToRow);
-      } catch (e: any) {
+      } catch (error) {
+        const e = error as RequestError | undefined;
         if (e?.response?.status === 404) {
           this.useDefaults();
         } else {
-          this.error = this.$t('settings.notifications.loadFailed', { error: e?.message ?? e });
+          this.error = this.$t('settings.notifications.loadFailed', {
+            error: e?.message ?? error,
+          }) as string;
         }
       } finally {
         this.loading = false;
@@ -193,8 +200,9 @@ export default {
         // latest saved alerts, not the stale snapshot from page load.
         this.config = payload;
         this.success = true;
-      } catch (e: any) {
-        this.error = `Failed to save settings: ${e?.message ?? e}`;
+      } catch (error) {
+        const e = error as RequestError | undefined;
+        this.error = `Failed to save settings: ${e?.message ?? error}`;
       } finally {
         this.saving = false;
       }
@@ -223,5 +231,5 @@ export default {
       ];
     },
   },
-};
+});
 </script>

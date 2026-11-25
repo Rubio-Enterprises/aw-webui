@@ -1,26 +1,36 @@
 import _ from 'lodash';
-
-import { IBucket } from '~/util/interfaces';
 import { defineStore } from 'pinia';
-import { getClient } from '~/util/awclient';
 import { useServerStore } from '~/stores/server';
+import { getClient } from '~/util/awclient';
 import { deviceHostnames } from '~/util/hostnames';
+import type { IBucket, IEvent } from '~/util/interfaces';
 
 function select_buckets(
   buckets: IBucket[],
-  { host, type }: { host?: string; type?: string }
+  { host, type }: { host?: string; type?: string },
 ): string[] {
   return _.map(
     _.filter(
       buckets,
-      bucket => (!type || bucket.type === type) && (!host || bucket.hostname == host)
+      (bucket) => (!type || bucket.type === type) && (!host || bucket.hostname === host),
     ),
-    bucket => bucket['id']
+    (bucket) => bucket['id'],
   );
 }
 
 interface State {
   buckets: IBucket[];
+}
+
+// The buckets of one device, as the Buckets view lists them
+export interface BucketDevice {
+  buckets: IBucket[];
+  device_id: string | undefined;
+  device_ids: string[];
+  hostname: string | undefined;
+  hostnames: (string | undefined)[];
+  first_seen: Date | string | undefined;
+  last_updated: Date | string | undefined;
 }
 
 export const useBucketsStore = defineStore('buckets', {
@@ -31,7 +41,9 @@ export const useBucketsStore = defineStore('buckets', {
   getters: {
     hosts(state: State): string[] {
       // TODO: Include consideration of device_id UUID
-      let hosts = _.uniq(_.map(state.buckets, bucket => bucket.hostname || bucket.data.hostname));
+      let hosts = _.uniq(
+        _.map(state.buckets, (bucket) => bucket.hostname || bucket.data.hostname),
+      ).filter((host): host is string => host !== undefined);
 
       // Sort priority:
       //   1. Host that matches the server's own hostname (the device the
@@ -42,19 +54,19 @@ export const useBucketsStore = defineStore('buckets', {
       //      with only one orphan bucket and then immediately error out.
       //   3. Then by last_updated, newest first (legacy behavior).
       const serverStore = useServerStore();
-      const selfHost = serverStore.info && serverStore.info.hostname;
+      const selfHost = serverStore.info?.hostname;
       hosts = _.orderBy(
         hosts,
         [
-          host => (host && host === selfHost ? 1 : 0),
-          host => {
+          (host) => (host && host === selfHost ? 1 : 0),
+          (host) => {
             const hasWindow = this.bucketsWindow(host).length > 0;
             const hasAfk = this.bucketsAFK(host).length > 0;
             return hasWindow && hasAfk ? 2 : hasWindow || hasAfk ? 1 : 0;
           },
-          host => _.max(_.map(this.bucketsByHostname[host], b => b.last_updated)) || '',
+          (host) => _.max(_.map(this.bucketsByHostname[host] ?? [], (b) => b.last_updated)) || '',
         ],
-        ['desc', 'desc', 'desc']
+        ['desc', 'desc', 'desc'],
       );
       return hosts;
     },
@@ -63,9 +75,9 @@ export const useBucketsStore = defineStore('buckets', {
       return deviceHostnames(this.hosts);
     },
     // Uses device_id instead of hostname
-    devices(this: State): string[] {
+    devices(this: State): (string | undefined)[] {
       // TODO: Include consideration of device_id UUID
-      return _.uniq(_.map(this.buckets, bucket => bucket.device_id || bucket.data.device_id));
+      return _.uniq(_.map(this.buckets, (bucket) => bucket.device_id || bucket.data.device_id));
     },
 
     available(): (hostname: string) => {
@@ -81,7 +93,7 @@ export const useBucketsStore = defineStore('buckets', {
       // 'window' requires ((currentwindow + afkstatus) or android) buckets
       // 'browser' requires browser buckets (aw-watcher-web); independent of window/afk
       // 'editor' requires editor buckets
-      return hostname => {
+      return (hostname) => {
         const windowAvail =
           this.bucketsWindow(hostname).length > 0 && this.bucketsAFK(hostname).length > 0;
         const androidAvail = this.bucketsAndroid(hostname).length > 0;
@@ -98,11 +110,11 @@ export const useBucketsStore = defineStore('buckets', {
     },
 
     bucketsByType(
-      this: State
+      this: State,
     ): (host: string, type: string, fallback_unknown_host?: boolean) => string[] {
       return (host, type, fallback_unknown_host) => {
         let buckets = select_buckets(this.buckets, { host, type });
-        if (fallback_unknown_host && buckets.length == 0) {
+        if (fallback_unknown_host && buckets.length === 0) {
           buckets = select_buckets(this.buckets, { host: 'unknown', type });
           //console.log('fallback: ', buckets);
         }
@@ -112,12 +124,12 @@ export const useBucketsStore = defineStore('buckets', {
 
     // Convenience getters for bucketsByType
     bucketsAFK(): (host: string) => string[] {
-      return host => this.bucketsByType(host, 'afkstatus');
+      return (host) => this.bucketsByType(host, 'afkstatus');
     },
     bucketsWindow(): (host: string) => string[] {
-      return host =>
+      return (host) =>
         this.bucketsByType(host, 'currentwindow').filter(
-          (id: string) => !id.startsWith('aw-watcher-android')
+          (id: string) => !id.startsWith('aw-watcher-android'),
         );
     },
     // The window/afk bucket ids to query for a desktop host. Buckets synced
@@ -125,20 +137,20 @@ export const useBucketsStore = defineStore('buckets', {
     // "aw-watcher-window_<host>" id only exists for local buckets. Falls back
     // to that conventional id when no matching bucket is loaded.
     desktopBucketIds(): (host: string) => { bid_window: string; bid_afk: string } {
-      return host => ({
-        bid_window: this.bucketsWindow(host)[0] || 'aw-watcher-window_' + host,
-        bid_afk: this.bucketsAFK(host)[0] || 'aw-watcher-afk_' + host,
+      return (host) => ({
+        bid_window: this.bucketsWindow(host)[0] || `aw-watcher-window_${host}`,
+        bid_afk: this.bucketsAFK(host)[0] || `aw-watcher-afk_${host}`,
       });
     },
     bucketsAndroid(): (host: string) => string[] {
-      return host => {
+      return (host) => {
         const android = this.bucketsByType(host, 'currentwindow').filter((id: string) =>
-          id.startsWith('aw-watcher-android')
+          id.startsWith('aw-watcher-android'),
         );
         // aw-import-screentime uses bucket type 'app'; filter by name prefix to avoid
         // matching unrelated 'app'-type buckets from other sources.
         const ios = this.bucketsByType(host, 'app').filter((id: string) =>
-          id.startsWith('aw-import-screentime')
+          id.startsWith('aw-import-screentime'),
         );
         return [...android, ...ios];
       };
@@ -146,12 +158,12 @@ export const useBucketsStore = defineStore('buckets', {
     bucketsEditor(): (host: string) => string[] {
       // fallback to a bucket with 'unknown' host, if one exists.
       // TODO: This needs a fix so we can get rid of this workaround.
-      return host => this.bucketsByType(host, 'app.editor.activity', true);
+      return (host) => this.bucketsByType(host, 'app.editor.activity', true);
     },
     bucketsBrowser(): (host: string) => string[] {
       // fallback to a bucket with 'unknown' host, if one exists.
       // TODO: This needs a fix so we can get rid of this workaround.
-      return host => this.bucketsByType(host, 'web.tab.current', true);
+      return (host) => this.bucketsByType(host, 'web.tab.current', true);
     },
     bucketsStopwatch(): (host: string) => string[] {
       // fallback to a bucket with 'unknown' host, if one exists.
@@ -159,8 +171,8 @@ export const useBucketsStore = defineStore('buckets', {
       return (host: string) => this.bucketsByType(host, 'general.stopwatch', true);
     },
 
-    getBucket(this: State): (id: string) => IBucket {
-      return id => _.filter(this.buckets, b => b.id === id)[0];
+    getBucket(this: State): (id: string) => IBucket | undefined {
+      return (id) => this.buckets.find((b) => b.id === id);
     },
     bucketsByHostname(this: State): Record<string, IBucket[]> {
       return _.groupBy(this.buckets, 'hostname');
@@ -171,12 +183,14 @@ export const useBucketsStore = defineStore('buckets', {
     //
     // First element will be the current hostname/device, if present.
     // Others sorted by last_updated.
-    bucketsByDevice: function () {
-      let devices = _.mapValues(
-        _.groupBy(this.buckets, b => b.hostname || b.device_id),
-        d => {
-          const hostnames = _.uniq(_.map(d, b => b.hostname || b.data.hostname));
-          const device_ids = _.uniq(_.map(d, b => b.data.device_id || b.hostname));
+    bucketsByDevice(this: State): Record<string, BucketDevice> {
+      let devices: Record<string, BucketDevice> = _.mapValues(
+        _.groupBy(this.buckets, (b) => b.hostname || b.device_id),
+        (d) => {
+          const hostnames = _.uniq(_.map(d, (b) => b.hostname || b.data.hostname));
+          const device_ids = _.uniq(_.map(d, (b) => b.data.device_id || b.hostname)).filter(
+            (id): id is string => id !== undefined,
+          );
           // Prefer a real UUID over a hostname fallback: if any device_id in the
           // group differs from the hostname, use that one. A mixed group (some
           // buckets without data.device_id) would otherwise surface the hostname
@@ -185,10 +199,10 @@ export const useBucketsStore = defineStore('buckets', {
           // of the group's hostnames (case-insensitively: data.hostname can
           // differ in case from bucket.hostname), then the first entry.
           const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-          const hostnameSet = new Set(hostnames.map(h => (h || '').toLowerCase()));
+          const hostnameSet = new Set(hostnames.map((h) => (h || '').toLowerCase()));
           const device_id =
-            device_ids.find(id => UUID_RE.test(id)) ||
-            device_ids.find(id => !hostnameSet.has(id.toLowerCase())) ||
+            device_ids.find((id) => UUID_RE.test(id)) ||
+            device_ids.find((id) => !hostnameSet.has(id.toLowerCase())) ||
             device_ids[0];
           return {
             buckets: d,
@@ -196,24 +210,24 @@ export const useBucketsStore = defineStore('buckets', {
             device_ids,
             hostname: hostnames[0],
             hostnames,
-            first_seen: _.min(_.map(d, b => b.first_seen)),
-            last_updated: _.max(_.map(d, b => b.last_updated)),
+            first_seen: _.min(_.map(d, (b) => b.first_seen)),
+            last_updated: _.max(_.map(d, (b) => b.last_updated)),
           };
-        }
+        },
       );
 
       // Sort by last_updated
       const sortObjectByUpdated = _.flow([
         _.toPairs,
-        pairs => _.orderBy(pairs, pair => pair[1].last_updated, ['desc']),
+        (pairs) => _.orderBy(pairs, (pair) => pair[1].last_updated, ['desc']),
         _.fromPairs,
       ]);
       devices = sortObjectByUpdated(devices);
 
       // find self-device and put first
       const serverStore = useServerStore();
-      const hostname = serverStore.info && serverStore.info.hostname;
-      const currentDevice = Object.prototype.hasOwnProperty.call(devices, hostname)
+      const hostname = String(serverStore.info === null ? null : serverStore.info?.hostname);
+      const currentDevice = Object.getOwnPropertyDescriptor(devices, hostname)
         ? devices[hostname]
         : null;
       if (currentDevice) {
@@ -235,7 +249,8 @@ export const useBucketsStore = defineStore('buckets', {
 
     async loadBuckets(): Promise<void> {
       const buckets = await getClient().getBuckets();
-      this.update_buckets(buckets);
+      // aw-client types buckets more narrowly than the server sends them.
+      this.update_buckets(Object.values(buckets) as unknown as IBucket[]);
     },
 
     async getBucketWithEvents({
@@ -245,29 +260,35 @@ export const useBucketsStore = defineStore('buckets', {
       limit,
     }: {
       id: string;
-      start?: Date;
-      end?: Date;
+      // Callers pass Dates or formatted timestamps; aw-client forwards both unchanged.
+      start?: Date | string;
+      end?: Date | string;
       limit?: number;
     }) {
       await this.ensureLoaded();
-      const bucket = _.cloneDeep(this.getBucket(id));
-      bucket.events = await getClient().getEvents(bucket.id, {
-        start,
-        end,
+      const found = this.getBucket(id);
+      if (!found) throw new Error(`Unknown bucket: ${id}`);
+      const bucket = _.cloneDeep(found);
+      // aw-client declares event timestamps as Date, but the JSON response carries ISO strings.
+      // aw-client types the options and event timestamps as Date; the API takes and
+      // returns ISO strings.
+      bucket.events = (await getClient().getEvents(bucket.id, {
+        start: start as Date | undefined,
+        end: end as Date | undefined,
         limit: limit || -1,
-      });
+      })) as unknown as IEvent[];
       return bucket;
     },
 
-    async getBucketsWithEvents({ start, end }: { start?: Date; end?: Date }) {
+    async getBucketsWithEvents({ start, end }: { start?: Date | string; end?: Date | string }) {
       await this.ensureLoaded();
       const buckets = await Promise.all(
         _.map(
           this.buckets,
-          async bucket => await this.getBucketWithEvents({ id: bucket.id, start, end })
-        )
+          async (bucket) => await this.getBucketWithEvents({ id: bucket.id, start, end }),
+        ),
       );
-      return _.orderBy(buckets, [b => b.id], ['asc']);
+      return _.orderBy(buckets, [(b) => b.id], ['asc']);
     },
 
     async deleteBucket({ bucketId }: { bucketId: string }) {
@@ -283,7 +304,7 @@ export const useBucketsStore = defineStore('buckets', {
           await getClient().deleteBucket(bucketId);
         }
       } finally {
-        await this.loadBuckets().catch(err => {
+        await this.loadBuckets().catch((err) => {
           console.warn('Failed to reload buckets after deletion:', err);
         });
       }
@@ -292,7 +313,7 @@ export const useBucketsStore = defineStore('buckets', {
 
     // mutations
     update_buckets(this: State, buckets: IBucket[]): void {
-      this.buckets = _.orderBy(buckets, [b => b.id], ['asc']).map(b => {
+      this.buckets = _.orderBy(buckets, [(b) => b.id], ['asc']).map((b) => {
         // Some harmonization as aw-server-rust and aw-server-python APIs diverge slightly
         if (!b.last_updated && b.metadata && b.metadata.end) {
           b.last_updated = b.metadata.end;

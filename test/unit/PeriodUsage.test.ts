@@ -1,14 +1,14 @@
 import { mount } from '@vue/test-utils';
-import { createPinia, setActivePinia } from 'pinia';
 import moment from 'moment';
-import PeriodUsage from '~/visualizations/PeriodUsage.vue';
-import periodusage from '~/visualizations/periodusage';
-import ActivityComponent from '~/views/activity/Activity.vue';
+import { createPinia, setActivePinia } from 'pinia';
 import { useActivityStore } from '~/stores/activity';
 import { timeperiodToStr } from '~/util/timeperiod';
+import ActivityComponent from '~/views/activity/Activity.vue';
+import PeriodUsage from '~/visualizations/PeriodUsage.vue';
+import periodusage from '~/visualizations/periodusage';
+import { optionsApi } from '../helpers/vue';
 
-// Tests call Options API members directly, which the Vue constructor type doesn't expose.
-const Activity: any = ActivityComponent;
+const Activity = optionsApi(ActivityComponent);
 
 beforeEach(() => {
   setActivePinia(createPinia());
@@ -16,7 +16,10 @@ beforeEach(() => {
 });
 afterEach(() => jest.useRealTimers());
 
-const period = (start, periodLength: any = [1, 'day']): any => ({ start, length: periodLength });
+const period = (start: string, periodLength: [number, string] = [1, 'day']) => ({
+  start,
+  length: periodLength,
+});
 const entry = (p, events = []) => ({ period: p, events });
 
 test.each([
@@ -40,7 +43,7 @@ test.each([
 
 test('renders provided data on mount, sums events, and emits the original period', () => {
   const p = period('2026-09-09T04:00:00');
-  const wrapper: any = mount(PeriodUsage, {
+  const wrapper = mount(PeriodUsage, {
     propsData: {
       periodusage_arr: [
         entry(p, [
@@ -65,7 +68,7 @@ test('renders provided data on mount, sums events, and emits the original period
 
 test('empty periods remain clickable and Today is end-exclusive and refreshed', async () => {
   const current = period('2026-09-03T04:00:00', [7, 'days']);
-  const wrapper: any = mount(PeriodUsage, { propsData: { periodusage_arr: [entry(current)] } });
+  const wrapper = mount(PeriodUsage, { propsData: { periodusage_arr: [entry(current)] } });
   try {
     expect(wrapper.find('rect title').text()).toContain('2026-09-03 – 2026-09-09');
     expect(wrapper.findAll('line')).toHaveLength(1);
@@ -95,7 +98,7 @@ test.each([
   expect(vm.setDate).toHaveBeenCalledWith(expected);
 });
 
-test.each(['last7d', 'last30d'])('%s route retains the supplied anchor', periodLength => {
+test.each(['last7d', 'last30d'])('%s route retains the supplied anchor', (periodLength) => {
   const vm = {
     periodLength,
     settingsStore: { startOfDay: '04:00' },
@@ -173,7 +176,7 @@ describe('renderer geometry', () => {
     expectFinite(el);
   });
 
-  test.each([[[]], [null], [undefined]])('%p renders the No data status', entries => {
+  test.each([[[]], [null], [undefined]])('%p renders the No data status', (entries) => {
     const el = render(entries);
     expect(el.textContent).toContain('No data');
     expect(el.querySelectorAll('rect')).toHaveLength(0);
@@ -200,13 +203,13 @@ describe('renderer geometry', () => {
     periodusage.create(el);
 
     const todays = () =>
-      Array.from(el.querySelectorAll('text')).filter(t => t.textContent === 'Today').length;
+      Array.from(el.querySelectorAll('text')).filter((t) => t.textContent === 'Today').length;
 
     // now is 2026-09-10T02:00, which belongs to the activity day starting 09-09.
     periodusage.update(
       el,
       [active(period('2026-09-09T04:00:00'), 100), active(period('2026-09-08T04:00:00'), 50)],
-      jest.fn()
+      jest.fn(),
     );
     expect(el.querySelectorAll('rect')).toHaveLength(2);
     expect(todays()).toBe(1);

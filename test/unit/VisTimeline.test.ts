@@ -10,19 +10,19 @@
  *      built-in horizontal-scroll path.
  */
 
-import VisTimelineComponent from '~/visualizations/VisTimeline.vue';
-import EventEditorComponent from '~/components/EventEditor.vue';
-import StopwatchEntryComponent from '~/components/StopwatchEntry.vue';
 import moment from 'moment';
 import { createPinia, setActivePinia } from 'pinia';
 import { DataSet } from 'vis-data';
+import EventEditorComponent from '~/components/EventEditor.vue';
+import StopwatchEntryComponent from '~/components/StopwatchEntry.vue';
+import VisTimelineComponent from '~/visualizations/VisTimeline.vue';
+import { optionsApi } from '../helpers/vue';
 
 const DataSetUpdate = DataSet.prototype.update;
 
-// Tests call Options API members directly, which the Vue constructor type doesn't expose.
-const VisTimeline: any = VisTimelineComponent;
-const EventEditor: any = EventEditorComponent;
-const StopwatchEntry: any = StopwatchEntryComponent;
+const VisTimeline = optionsApi(VisTimelineComponent);
+const EventEditor = optionsApi(EventEditorComponent);
+const StopwatchEntry = optionsApi(StopwatchEntryComponent);
 
 // vis-timeline creates a real DOM timeline; mock the entire import so unit
 // tests run in jsdom without a full browser canvas/resize-observer stack.
@@ -38,7 +38,7 @@ jest.mock('vis-timeline/esnext', () => ({
 jest.mock('vis-timeline/styles/vis-timeline-graph2d.css', () => ({}));
 
 describe('timeline event editing (#984)', () => {
-  const editorVm = overrides => ({
+  const editorVm = (overrides) => ({
     ...EventEditor.data(),
     ...EventEditor.methods,
     event: { id: 7 },
@@ -57,7 +57,7 @@ describe('timeline event editing (#984)', () => {
         editedEvent,
         $aw: { replaceEvent },
         $emit: emit,
-      })
+      }),
     );
 
     expect(replaceEvent).toHaveBeenCalledWith('aw-watcher-window_test', editedEvent);
@@ -75,15 +75,15 @@ describe('timeline event editing (#984)', () => {
       duration: 60,
       data: { running: true, label: 'original', nested: { value: 'original' } },
     };
-    let finishWrite;
+    let finishWrite: () => void;
     const replaceEvent = jest.fn(
-      (_bucketId: string, _event: any) =>
-        new Promise(resolve => {
+      (_bucketId: string, _event: { timestamp: unknown }) =>
+        new Promise<void>((resolve) => {
           finishWrite = resolve;
-        })
+        }),
     );
     const emit = jest.fn();
-    const vm: any = editorVm({
+    const vm = editorVm({
       bucket_id: 'aw-stopwatch_test',
       editedEvent,
       $aw: { replaceEvent },
@@ -145,11 +145,11 @@ describe('timeline event editing (#984)', () => {
     };
     const saved = { ...original, data: { title: 'after' } };
     const vm = {
-      eventOverrides: { ['aw-watcher-window_test\0' + original.id]: saved },
+      eventOverrides: { [`aw-watcher-window_test\0${original.id}`]: saved },
     };
 
     expect(VisTimeline.methods.displayEvent.call(vm, 'aw-watcher-window_test', original)).toBe(
-      saved
+      saved,
     );
     expect(VisTimeline.methods.displayEvent.call(vm, 'other-bucket', original)).toBe(original);
   });
@@ -172,7 +172,7 @@ describe('timeline event editing (#984)', () => {
 
     VisTimeline.methods.onEventSaved.call(vm, saved);
 
-    expect(vm.eventOverrides['aw-watcher-window_test\0' + saved.id]).toBe(saved);
+    expect(vm.eventOverrides[`aw-watcher-window_test\0${saved.id}`]).toBe(saved);
     expect(vm.editingEvent).toBe(saved);
     expect(vm.update).toHaveBeenCalledTimes(1);
     expect(emit).toHaveBeenCalledWith('event-saved', saved);
@@ -325,9 +325,9 @@ describe('timeline teardown', () => {
   });
 
   test('does not create an instance after destruction while nextTick is pending', () => {
-    let mount;
+    let mount: () => void;
     const vm = {
-      $nextTick: callback => {
+      $nextTick: (callback) => {
         mount = callback;
       },
       _isDestroyed: false,
@@ -384,7 +384,7 @@ describe('VisTimeline scroll bounds (#996)', () => {
   const dayEnd = moment(dayStart).add(1, 'day');
 
   function makeVm(overrides = {}) {
-    const vm: any = {
+    const vm = {
       ...VisTimeline.data(),
       ...VisTimeline.methods,
       showRowLabels: false,
@@ -428,7 +428,7 @@ describe('VisTimeline scroll bounds (#996)', () => {
     expect(vm.timeline.setWindow).toHaveBeenCalledWith(
       dayStart.valueOf(),
       dayEnd.valueOf(),
-      expect.anything()
+      expect.anything(),
     );
   });
 
@@ -461,7 +461,7 @@ describe('VisTimeline scroll bounds (#996)', () => {
     expect(vm.timeline.setWindow).toHaveBeenCalledWith(
       nextStart.valueOf(),
       nextEnd.valueOf(),
-      expect.anything()
+      expect.anything(),
     );
   });
 
@@ -475,7 +475,7 @@ describe('VisTimeline scroll bounds (#996)', () => {
     expect(vm.timeline.setWindow).toHaveBeenCalledWith(
       dayStart.valueOf(),
       dayEnd.valueOf(),
-      expect.anything()
+      expect.anything(),
     );
   });
 
@@ -577,7 +577,7 @@ describe('VisTimeline rendering cost', () => {
   test('syncs the items for the new window before moving the window', () => {
     const vm = makeVm();
     const calls = [];
-    jest.spyOn(vm.itemData, 'update').mockImplementation((items: any) => {
+    jest.spyOn(vm.itemData, 'update').mockImplementation((items: unknown[]) => {
       calls.push(['items', items.length]);
       return DataSetUpdate.call(vm.itemData, items);
     });
@@ -638,7 +638,7 @@ describe('panning within the rendered buffer', () => {
 
   test.each([1, -1])(
     'reuses the buffer then refills it when panning in direction %s',
-    direction => {
+    (direction) => {
       const vm = makeVm();
       const originalItems = vm.items;
       const originalEvents = vm.itemEvents;
@@ -648,7 +648,7 @@ describe('panning within the rendered buffer', () => {
       move(vm, 10000 + direction * 4100);
       expect(vm.items).not.toBe(originalItems);
       expect(vm.groupData.getIds()).toEqual(['afk']);
-    }
+    },
   );
 
   test('syncs every zoom even when the viewport fits inside the old buffer', () => {

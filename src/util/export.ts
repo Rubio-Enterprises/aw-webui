@@ -11,8 +11,6 @@
 
 import Papa from 'papaparse';
 
-import { IEvent } from './interfaces';
-
 /**
  * Cells a spreadsheet would evaluate as a formula: a leading `=`, `+`, `-` or
  * `@`, also after leading whitespace (Excel and LibreOffice trim it, so
@@ -32,11 +30,17 @@ export function neutralizeCsvFormula(value: string): string {
  * PapaParse ignores the `columns` option for array rows, so the header has to
  * be passed as `fields`.
  */
-export function reportEventsCsv(events: IEvent[]): string {
+interface ReportEventRow {
+  timestamp: string;
+  duration: number;
+  data: { $category?: unknown; app?: string; title?: string };
+}
+
+export function reportEventsCsv(events: ReportEventRow[]): string {
   return Papa.unparse(
     {
       fields: ['timestamp', 'duration', 'category', 'app', 'title'],
-      data: events.map(e => [
+      data: events.map((e) => [
         e.timestamp,
         e.duration,
         // PapaParse checks strings before coercing arrays to comma-separated text.
@@ -45,7 +49,7 @@ export function reportEventsCsv(events: IEvent[]): string {
         e.data['title'],
       ]),
     },
-    { escapeFormulae: CSV_FORMULA_PATTERN }
+    { escapeFormulae: CSV_FORMULA_PATTERN },
   );
 }
 
@@ -68,7 +72,7 @@ function isTauri(): boolean {
 export async function downloadFile(
   filename: string,
   content: string,
-  mimeType: string
+  mimeType: string,
 ): Promise<void> {
   if (isTauri()) {
     await downloadFileTauri(filename, content, mimeType);
@@ -80,7 +84,8 @@ export async function downloadFile(
 function getFilters(mimeType: string): FileFilter[] {
   if (mimeType.includes('json')) {
     return [{ name: 'JSON', extensions: ['json'] }];
-  } else if (mimeType.includes('csv')) {
+  }
+  if (mimeType.includes('csv')) {
     return [{ name: 'CSV', extensions: ['csv'] }];
   }
   return [];
@@ -89,13 +94,12 @@ function getFilters(mimeType: string): FileFilter[] {
 async function downloadFileTauri(
   filename: string,
   content: string,
-  mimeType: string
+  mimeType: string,
 ): Promise<void> {
   try {
     // These modules are only available in the Tauri runtime (injected by aw-tauri).
     // Using new Function() to bypass static analysis by webpack and rollup,
     // which would otherwise fail to resolve these packages at build time.
-    // eslint-disable-next-line no-new-func
     const dynamicImport = new Function('m', 'return import(m)') as (m: string) => Promise<unknown>;
     const { save } = (await dynamicImport('@tauri-apps/plugin-dialog')) as {
       save: (opts: object) => Promise<string | null>;

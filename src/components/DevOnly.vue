@@ -9,7 +9,8 @@ div(v-if="show", style="border: 1px solid #aaa; border-radius: 5px")
 </template>
 
 <script lang="ts">
-export default {
+import { defineComponent } from 'vue';
+export default defineComponent({
   props: {
     note: {
       type: Boolean,
@@ -28,5 +29,5 @@ export default {
       return !PRODUCTION && !this.hide;
     },
   },
-};
+});
 </script>

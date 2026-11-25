@@ -33,18 +33,18 @@ const buckets = [
 
 describe('workReport host helpers', () => {
   test('getWorkReportHostOptions disables hosts without AFK buckets', () => {
-    expect(getWorkReportHostOptions(buckets as any)).toEqual([
+    expect(getWorkReportHostOptions(buckets)).toEqual([
       { value: 'laptop', text: 'laptop', disabled: false },
       { value: 'phone', text: 'phone (requires aw-watcher-afk)', disabled: true },
     ]);
   });
 
   test('getUnsupportedWorkReportHosts returns selected hosts missing AFK buckets', () => {
-    expect(getUnsupportedWorkReportHosts(['laptop', 'phone'], buckets as any)).toEqual(['phone']);
+    expect(getUnsupportedWorkReportHosts(['laptop', 'phone'], buckets)).toEqual(['phone']);
   });
 
   test('getSupportedWorkReportHosts returns only hosts with AFK buckets', () => {
-    expect(getSupportedWorkReportHosts(['laptop', 'phone'], buckets as any)).toEqual(['laptop']);
+    expect(getSupportedWorkReportHosts(['laptop', 'phone'], buckets)).toEqual(['laptop']);
   });
 
   test('buildWorkReportQuery uses single-arg flood() for both window and afk buckets', () => {
@@ -55,7 +55,7 @@ describe('workReport host helpers', () => {
     const query = buildWorkReportQuery(
       [{ host: 'laptop', window: 'aw-watcher-window_laptop', afk: 'aw-watcher-afk_laptop' }],
       '[]',
-      []
+      [],
     );
     expect(query).toContain('events_0 = flood(query_bucket("aw-watcher-window_laptop"));');
     expect(query).toContain('not_afk_0 = flood(query_bucket("aw-watcher-afk_laptop"));');
@@ -70,7 +70,7 @@ describe('workReport host helpers', () => {
         { host: 'desktop', window: 'aw-watcher-window_desktop', afk: 'aw-watcher-afk_desktop' },
       ],
       '[]',
-      [['Work']]
+      [['Work']],
     );
     expect(query).toMatchSnapshot();
   });
@@ -94,9 +94,10 @@ describe('workReport host helpers', () => {
       },
     ];
 
-    expect(getSupportedWorkReportHosts(['desktop', 'phone', 'laptop'], moreBuckets as any)).toEqual(
-      ['desktop', 'laptop']
-    );
+    expect(getSupportedWorkReportHosts(['desktop', 'phone', 'laptop'], moreBuckets)).toEqual([
+      'desktop',
+      'laptop',
+    ]);
   });
 
   test('synced and Android buckets are named by hostname and queried by real id', () => {
@@ -130,7 +131,7 @@ describe('workReport host helpers', () => {
       },
     ];
 
-    expect(getWorkReportHostOptions(syncedBuckets as any)).toEqual([
+    expect(getWorkReportHostOptions(syncedBuckets)).toEqual([
       { value: 'laptop', text: 'laptop', disabled: false },
       { value: 'home-desktop', text: 'home-desktop', disabled: false },
       { value: 'pixel-8', text: 'pixel-8 (requires aw-watcher-afk)', disabled: true },
@@ -138,7 +139,7 @@ describe('workReport host helpers', () => {
 
     const hostBuckets = getWorkReportHostBuckets(
       ['home-desktop', 'pixel-8', 'laptop'],
-      syncedBuckets as any
+      syncedBuckets,
     );
     expect(hostBuckets).toEqual([
       {
@@ -151,10 +152,10 @@ describe('workReport host helpers', () => {
 
     const query = buildWorkReportQuery(hostBuckets, '[]', []);
     expect(query).toContain(
-      'events_0 = flood(query_bucket("aw-watcher-window_home-desktop-synced-from-home-desktop"));'
+      'events_0 = flood(query_bucket("aw-watcher-window_home-desktop-synced-from-home-desktop"));',
     );
     expect(query).toContain(
-      'not_afk_0 = flood(query_bucket("aw-watcher-afk_home-desktop-synced-from-home-desktop"));'
+      'not_afk_0 = flood(query_bucket("aw-watcher-afk_home-desktop-synced-from-home-desktop"));',
     );
   });
 });

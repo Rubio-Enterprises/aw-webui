@@ -1,13 +1,11 @@
-'use strict';
-
-import * as d3 from 'd3';
 import Color from 'color';
+import * as d3 from 'd3';
 import _ from 'lodash';
 
 import { useCategoryStore } from '~/stores/categories';
 import { getCategoryColorFromString } from '~/util/color';
+import type { IEvent } from '~/util/interfaces';
 import { seconds_to_duration } from '~/util/time';
-import { IEvent } from '~/util/interfaces';
 
 const textColor = '#333';
 const durationColor = '#444';
@@ -25,6 +23,12 @@ function inBarColors(barColor: string): { name: string; duration: string } {
     : { name: '#fff', duration: '#eee' };
 }
 
+function summaryElement(container: HTMLElement): Element {
+  const el = container.querySelector('.appsummary');
+  if (!el) throw new Error('Summary chart element is missing; call create() first');
+  return el;
+}
+
 function create(container: HTMLElement) {
   // Clear element
   container.innerHTML = '';
@@ -36,7 +40,7 @@ function create(container: HTMLElement) {
 
 function set_status(container: HTMLElement, msg: string) {
   // Select svg canvas
-  const svg_elem = container.querySelector('.appsummary');
+  const svg_elem = summaryElement(container);
   const svg = d3.select(svg_elem);
   svg_elem.innerHTML = '';
 
@@ -57,7 +61,7 @@ interface Entry {
   color?: string;
   colorKey?: string | string[];
   link?: string;
-  category?: string;
+  category?: string[];
 }
 
 function update(container: HTMLElement, apps: Entry[], noDataLabel = 'No data') {
@@ -67,31 +71,30 @@ function update(container: HTMLElement, apps: Entry[], noDataLabel = 'No data') 
     return container;
   }
 
-  const svg_elem = container.querySelector('.appsummary');
+  const svg_elem = summaryElement(container);
   svg_elem.innerHTML = '';
   const svg = d3.select(svg_elem);
 
   // Remove apps without a duration or with zero duration from list
-  apps = apps.filter(function (app) {
-    return app.duration !== undefined && app.duration > 0;
-  });
+  apps = apps.filter((app) => app.duration !== undefined && app.duration > 0);
   if (apps.length <= 0) {
     // All apps were zero/undefined duration — nothing to draw.
     set_status(container, 'No data');
     return container;
   }
 
-  const chartId = 'appsummary-' + chartCounter++;
+  const chartId = `appsummary-${chartCounter++}`;
   const defs = svg.append('defs');
 
   let curr_y = 0;
-  const longest_duration = apps[0].duration;
-  _.each(apps, function (app, i) {
+  // apps is non-empty here (checked above), and sorted so the first is the longest
+  const longest_duration = apps[0]?.duration ?? 1;
+  _.each(apps, (app, i) => {
     // TODO: Expand on click and list titles
 
     // Variables
     const widthPct = (app.duration / longest_duration) * 100;
-    const width = widthPct + '%';
+    const width = `${widthPct}%`;
     const barHeight = 46;
     const textSize = 14;
 
@@ -125,34 +128,33 @@ function update(container: HTMLElement, apps: Entry[], noDataLabel = 'No data') 
         if (!computedFill) return;
         try {
           const colors = inBarColors(Color(computedFill).hex());
-          eg.selectAll<SVGTextElement, unknown>(`text[clip-path="url(#${clipIn})"]`).each(function (
-            _e,
-            j
-          ) {
-            const sel = d3.select<SVGTextElement, unknown>(this);
-            if (j === 0) sel.style('fill', colors.name, 'important');
-            if (j === 1) sel.style('fill', colors.duration, 'important');
-          });
+          eg.selectAll<SVGTextElement, unknown>(`text[clip-path="url(#${clipIn})"]`).each(
+            function (_e, j) {
+              const sel = d3.select<SVGTextElement, unknown>(this);
+              if (j === 0) sel.style('fill', colors.name, 'important');
+              if (j === 1) sel.style('fill', colors.duration, 'important');
+            },
+          );
         } catch {
           // ignore
         }
       });
     };
-    eg.attr('id', 'summary_' + i)
-      .on('mouseover', function () {
+    eg.attr('id', `summary_${i}`)
+      .on('mouseover', () => {
         eg.select('rect').style('fill', hovercolor);
         // Keep in-bar label colours consistent with the *displayed* hover fill:
         // themes may override the hover fill (e.g. dark.css), so derive label
         // colours from the computed style rather than the raw hover color.
         recolorInBarLabels();
       })
-      .on('mouseout', function () {
+      .on('mouseout', () => {
         eg.select('rect').style('fill', appcolor);
         // Same reasoning as mouseover: the restored bar colour may be themed.
         recolorInBarLabels();
       });
 
-    eg.append('title').text(app.hovertext + '\n' + seconds_to_duration(app.duration));
+    eg.append('title').text(`${app.hovertext}\n${seconds_to_duration(app.duration)}`);
 
     // Color box background
     eg.append('rect')
@@ -182,7 +184,7 @@ function update(container: HTMLElement, apps: Entry[], noDataLabel = 'No data') 
       .append('rect')
       .attr('x', width)
       .attr('y', curr_y)
-      .attr('width', 100 - widthPct + '%')
+      .attr('width', `${100 - widthPct}%`)
       .attr('height', barHeight);
     const onBar = inBarColors(appcolor);
 
@@ -192,7 +194,7 @@ function update(container: HTMLElement, apps: Entry[], noDataLabel = 'No data') 
     const maxNameChars = 80;
     const displayName =
       app.name && app.name.length > maxNameChars
-        ? app.name.slice(0, maxNameChars - 1) + '…'
+        ? `${app.name.slice(0, maxNameChars - 1)}…`
         : app.name;
     for (const [clip, inBar] of [
       [clipIn, true],
@@ -206,7 +208,7 @@ function update(container: HTMLElement, apps: Entry[], noDataLabel = 'No data') 
         .attr('aria-hidden', 'true')
         .text(displayName)
         .attr('font-family', 'sans-serif')
-        .attr('font-size', textSize + 'px')
+        .attr('font-size', `${textSize}px`)
         .attr('fill', textColor);
 
       // Duration
@@ -218,7 +220,7 @@ function update(container: HTMLElement, apps: Entry[], noDataLabel = 'No data') 
         .attr('aria-hidden', 'true')
         .text(seconds_to_duration(app.duration))
         .attr('font-family', 'sans-serif')
-        .attr('font-size', textSize - 3 + 'px')
+        .attr('font-size', `${textSize - 3}px`)
         .attr('fill', durationColor);
 
       if (inBar) {
@@ -273,13 +275,13 @@ function updateSummedEvents(
   titleKeyFunc: (event: IEvent) => string,
   hoverKeyFunc: (event: IEvent) => string,
   colorKeyFunc: (event: IEvent) => string,
-  linkKeyFunc: (event: IEvent) => string = () => null,
-  noDataLabel = 'No data'
+  linkKeyFunc: (event: IEvent) => string | undefined = () => undefined,
+  noDataLabel = 'No data',
 ) {
   if (hoverKeyFunc == null) {
     hoverKeyFunc = titleKeyFunc;
   }
-  const apps = _.map(summedEvents, e => {
+  const apps = _.map(summedEvents, (e): Entry => {
     return {
       name: titleKeyFunc(e),
       hovertext: hoverKeyFunc(e),
@@ -288,7 +290,7 @@ function updateSummedEvents(
       colorKey: colorKeyFunc(e),
       link: linkKeyFunc(e),
       category: e.data['$category'],
-    } as Entry;
+    };
   });
   update(container, apps, noDataLabel);
 }

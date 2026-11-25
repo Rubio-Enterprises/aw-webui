@@ -1,9 +1,11 @@
-import { IBucket } from '~/util/interfaces';
+import type { IBucket } from '~/util/interfaces';
 
 type GetEvents = (
   bucketId: string,
-  params: { end?: Date; limit: number }
+  params: { end?: Date; limit: number },
 ) => Promise<{ timestamp: string | Date }[]>;
+
+type TimedBucket = Pick<IBucket, 'id' | 'metadata'>;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 // Lower bound for the search. The Unix epoch rather than a recent date, so
@@ -20,27 +22,29 @@ const SEARCH_FLOOR = new Date(0);
  * requests per bucket instead of reading every event.
  */
 export async function earliestEventInBucket(
-  bucket: IBucket,
-  getEvents: GetEvents
+  bucket: TimedBucket,
+  getEvents: GetEvents,
 ): Promise<Date | null> {
-  if (bucket.metadata && bucket.metadata.start) {
+  if (bucket.metadata?.start) {
     return new Date(bucket.metadata.start);
   }
 
   const latest = await getEvents(bucket.id, { limit: 1 });
-  if (latest.length === 0) return null;
+  const [newest] = latest;
+  if (newest === undefined) return null;
 
   // Invariant: an event exists at or before `hi`, none before `lo`.
-  let hi = new Date(latest[0].timestamp).getTime();
+  let hi = new Date(newest.timestamp).getTime();
   let lo = SEARCH_FLOOR.getTime();
   for (let i = 0; i < 40 && hi - lo > DAY_MS; i++) {
     const mid = Math.floor((lo + hi) / 2);
     const events = await getEvents(bucket.id, { end: new Date(mid), limit: 1 });
-    if (events.length === 0) {
+    const [found] = events;
+    if (found === undefined) {
       lo = mid;
     } else {
       // The returned event may overlap `mid` rather than start before it.
-      hi = Math.min(mid, new Date(events[0].timestamp).getTime());
+      hi = Math.min(mid, new Date(found.timestamp).getTime());
     }
   }
   // `lo` has no event at or before it, so it's a conservative start (at most
@@ -50,13 +54,13 @@ export async function earliestEventInBucket(
 
 /** Earliest event across several buckets, or null if all are empty. */
 export async function earliestEventInBuckets(
-  buckets: IBucket[],
-  getEvents: GetEvents
+  buckets: TimedBucket[],
+  getEvents: GetEvents,
 ): Promise<Date | null> {
-  const starts = await Promise.all(buckets.map(b => earliestEventInBucket(b, getEvents)));
+  const starts = await Promise.all(buckets.map((b) => earliestEventInBucket(b, getEvents)));
   const valid = starts.filter((d): d is Date => d !== null);
   if (valid.length === 0) return null;
-  return new Date(Math.min(...valid.map(d => d.getTime())));
+  return new Date(Math.min(...valid.map((d) => d.getTime())));
 }
 
 /**
@@ -68,7 +72,7 @@ export async function earliestEventInBuckets(
 export function nextEarliestDate(
   current: string | null,
   found: string,
-  { approximate = false }: { approximate?: boolean } = {}
+  { approximate = false }: { approximate?: boolean } = {},
 ): string {
   if (approximate && current && current < found) return current;
   return found;
@@ -82,7 +86,7 @@ export function nextEarliestDate(
  */
 export function rangeCoveringEarliest(
   range: { start: string; end: string },
-  earliest: Date | null
+  earliest: Date | null,
 ): { start: string; end: string } {
   if (!earliest || earliest.getTime() >= new Date(range.start).getTime()) return range;
   return { start: earliest.toISOString(), end: range.end };

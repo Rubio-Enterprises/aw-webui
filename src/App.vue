@@ -13,6 +13,7 @@ div#wrapper(v-if="loaded")
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { useSettingsStore } from '~/stores/settings';
 import { useServerStore } from '~/stores/server';
 import { DARK_THEME_HREF, detectPreferredTheme } from '~/util/theme';
@@ -20,10 +21,9 @@ import { DARK_THEME_HREF, detectPreferredTheme } from '~/util/theme';
 //import darkCssUrl from '../static/dark.css?url';
 //import darkCssContent from '../static/dark.css?inline';
 
-export default {
+export default defineComponent({
   data: function () {
     return {
-      activityViews: [],
       isNewReleaseCheckEnabled: !process.env.VUE_APP_ON_ANDROID,
       loaded: false,
     };
@@ -31,11 +31,13 @@ export default {
 
   computed: {
     fullContainer() {
-      return this.$route.meta.fullContainer;
+      return this.$route.meta?.fullContainer;
     },
   },
 
-  async beforeCreate() {
+  // created, not beforeCreate: `loaded` is data, which does not exist yet in beforeCreate.
+  // Nothing awaits this hook, so the theme is still applied once the settings have loaded.
+  async created() {
     // Get Theme From LocalStorage
     const settingsStore = useSettingsStore();
     await settingsStore.ensureLoaded();
@@ -53,7 +55,7 @@ export default {
         themeLink.href = DARK_THEME_HREF; // darkCssUrl
         themeLink.rel = 'stylesheet';
         // Append Dark Theme Element
-        document.querySelector('head').appendChild(themeLink);
+        document.head.appendChild(themeLink);
       } else {
         // Not supported for Webpack due to not supporting ?inline import in a cross-compatible way (afaik)
         // Method 2: Create <style> Element
@@ -69,5 +71,5 @@ export default {
     const serverStore = useServerStore();
     await serverStore.getInfo();
   },
-};
+});
 </script>

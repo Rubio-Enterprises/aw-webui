@@ -25,7 +25,7 @@ describe('LLM config storage', () => {
   test('discards a stale unsupported provider', () => {
     localStorage.setItem(
       'aw-ai-summary-llm-config',
-      JSON.stringify({ provider: 'custom', model: 'local-model' })
+      JSON.stringify({ provider: 'custom', model: 'local-model' }),
     );
 
     expect(loadLLMConfig()).toEqual({});
@@ -50,11 +50,11 @@ describe('callLLM', () => {
     });
 
     await expect(
-      callLLM({ provider: 'openai', apiKey: 'secret', model: 'gpt-4o-mini' }, 'Activity')
+      callLLM({ provider: 'openai', apiKey: 'secret', model: 'gpt-4o-mini' }, 'Activity'),
     ).resolves.toBe('Summary');
     expect(fetchMock).toHaveBeenCalledWith(
       'https://api.openai.com/v1/chat/completions',
-      expect.any(Object)
+      expect.any(Object),
     );
   });
 
@@ -67,12 +67,12 @@ describe('callLLM', () => {
     await expect(
       callLLM(
         { provider: 'anthropic', apiKey: 'secret', model: 'claude-haiku-4-5-20251001' },
-        'Activity'
-      )
+        'Activity',
+      ),
     ).resolves.toBe('Summary');
     expect(fetchMock).toHaveBeenCalledWith(
       'https://api.anthropic.com/v1/messages',
-      expect.any(Object)
+      expect.any(Object),
     );
   });
 });

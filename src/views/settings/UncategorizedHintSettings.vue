@@ -20,9 +20,10 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { useSettingsStore } from '~/stores/settings';
 
-export default {
+export default defineComponent({
   name: 'UncategorizedHintSettings',
   computed: {
     config(): { isEnabled: boolean; minTotalSeconds: number; minRatio: number } {
@@ -63,5 +64,5 @@ export default {
       });
     },
   },
-};
+});
 </script>

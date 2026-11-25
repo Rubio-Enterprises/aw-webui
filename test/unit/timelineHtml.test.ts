@@ -1,8 +1,8 @@
-import { buildTooltip } from '~/util/tooltip';
-import { getSwimlane } from '~/util/swimlane';
 import { FilterXSS } from 'xss';
+import { getSwimlane } from '~/util/swimlane';
+import { buildTooltip } from '~/util/tooltip';
 
-const event = data => ({ timestamp: '2026-09-10T10:00:00Z', duration: 60, data });
+const event = (data) => ({ timestamp: '2026-09-10T10:00:00Z', duration: 60, data });
 function parse(html) {
   const el = document.createElement('div');
   el.innerHTML = html;
@@ -16,7 +16,7 @@ test.each([
   '',
   undefined,
   'not a url',
-])('unsafe or invalid URL %s is plain text', url => {
+])('unsafe or invalid URL %s is plain text', (url) => {
   const el = parse(buildTooltip({ type: 'web.tab.current' }, event({ url, title: attack })));
   expect(el.querySelector('a')).toBeNull();
   expect(el.querySelector('img,script,b')).toBeNull();
@@ -27,7 +27,7 @@ test.each([
   'https://example.test/ onmouseover=alert(1)',
   'https://example.test/?q="hello"&x=<b>',
   'http://example.test/path',
-])('keeps HTTP URL %s in one safe attribute', url => {
+])('keeps HTTP URL %s in one safe attribute', (url) => {
   const el = parse(buildTooltip({ type: 'web.tab.current' }, event({ url, title: 'Title' })));
   const link = el.querySelector('a');
   expect(link.getAttributeNames()).toEqual(['href']);
@@ -48,25 +48,25 @@ test.each([
 
 test.each(['currentwindow', 'app.editor.activity', 'general.stopwatch'])(
   'escapes %s swimlane labels',
-  type => {
+  (type) => {
     const el = parse(
       getSwimlane(
         { type },
         null,
         'bucketType',
-        event({ app: attack, language: attack, label: attack })
-      )
+        event({ app: attack, language: attack, label: attack }),
+      ),
     );
     expect(el.children).toHaveLength(0);
     expect(el.textContent).toBe(attack);
-  }
+  },
 );
 
 test('escapes category labels and tolerates malformed or missing browser URLs', () => {
   expect(parse(getSwimlane({}, attack, 'category', event({}))).textContent).toBe(attack);
   for (const url of [undefined, '', 'invalid', 'javascript:alert(1)']) {
     expect(getSwimlane({ type: 'web.tab.current' }, null, 'bucketType', event({ url }))).toBe(
-      'unknown'
+      'unknown',
     );
   }
   expect(
@@ -74,8 +74,8 @@ test('escapes category labels and tolerates malformed or missing browser URLs', 
       { type: 'web.tab.current' },
       null,
       'bucketType',
-      event({ url: 'https://www.example.test/path' })
-    )
+      event({ url: 'https://www.example.test/path' }),
+    ),
   ).toBe('example.test');
   expect(() => buildTooltip({ type: 'app.editor.activity' }, event({}))).not.toThrow();
 });
@@ -89,7 +89,7 @@ describe('malformed input tolerance', () => {
     ['no data on a web bucket', { type: 'web.tab.current' }, undefined],
     ['no data on an editor bucket', { type: 'app.editor.activity' }, undefined],
   ])('buildTooltip survives %s', (_label, bucket, data) => {
-    let html;
+    let html: string;
     expect(() => {
       html = buildTooltip(bucket, { timestamp: '2026-09-10T10:00:00Z', duration: 60, data });
     }).not.toThrow();
@@ -101,7 +101,7 @@ describe('malformed input tolerance', () => {
     ['no data', { type: 'currentwindow' }],
   ])('getSwimlane survives %s', (_label, bucket) => {
     expect(() =>
-      getSwimlane(bucket, 'c', 'bucketType', { timestamp: 't', duration: 1, data: undefined })
+      getSwimlane(bucket, 'c', 'bucketType', { timestamp: 't', duration: 1, data: undefined }),
     ).not.toThrow();
   });
 });
@@ -109,7 +109,7 @@ describe('malformed input tolerance', () => {
 // Grouping keys must stay distinct: escaping is reversible, so two different
 // values cannot collapse onto one subgroup.
 describe('swimlane grouping keys stay distinct', () => {
-  const lane = app =>
+  const lane = (app) =>
     getSwimlane({ type: 'currentwindow' }, 'c', 'bucketType', {
       timestamp: 't',
       duration: 1,
@@ -141,25 +141,25 @@ describe('swimlane grouping keys stay distinct', () => {
 // line of defence, and these tests assert both layers now agree.
 describe('output at the vis-timeline sink', () => {
   const downstream = new FilterXSS();
-  const afterSink = html => parse(downstream.process(html));
-  const handlerAttrs = el =>
+  const afterSink = (html) => parse(downstream.process(html));
+  const handlerAttrs = (el) =>
     Array.from(el.querySelectorAll('*') as NodeListOf<Element>)
-      .flatMap(n => Array.from(n.attributes).map(a => a.name))
-      .filter(n => n.startsWith('on'));
+      .flatMap((n) => Array.from(n.attributes).map((a) => a.name))
+      .filter((n) => n.startsWith('on'));
 
   test('a benign link survives the downstream filter intact', () => {
     const el = afterSink(
       buildTooltip(
         { type: 'web.tab.current' },
-        event({ title: 'T', url: 'https://example.test/?a=1&b=2' })
-      )
+        event({ title: 'T', url: 'https://example.test/?a=1&b=2' }),
+      ),
     );
     expect(el.querySelector('a').getAttribute('href')).toBe('https://example.test/?a=1&b=2');
   });
 
   test('markup in a text field reaches the sink as text', () => {
     const el = afterSink(
-      buildTooltip({ type: 'currentwindow' }, event({ app: attack, title: attack }))
+      buildTooltip({ type: 'currentwindow' }, event({ app: attack, title: attack })),
     );
     expect(handlerAttrs(el)).toEqual([]);
     expect(el.querySelector('img,script')).toBeNull();
@@ -169,18 +169,18 @@ describe('output at the vis-timeline sink', () => {
     const el = afterSink(
       buildTooltip(
         { type: 'web.tab.current' },
-        event({ title: 'T', url: 'https://example.test/ onmouseover=alert(1)' })
-      )
+        event({ title: 'T', url: 'https://example.test/ onmouseover=alert(1)' }),
+      ),
     );
-    expect(Array.from(el.querySelector('a').attributes).map(a => a.name)).toEqual(['href']);
+    expect(Array.from(el.querySelector('a').attributes).map((a) => a.name)).toEqual(['href']);
   });
 
   test.each(['javascript:alert(1)', 'data:text/html,<script>alert(1)</script>'])(
     'the unsafe scheme %s never becomes an href',
-    url => {
+    (url) => {
       const el = afterSink(buildTooltip({ type: 'web.tab.current' }, event({ title: 'T', url })));
       expect(el.querySelector('a')).toBeNull();
       expect(handlerAttrs(el)).toEqual([]);
-    }
+    },
   );
 });

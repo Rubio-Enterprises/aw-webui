@@ -25,8 +25,8 @@ interface LegacyAwNotifyAlert {
 export function parseThresholds(input: string): number[] | null {
   // Accept the Arabic comma (U+060C) as well: Arabic keyboards produce it, and
   // the Arabic locale's own placeholder example uses it.
-  const values = input.split(/[,،]/).map(s => s.trim());
-  if (values.some(part => !/^[1-9]\d*$/.test(part))) {
+  const values = input.split(/[,،]/).map((s) => s.trim());
+  if (values.some((part) => !/^[1-9]\d*$/.test(part))) {
     return null;
   }
   return values.map(Number);
@@ -36,7 +36,7 @@ function isPositiveWholeMinutes(value: unknown): value is number[] {
   return (
     Array.isArray(value) &&
     value.length > 0 &&
-    value.every(minutes => Number.isInteger(minutes) && minutes > 0)
+    value.every((minutes) => Number.isInteger(minutes) && minutes > 0)
   );
 }
 
@@ -94,7 +94,7 @@ export function parseAwNotifyConfig(value: unknown): AwNotifyConfig | null {
   // migrate without losing settings, then always save the canonical desktop shape.
   if (Array.isArray(value) && value.every(isLegacyAlert)) {
     return {
-      alerts: value.map(candidate => ({
+      alerts: value.map((candidate) => ({
         category: candidate.category ?? 'All',
         label: candidate.label || null,
         thresholds_minutes: candidate.thresholdMinutes,

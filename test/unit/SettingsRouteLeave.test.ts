@@ -1,9 +1,9 @@
 import Vue from 'vue';
 import VueRouter from 'vue-router';
 import SettingsComponent from '~/views/settings/Settings.vue';
+import { optionsApi } from '../helpers/vue';
 
-// Tests call Options API members directly, which the Vue constructor type doesn't expose.
-const Settings: any = SettingsComponent;
+const Settings = optionsApi(SettingsComponent);
 
 const mockCategoryStore = { classes_unsaved_changes: true };
 jest.mock('~/stores/categories', () => ({
@@ -18,12 +18,12 @@ describe('Settings route leave confirmation', () => {
     [false, '/settings'],
     [null, '/settings'],
   ])('waits for the modal, then respects %s', async (confirmed, expectedPath) => {
-    let resolveModal;
+    let resolveModal: (confirmed: boolean | null) => void;
     const msgBoxConfirm = jest.fn(
       () =>
-        new Promise(resolve => {
+        new Promise((resolve) => {
           resolveModal = resolve;
-        })
+        }),
     );
     const router = new VueRouter({
       mode: 'abstract',
@@ -31,22 +31,22 @@ describe('Settings route leave confirmation', () => {
         {
           path: '/settings',
           component: {
-            render: h => h('div'),
+            render: (h) => h('div'),
             beforeRouteLeave: Settings.beforeRouteLeave,
             created() {
               this.$bvModal = { msgBoxConfirm };
-              this.$t = key => key;
+              this.$t = (key) => key;
             },
           },
         },
-        { path: '/next', component: { render: h => h('div') } },
+        { path: '/next', component: { render: (h) => h('div') } },
       ],
     });
-    const app = new Vue({ router, render: h => h('router-view') }).$mount();
+    const app = new Vue({ router, render: (h) => h('router-view') }).$mount();
     try {
       await router.push('/settings');
       await Vue.nextTick();
-      const navigation = router.push('/next').catch(error => error);
+      const navigation = router.push('/next').catch((error) => error);
       expect(msgBoxConfirm).toHaveBeenCalledTimes(1);
       expect(router.currentRoute.path).toBe('/settings');
 
@@ -55,7 +55,7 @@ describe('Settings route leave confirmation', () => {
       expect(router.currentRoute.path).toBe(expectedPath);
       if (!confirmed) {
         expect(VueRouter.isNavigationFailure(result, VueRouter.NavigationFailureType.aborted)).toBe(
-          true
+          true,
         );
       }
     } finally {

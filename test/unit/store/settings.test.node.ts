@@ -1,4 +1,4 @@
-import { setActivePinia, createPinia } from 'pinia';
+import { createPinia, setActivePinia } from 'pinia';
 
 import { useSettingsStore } from '~/stores/settings';
 import { createClient, getClient } from '~/util/awclient';
@@ -16,12 +16,12 @@ describe('settings store', () => {
     let resolveLoad!: () => void;
     const loadMock = jest.spyOn(settingsStore, 'load').mockImplementation(
       () =>
-        new Promise<void>(resolve => {
+        new Promise<void>((resolve) => {
           resolveLoad = () => {
             settingsStore.$patch({ _loaded: true });
             resolve();
           };
-        })
+        }),
     );
 
     const firstLoad = settingsStore.ensureLoaded();
@@ -77,13 +77,16 @@ describe('settings store', () => {
   });
 
   describe('saving alert goals', () => {
+    // `localStorage` is a DOM global that the node environment lacks.
+    const globalWithStorage = globalThis as unknown as { localStorage?: { setItem: jest.Mock } };
+
     beforeAll(() => {
       createClient();
       // save() always mirrors the theme and landing page to localStorage.
-      (global as any).localStorage = { setItem: jest.fn() };
+      globalWithStorage.localStorage = { setItem: jest.fn() };
     });
     afterAll(() => {
-      delete (global as any).localStorage;
+      delete globalWithStorage.localStorage;
     });
 
     function fakeServer() {
@@ -91,7 +94,7 @@ describe('settings store', () => {
       jest
         .spyOn(getClient(), 'get_settings')
         .mockResolvedValue({ theme: 'light' } as Record<string, unknown>);
-      (getClient() as any).req = { post, defaults: {} };
+      Object.assign(getClient(), { req: { post, defaults: {} } });
       // save() reloads afterwards; the server then has every posted key.
       jest.spyOn(settingsStore, 'load').mockImplementation(async () => {
         const posted = post.mock.calls.map(([url]) => url.split('/').pop());
@@ -129,7 +132,7 @@ describe('settings store', () => {
     test('an older failing update cannot unmark alerts saved meanwhile', async () => {
       const post = fakeServer();
       let failOld!: (e: Error) => void;
-      post.mockImplementation(async url => {
+      post.mockImplementation(async (url) => {
         if (url === '/0/settings/theme') {
           await new Promise((_resolve, reject) => {
             failOld = reject;
@@ -139,7 +142,7 @@ describe('settings store', () => {
       });
       settingsStore.$patch({ theme: 'dark' });
       const older = settingsStore.update({ theme: 'dark' });
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
       settingsStore.$patch({ theme: 'light' });
       post.mockResolvedValue({});
       await settingsStore.update({ alerts: [] });

@@ -1,9 +1,9 @@
 import { createPinia, setActivePinia } from 'pinia';
 import Vue from 'vue';
 import ActivityComponent from '~/views/activity/Activity.vue';
+import { optionsApi } from '../helpers/vue';
 
-// Tests call Options API members directly, which the Vue constructor type doesn't expose.
-const Activity: any = ActivityComponent;
+const Activity = optionsApi(ActivityComponent);
 
 beforeEach(() => {
   setActivePinia(createPinia());
@@ -11,9 +11,29 @@ beforeEach(() => {
 });
 afterEach(() => jest.useRealTimers());
 
+interface IntervalVm {
+  date: string | undefined;
+  _date: string;
+  exactInterval: { start: string };
+  intervalIssue: { message: string } | null;
+  invalidRange: boolean;
+  nextDisabled: boolean;
+  periodReadableRange: string;
+  periodusage: unknown[];
+  timeperiod: { start: string; length: [number, string] };
+  editInterval: (edge: 'start' | 'end', wall: string) => void;
+  instantToWall: (instant: string) => string;
+  nextPeriod: () => string;
+  previousPeriod: () => string;
+}
+
 // A view model whose computed members are evaluated lazily against itself
-function makeVm(periodLength: string, date: string | undefined, extra: any = {}) {
-  const vm: any = {
+function makeVm(
+  periodLength: string,
+  date: string | undefined,
+  extra: Record<string, unknown> = {},
+) {
+  const vm = {
     periodLength,
     date,
     host: 'test',
@@ -41,7 +61,7 @@ function makeVm(periodLength: string, date: string | undefined, extra: any = {})
       get: () => Activity.computed[name].call(vm),
     });
   }
-  return vm;
+  return vm as unknown as IntervalVm;
 }
 
 const SEGMENT = '2026-10-20T13:00:00Z..2026-10-20T14:30:00Z';
@@ -63,12 +83,12 @@ describe('Activity exact interval period', () => {
     '2026-10-20T14:00:00Z..2026-10-20T13:00:00Z',
   ])(
     'invalid segment %p warns and falls back to today instead of querying nothing or crashing',
-    segment => {
+    (segment) => {
       const vm = makeVm('interval', segment);
       expect(vm.invalidRange).toBe(true);
       expect(vm.timeperiod.length).toEqual([1, 'day']);
       expect(() => vm.periodReadableRange).not.toThrow();
-    }
+    },
   );
 
   test('previous and next shift both instants by the elapsed duration', () => {
@@ -83,7 +103,7 @@ describe('Activity exact interval period', () => {
 
   test('refresh re-evaluates cached Next availability after the interval ends', async () => {
     jest.setSystemTime(new Date('2026-10-20T17:30:00Z'));
-    const vm: any = new Vue({
+    const vm = new Vue({
       data: () => ({
         ...Activity.data(),
         periodLength: 'interval',
@@ -97,7 +117,11 @@ describe('Activity exact interval period', () => {
         nextDisabled: Activity.computed.nextDisabled,
       },
       methods: { refresh: Activity.methods.refresh },
-    });
+    }) as Vue & {
+      nextDisabled: boolean;
+      refresh: (force: boolean) => Promise<void>;
+      activityStore: { ensure_loaded: jest.Mock };
+    };
     expect(vm.nextDisabled).toBe(true);
     jest.setSystemTime(new Date('2026-10-20T18:01:00Z'));
     await vm.refresh(true);
@@ -144,7 +168,7 @@ describe('Activity exact interval period', () => {
       expect(vm.intervalIssue).toBeNull();
       expect(pushPeriod).toHaveBeenCalledWith(
         'interval',
-        '2026-10-20T13:00:45Z..2026-10-20T13:01:15Z'
+        '2026-10-20T13:00:45Z..2026-10-20T13:01:15Z',
       );
     });
 

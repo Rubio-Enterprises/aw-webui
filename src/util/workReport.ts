@@ -1,4 +1,4 @@
-import { IBucket } from '~/util/interfaces';
+import type { IBucket } from '~/util/interfaces';
 
 export interface WorkReportHostOption {
   value: string;
@@ -13,7 +13,7 @@ export interface WorkReportHostOption {
 // at all. Querying the real bucket ids (like buildMultideviceHostParams does
 // for the Activity view) keeps synced devices working.
 function bucketHost(bucket: IBucket): string {
-  return bucket.hostname || (bucket.data && bucket.data.hostname) || 'unknown';
+  return bucket.hostname || bucket.data?.hostname || 'unknown';
 }
 
 function isDesktopWindowBucket(bucket: IBucket): boolean {
@@ -40,9 +40,11 @@ function getHostBuckets(buckets: IBucket[]): Map<string, { window?: string; afk?
 }
 
 export function getWorkReportHostOptions(buckets: IBucket[]): WorkReportHostOption[] {
-  const windowHosts = [...new Set(buckets.filter(b => b.type === 'currentwindow').map(bucketHost))];
+  const windowHosts = [
+    ...new Set(buckets.filter((b) => b.type === 'currentwindow').map(bucketHost)),
+  ];
   const byHost = getHostBuckets(buckets);
-  return windowHosts.map(host => {
+  return windowHosts.map((host) => {
     const entry = byHost.get(host) || {};
     const supported = !!(entry.window && entry.afk);
     return {
@@ -56,13 +58,13 @@ export function getWorkReportHostOptions(buckets: IBucket[]): WorkReportHostOpti
 /** The window and AFK bucket ids to query for each selected host, in selection order. */
 export function getWorkReportHostBuckets(
   selectedHosts: string[],
-  buckets: IBucket[]
+  buckets: IBucket[],
 ): WorkReportHostBuckets[] {
   const byHost = getHostBuckets(buckets);
   const result: WorkReportHostBuckets[] = [];
   for (const host of selectedHosts) {
     const entry = byHost.get(host);
-    if (entry && entry.window && entry.afk) {
+    if (entry?.window && entry.afk) {
       result.push({ host, window: entry.window, afk: entry.afk });
     }
   }
@@ -71,14 +73,14 @@ export function getWorkReportHostBuckets(
 
 export function getUnsupportedWorkReportHosts(
   selectedHosts: string[],
-  buckets: IBucket[]
+  buckets: IBucket[],
 ): string[] {
-  const supported = new Set(getWorkReportHostBuckets(selectedHosts, buckets).map(h => h.host));
-  return selectedHosts.filter(host => !supported.has(host));
+  const supported = new Set(getWorkReportHostBuckets(selectedHosts, buckets).map((h) => h.host));
+  return selectedHosts.filter((host) => !supported.has(host));
 }
 
 export function getSupportedWorkReportHosts(selectedHosts: string[], buckets: IBucket[]): string[] {
-  return getWorkReportHostBuckets(selectedHosts, buckets).map(h => h.host);
+  return getWorkReportHostBuckets(selectedHosts, buckets).map((h) => h.host);
 }
 
 // Builds the aw-query string for the Work Time Report. Extracted from the
@@ -88,11 +90,12 @@ export function getSupportedWorkReportHosts(selectedHosts: string[], buckets: IB
 export function buildWorkReportQuery(
   hosts: WorkReportHostBuckets[],
   categoriesStr: string,
-  categoriesFilter: any[]
+  categoriesFilter: string[][],
 ): string {
   let query = '';
   for (let hi = 0; hi < hosts.length; hi++) {
     const bucketIds = hosts[hi];
+    if (bucketIds === undefined) continue;
     query += `
             events_${hi} = flood(query_bucket(${JSON.stringify(bucketIds.window)}));
             not_afk_${hi} = flood(query_bucket(${JSON.stringify(bucketIds.afk)}));
@@ -100,8 +103,8 @@ export function buildWorkReportQuery(
             events_${hi} = filter_period_intersect(events_${hi}, not_afk_${hi});
             events_${hi} = categorize(events_${hi}, ${categoriesStr});
             events_${hi} = filter_keyvals(events_${hi}, "$category", ${JSON.stringify(
-      categoriesFilter
-    )});
+              categoriesFilter,
+            )});
           `;
   }
   query += '\nevents = [];';
@@ -117,7 +120,7 @@ export function buildWorkReportQuery(
   // tolerant so this has no runtime effect.
   return query
     .split('\n')
-    .map(line => line.replace(/\s+$/, ''))
+    .map((line) => line.replace(/\s+$/, ''))
     .join('\n');
 }
 
@@ -132,27 +135,29 @@ export interface WorkSessionSummary {
 // breakTimeSeconds count as part of the same session, longer gaps are breaks.
 export function summarizeWorkSessions(
   events: { timestamp: string; duration: number }[],
-  breakTimeSeconds: number
+  breakTimeSeconds: number,
 ): WorkSessionSummary {
-  if (!events || events.length === 0) return { bridgedSeconds: 0, sessions: 0 };
+  const [earliestEvent] = events ?? [];
+  if (!events || earliestEvent === undefined) return { bridgedSeconds: 0, sessions: 0 };
 
   const sorted = [...events].sort(
-    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
   );
   let bridgedSeconds = 0;
   let sessions = 1;
   // Track the latest end so far, so an event nested inside a longer one
   // doesn't make the following gap look bigger than it is.
-  let sessionEnd = new Date(sorted[0].timestamp).getTime() + sorted[0].duration * 1000;
-  for (let i = 1; i < sorted.length; i++) {
-    const start = new Date(sorted[i].timestamp).getTime();
+  const [firstEvent = earliestEvent] = sorted;
+  let sessionEnd = new Date(firstEvent.timestamp).getTime() + firstEvent.duration * 1000;
+  for (const event of sorted.slice(1)) {
+    const start = new Date(event.timestamp).getTime();
     const gap = (start - sessionEnd) / 1000;
     if (gap > breakTimeSeconds) {
       sessions++;
     } else if (gap > 0) {
       bridgedSeconds += gap;
     }
-    sessionEnd = Math.max(sessionEnd, start + sorted[i].duration * 1000);
+    sessionEnd = Math.max(sessionEnd, start + event.duration * 1000);
   }
   return { bridgedSeconds, sessions };
 }

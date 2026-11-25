@@ -14,7 +14,7 @@ export const NATIVE_MENU_ACTIONS = [
   { id: 'open-in-browser', label: 'nav.openInBrowser', icon: 'external-link-alt' },
 ];
 
-const KNOWN_ACTIONS = NATIVE_MENU_ACTIONS.map(a => a.id);
+const KNOWN_ACTIONS = NATIVE_MENU_ACTIONS.map((a) => a.id);
 
 interface InjectedBridge {
   postMessage(message: string): void;
@@ -33,9 +33,15 @@ export interface NativeBridge {
   disconnect(): void;
 }
 
+declare global {
+  interface Window {
+    awNativeBridge?: InjectedBridge;
+  }
+}
+
 function injectedBridge(): InjectedBridge | null {
   if (typeof window === 'undefined') return null;
-  const bridge = (window as any).awNativeBridge;
+  const bridge = window.awNativeBridge;
   if (!bridge || typeof bridge.postMessage !== 'function') return null;
   if (typeof bridge.addEventListener !== 'function') return null;
   return bridge;
@@ -49,16 +55,24 @@ export function connectNativeBridge(handlers: NativeBridgeHandlers): NativeBridg
   const send = (message: object) => bridge.postMessage(JSON.stringify(message));
   const listener = (event: { data: unknown }) => {
     if (typeof event.data !== 'string') return;
-    let message;
+    let message: unknown;
     try {
       message = JSON.parse(event.data);
     } catch {
       return;
     }
-    if (message?.type === 'capabilities' && message.version === NATIVE_BRIDGE_VERSION) {
-      const actions = Array.isArray(message.actions) ? message.actions : [];
-      handlers.onCapabilities(actions.filter(a => KNOWN_ACTIONS.includes(a)));
-    } else if (message?.type === 'close-menu') {
+    if (message === null || typeof message !== 'object' || !('type' in message)) return;
+    if (
+      message.type === 'capabilities' &&
+      'version' in message &&
+      message.version === NATIVE_BRIDGE_VERSION
+    ) {
+      const actions: unknown[] =
+        'actions' in message && Array.isArray(message.actions) ? message.actions : [];
+      handlers.onCapabilities(
+        actions.filter((a): a is string => typeof a === 'string' && KNOWN_ACTIONS.includes(a)),
+      );
+    } else if (message.type === 'close-menu') {
       handlers.onCloseMenu();
     }
   };

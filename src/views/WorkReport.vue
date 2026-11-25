@@ -85,8 +85,10 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import moment from 'moment';
 import { getClient } from '~/util/awclient';
+import type { IEvent } from '~/util/interfaces';
 import { useCategoryStore } from '~/stores/categories';
 import { useSettingsStore } from '~/stores/settings';
 import { useBucketsStore } from '~/stores/buckets';
@@ -109,10 +111,10 @@ interface DailyData {
   duration: number;
   sessions: number;
   avgSession: number;
-  events: any[];
+  events: IEvent[];
 }
 
-export default {
+export default defineComponent({
   name: 'WorkReport',
   data() {
     return {
@@ -127,7 +129,7 @@ export default {
 
       loading: false,
       dailyData: [] as DailyData[],
-      rawData: {} as Record<string, any>,
+      rawData: {} as unknown,
     };
   },
   computed: {
@@ -414,7 +416,7 @@ export default {
       URL.revokeObjectURL(url);
     },
   },
-};
+});
 </script>
 
 <style scoped>

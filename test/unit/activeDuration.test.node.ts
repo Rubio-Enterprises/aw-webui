@@ -1,5 +1,5 @@
-import { activeDurationQuery } from '~/queries';
 import { createPinia, setActivePinia } from 'pinia';
+import { activeDurationQuery } from '~/queries';
 import { useActivityStore } from '~/stores/activity';
 import { useBucketsStore } from '~/stores/buckets';
 import { getClient } from '~/util/awclient';
@@ -18,12 +18,12 @@ beforeEach(() => {
   setActivePinia(createPinia());
   mockQuery
     .mockReset()
-    .mockImplementation(periods =>
+    .mockImplementation((periods) =>
       Promise.resolve(
         periods.map(() => [
           { timestamp: '2026-09-01T10:00:00Z', duration: 60, data: { app: 'Test' } },
-        ])
-      )
+        ]),
+      ),
     );
 });
 
@@ -41,7 +41,7 @@ test('uses canonical active evidence with optional audible and app/title pattern
 
 test('disabled AFK filtering returns window coverage while AFK-only sources retain the fallback', () => {
   const query = activeDurationQuery([source, { bid_afk: 'afk_only' }], { filter_afk: false }).join(
-    '\n'
+    '\n',
   );
   expect(query).toContain('union_no_overlap(history_events, events)');
   expect(query).toContain('query_bucket("afk_only")');
@@ -53,8 +53,8 @@ test('disabled AFK filtering returns window coverage while AFK-only sources reta
 test('missing browsers and an empty source list never introduce missing bucket references', () => {
   expect(
     activeDurationQuery([{ bid_afk: 'afk', bid_window: 'window' }], { include_audible: true }).join(
-      ' '
-    )
+      ' ',
+    ),
   ).not.toMatch(/query_bucket\("(?:undefined|null)"\)/);
   expect(activeDurationQuery([])).toEqual(['history_events = [];', 'RETURN = history_events;']);
 });
@@ -76,22 +76,20 @@ test('store passes activity options and normalizes every returned event for the 
   expect(query).toContain('"Code"');
   expect(query).not.toContain('Work');
   expect(
-    Object.values(store.active.history).every(events => events[0].data.status === 'not-afk')
+    Object.values(store.active.history).every((events) => events[0].data.status === 'not-afk'),
   ).toBe(true);
 });
 
 test('multidevice history uses selected desktop and mobile buckets without browser evidence', async () => {
   const buckets = useBucketsStore();
-  buckets.buckets = Object.fromEntries(
-    [
-      ['custom-afk_a', 'afkstatus', 'a'],
-      ['custom-window_a', 'currentwindow', 'a'],
-      ['aw-watcher-web-chrome_a', 'web.tab.current', 'a'],
-      ['custom-afk_b', 'afkstatus', 'b'],
-      ['custom-window_b', 'currentwindow', 'b'],
-      ['aw-watcher-android-phone', 'currentwindow', 'phone'],
-    ].map(([id, type, hostname]) => [id, { id, type, hostname, data: {} }])
-  ) as any;
+  buckets.buckets = [
+    ['custom-afk_a', 'afkstatus', 'a'],
+    ['custom-window_a', 'currentwindow', 'a'],
+    ['aw-watcher-web-chrome_a', 'web.tab.current', 'a'],
+    ['custom-afk_b', 'afkstatus', 'b'],
+    ['custom-window_b', 'currentwindow', 'b'],
+    ['aw-watcher-android-phone', 'currentwindow', 'phone'],
+  ].map(([id, type, hostname]) => ({ id, type, hostname, data: {} }));
   await useActivityStore().query_active_history_multidevice(
     {
       host: 'a,phone',
@@ -100,13 +98,13 @@ test('multidevice history uses selected desktop and mobile buckets without brows
       filter_afk: false,
       always_active_pattern: 'Code',
     },
-    ['a', 'phone']
+    ['a', 'phone'],
   );
   const query = mockQuery.mock.calls[0][1].join('\n');
   expect(query).toContain('query_bucket("custom-window_a")');
   expect(query).toContain('union_no_overlap(history_events, events)');
   expect(query).toContain(
-    'union_no_overlap(history_events, flood(query_bucket("aw-watcher-android-phone")))'
+    'union_no_overlap(history_events, flood(query_bucket("aw-watcher-android-phone")))',
   );
   expect(query).not.toContain('aw-watcher-web-chrome_a');
   expect(query).not.toContain('custom-window_b');
@@ -123,7 +121,7 @@ test('multidevice history uses selected desktop and mobile buckets without brows
 // time that was never concurrent, so multidevice with an AFK-only host
 // under-counted active time.
 describe('AFK-only sources keep their interval structure', () => {
-  const gen = sources => activeDurationQuery(sources).join('\n');
+  const gen = (sources) => activeDurationQuery(sources).join('\n');
 
   test('never merges periods before unioning them', () => {
     for (const sources of [

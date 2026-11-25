@@ -17,14 +17,6 @@
 
 pre-commit:
   # media/ is ActivityWatch/media vendored byte-for-byte (docs/fork-maintenance.md).
-  exclude: ['media/**']
+  exclude: ["media/**"]
   # Upstream ActivityWatch tests with Jest, not vitest; the fork keeps upstream's runner.
   exclude_tags: [mandate]
-  jobs:
-    - name: fixers
-      group:
-        jobs:
-          # Upstream's ESLint with eslint-plugin-prettier owns JS/TS/Vue formatting (the eslint
-          # jobs in lefthook.yml); Biome keeps the JSON files.
-          - name: biome
-            glob: '**/*.{json,jsonc}'

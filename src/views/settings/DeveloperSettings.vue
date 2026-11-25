@@ -31,9 +31,10 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { useSettingsStore } from '~/stores/settings';
 
-export default {
+export default defineComponent({
   data() {
     return {
       showSettings: false,
@@ -44,7 +45,7 @@ export default {
       get() {
         return useSettingsStore().devmode;
       },
-      set(devmode) {
+      set(devmode: boolean) {
         useSettingsStore().update({ devmode });
       },
     },
@@ -52,7 +53,7 @@ export default {
       get() {
         return useSettingsStore().requestTimeout;
       },
-      set(requestTimeout) {
+      set(requestTimeout: number) {
         useSettingsStore().update({ requestTimeout });
       },
     },
@@ -60,10 +61,10 @@ export default {
       get() {
         return useSettingsStore().hideUnsupportedVisualizations;
       },
-      set(hideUnsupportedVisualizations) {
+      set(hideUnsupportedVisualizations: boolean) {
         useSettingsStore().update({ hideUnsupportedVisualizations });
       },
     },
   },
-};
+});
 </script>

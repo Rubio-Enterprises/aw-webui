@@ -87,6 +87,7 @@ div
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import 'vue-awesome/icons/trash';
 import moment from 'moment';
 import _ from 'lodash';
@@ -102,18 +103,23 @@ import {
   sortSavedQueries,
 } from '~/util/savedQueries';
 
+// The error shape of a failed aw-client request
+type RequestError = { message?: string; response?: { data?: { message?: string } } };
+
 const today = moment().startOf('day');
 const tomorrow = moment(today).add(24, 'hours');
 
-export default {
+export default defineComponent({
   name: 'QueryExplorer',
   data() {
     const settingsStore = useSettingsStore();
 
     // allow queries to be saved in a URL parameter
-    let queryCode = this.$route.query.q;
+    // (a repeated parameter gives an array; the first one is used)
+    const routeQuery = this.$route.query.q;
+    let queryCode: string = (Array.isArray(routeQuery) ? routeQuery[0] : routeQuery) ?? '';
 
-    if (_.isEmpty(this.$route.query.q)) {
+    if (_.isEmpty(routeQuery)) {
       queryCode = `
 afk_events = query_bucket(find_bucket("aw-watcher-afk_"));
 window_events = query_bucket(find_bucket("aw-watcher-window_"));
@@ -128,7 +134,7 @@ RETURN = sort_by_duration(merged_events);
       settingsStore,
       query_code: queryCode,
       event_type: 'currentwindow',
-      events: [],
+      events: [] as unknown[],
       today: today.format(),
       tomorrow: tomorrow.format(),
       error: '',
@@ -218,7 +224,7 @@ RETURN = sort_by_duration(merged_events);
       this.saveQueryName = getDefaultSavedQueryName(this.query_code);
       this.showSaveQueryModal = true;
     },
-    onSaveQueryConfirm: async function (event) {
+    onSaveQueryConfirm: async function (event: Event) {
       event.preventDefault();
 
       const trimmedName = this.saveQueryName.trim();
@@ -254,7 +260,7 @@ RETURN = sort_by_duration(merged_events);
       this.renameQueryName = this.selectedSavedQuery.name;
       this.showRenameQueryModal = true;
     },
-    onRenameQueryConfirm: async function (event) {
+    onRenameQueryConfirm: async function (event: Event) {
       event.preventDefault();
 
       if (!this.selectedSavedQuery) {
@@ -319,17 +325,18 @@ RETURN = sort_by_duration(merged_events);
       }
 
       // the aw-client expects an array of commands with whitespace cleaned up
-      query = querystr_to_array(query as string);
+      const queryLines = querystr_to_array(query);
       const timeperiods = [moment(this.startdate).format() + '/' + moment(this.enddate).format()];
 
       try {
-        const data = await this.$aw.query(timeperiods, query);
+        const data = await this.$aw.query(timeperiods, queryLines);
         this.events = data[0];
         this.error = '';
       } catch (e) {
-        this.error = e.response.data.message;
+        const err = e as RequestError | undefined;
+        this.error = err?.response?.data?.message ?? err?.message ?? 'The query failed.';
       }
     },
   },
-};
+});
 </script>

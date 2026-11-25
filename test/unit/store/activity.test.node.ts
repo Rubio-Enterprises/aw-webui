@@ -1,4 +1,4 @@
-import { setActivePinia, createPinia } from 'pinia';
+import { createPinia, setActivePinia } from 'pinia';
 
 import { chunkPeriodsBySpan, useActivityStore } from '~/stores/activity';
 import { useCategoryStore } from '~/stores/categories';
@@ -52,14 +52,14 @@ describe('activity store', () => {
     activityStore.buckets.afk = ['aw-watcher-afk_test'];
     const querySpy = jest
       .spyOn(getClient(), 'query')
-      .mockImplementation(async periods => periods.map(() => []));
+      .mockImplementation(async (periods) => periods.map(() => []));
 
     await activityStore.query_active_history({
       host: 'test',
       timeperiod: { start: '2020-01-01T00:00:00+00:00', length: periodLength },
     });
 
-    const requested = querySpy.mock.calls.flatMap(call => call[0] as string[]);
+    const requested = querySpy.mock.calls.flatMap((call) => call[0] as string[]);
     expect(querySpy).toHaveBeenCalledTimes(calls ?? requested.length);
     expect(Object.keys(activityStore.active.history).sort()).toEqual([...requested].sort());
     querySpy.mockRestore();
@@ -77,7 +77,7 @@ describe('activity store', () => {
     });
     const querySpy = jest
       .spyOn(getClient(), 'query')
-      .mockImplementation(async periods => periods.map(p => [eventFor(p as string)]));
+      .mockImplementation(async (periods) => periods.map((p) => [eventFor(p as string)]));
 
     await activityStore.query_active_history({
       host: 'test',
@@ -85,7 +85,7 @@ describe('activity store', () => {
     });
 
     expect(querySpy.mock.calls.length).toBeGreaterThan(1);
-    const requested = querySpy.mock.calls.flatMap(call => call[0] as string[]);
+    const requested = querySpy.mock.calls.flatMap((call) => call[0] as string[]);
     for (const period of requested) {
       expect(activityStore.active.history[period]).toEqual([eventFor(period)]);
     }
@@ -118,7 +118,7 @@ describe('activity store', () => {
     };
 
     test('populates browser state from API response', async () => {
-      activityStore.$patch(s => {
+      activityStore.$patch((s) => {
         s.buckets.browser = ['aw-watcher-firefox_test'];
       });
       const browserData = {
@@ -141,13 +141,27 @@ describe('activity store', () => {
     });
 
     test('clears browser state when API returns empty result', async () => {
-      activityStore.$patch(s => {
+      activityStore.$patch((s) => {
         s.buckets.browser = ['aw-watcher-firefox_test'];
       });
-      activityStore.$patch(s => {
-        s.browser.top_domains = [{ data: { $domain: 'old.example.com' }, duration: 999 }] as any;
-        s.browser.top_urls = [{ data: { url: 'https://old.example.com/' }, duration: 999 }] as any;
-        s.browser.top_titles = [{ data: { title: 'Old Example' }, duration: 999 }] as any;
+      activityStore.$patch((s) => {
+        s.browser.top_domains = [
+          {
+            timestamp: '2026-01-01T00:00:00Z',
+            data: { $domain: 'old.example.com' },
+            duration: 999,
+          },
+        ];
+        s.browser.top_urls = [
+          {
+            timestamp: '2026-01-01T00:00:00Z',
+            data: { url: 'https://old.example.com/' },
+            duration: 999,
+          },
+        ];
+        s.browser.top_titles = [
+          { timestamp: '2026-01-01T00:00:00Z', data: { title: 'Old Example' }, duration: 999 },
+        ];
         s.browser.duration = 999;
       });
       jest.spyOn(getClient(), 'query').mockResolvedValueOnce([{}]);
@@ -161,7 +175,7 @@ describe('activity store', () => {
     });
 
     test('passes all browser bucket IDs to the query', async () => {
-      activityStore.$patch(s => {
+      activityStore.$patch((s) => {
         s.buckets.browser = ['aw-watcher-chrome_test', 'aw-watcher-firefox_test'];
       });
       const querySpy = jest

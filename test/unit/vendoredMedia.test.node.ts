@@ -1,6 +1,6 @@
-import { execFileSync } from 'child_process';
-import fs from 'fs';
-import path from 'path';
+import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const root = path.resolve(__dirname, '../..');
 
@@ -12,12 +12,12 @@ describe('vendored ActivityWatch media', () => {
       .trim()
       .split('\n');
     expect(entries.length).toBeGreaterThan(0);
-    entries.forEach(entry => expect(entry).toMatch(/^100(?:644|755) /));
+    for (const entry of entries) expect(entry).toMatch(/^100(?:644|755) /);
   });
 
   test('preserves the upstream license, attribution and build inputs', () => {
     expect(fs.readFileSync(path.join(root, 'media/LICENSE'), 'utf8')).toMatch(
-      /^Mozilla Public License Version 2\.0/
+      /^Mozilla Public License Version 2\.0/,
     );
     expect(fs.readFileSync(path.join(root, 'media/README.md'), 'utf8')).toContain('ActivityWatch');
     for (const asset of ['logo/logo.png', 'logo/logo.svg']) {

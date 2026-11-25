@@ -5,7 +5,11 @@ const server = process.env.AW_QUERY_TEST_SERVER_URL;
 const describeWithServer = server ? describe : describe.skip;
 
 describeWithServer('browser regex matching through the server', () => {
-  async function request(path: string, method: string, body?: unknown): Promise<any> {
+  async function request<Result = unknown>(
+    path: string,
+    method: string,
+    body?: unknown,
+  ): Promise<Result> {
     const response = await fetch(`${server}/api/0${path}`, {
       method,
       headers: { 'Content-Type': 'application/json' },
@@ -15,7 +19,7 @@ describeWithServer('browser regex matching through the server', () => {
     if (!response.ok) {
       throw new Error(`${method} ${path}: ${response.status} ${text}`);
     }
-    return text ? JSON.parse(text) : undefined;
+    return (text ? JSON.parse(text) : undefined) as Result;
   }
 
   test.each([
@@ -57,7 +61,7 @@ describeWithServer('browser regex matching through the server', () => {
         categories: [],
         filter_categories: [],
       });
-      const result = await request('/query/', 'POST', {
+      const result = await request<{ browser: { duration: number } }[]>('/query/', 'POST', {
         timeperiods: ['2026-01-01T12:00:00Z/2026-01-01T12:01:00Z'],
         query,
       });

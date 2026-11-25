@@ -72,6 +72,7 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import 'vue-awesome/icons/check';
 import 'vue-awesome/icons/exclamation-triangle';
 import 'vue-awesome/icons/info-circle';
@@ -79,14 +80,15 @@ import { getClient } from '~/util/awclient';
 import { overlappingEvents } from '~/util/transforms';
 import { seconds_to_duration } from '~/util/time';
 import _ from 'lodash';
+import type { IEvent } from '~/util/interfaces';
 
-export default {
+export default defineComponent({
   name: 'aw-bucket-merge',
   data() {
     return {
-      buckets: [],
-      bucket: null,
-      events: null,
+      buckets: [] as { value: string; text: string }[],
+      bucket: null as string | null,
+      events: null as IEvent[] | null,
     };
   },
   computed: {
@@ -101,13 +103,11 @@ export default {
         return null;
       }
       return this.overlappingEvents.filter(overlap => {
-        if (
+        return (
           _.isEqual(overlap[0].start, overlap[1].start) &&
           _.isEqual(overlap[0].end, overlap[1].end) &&
           _.isEqual(overlap[0].event.data, overlap[1].event.data)
-        ) {
-          return true;
-        }
+        );
       });
     },
     overlappingEvents() {
@@ -124,7 +124,7 @@ export default {
       return this.overlappingEvents.reduce((acc, event) => {
         const start = event[0].start > event[1].start ? event[0].start : event[1].start;
         const end = event[0].end < event[1].end ? event[0].end : event[1].end;
-        return acc + (end - start);
+        return acc + (end.valueOf() - start.valueOf());
       }, 0);
     },
     overlapDurationSameData() {
@@ -139,7 +139,7 @@ export default {
         }
         const start = event[0].start > event[1].start ? event[0].start : event[1].start;
         const end = event[0].end < event[1].end ? event[0].end : event[1].end;
-        return acc + (end - start);
+        return acc + (end.valueOf() - start.valueOf());
       }, 0);
     },
     zeroDurationEvents() {
@@ -150,7 +150,11 @@ export default {
     },
   },
   watch: {
-    bucket: async function (new_bucket_id) {
+    bucket: async function (new_bucket_id: string | null) {
+      if (new_bucket_id === null) {
+        this.events = null;
+        return;
+      }
       this.events = null;
       this.events = await this.getEvents(new_bucket_id);
     },
@@ -169,10 +173,11 @@ export default {
         return { value: bucket_id, text: bucket_id };
       });
     },
-    getEvents: async function (bucket_id) {
+    getEvents: async function (bucket_id: string): Promise<IEvent[]> {
       const client = getClient();
-      return await client.getEvents(bucket_id);
+      // aw-client types event timestamps as Date, but the JSON response carries ISO strings.
+      return (await client.getEvents(bucket_id)) as unknown as IEvent[];
     },
   },
-};
+});
 </script>

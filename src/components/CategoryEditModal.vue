@@ -71,15 +71,38 @@ b-modal(id="edit" ref="edit" :title="$t('ui.categoryEditor.editTitle')" @show="r
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import _ from 'lodash';
+import type { BModal } from 'bootstrap-vue';
 import ColorPicker from '~/components/ColorPicker.vue';
 import { useCategoryStore } from '~/stores/categories';
 import { validateRegex, isRegexBroad } from '~/util/validate';
-import { CANONICAL_SELECT_KEYS, normalizeSelectKeys } from '~/util/classes';
+import {
+  CANONICAL_SELECT_KEYS,
+  type Category,
+  normalizeSelectKeys,
+  type Rule,
+} from '~/util/classes';
 
 import 'vue-awesome/icons/trash';
 
-export default {
+// The form's state. Text inputs bind strings here, so priority, color and score can be
+// strings until they are validated and converted on submit.
+interface EditingState {
+  // Undefined for a category that has no id yet
+  id: number | undefined;
+  name: string | null | undefined;
+  rule: Rule;
+  parent: string[];
+  inherit_color: boolean;
+  color: string | null | undefined;
+  inherit_score: boolean;
+  score: number | string | null | undefined;
+  match_fields: string[];
+  priority: number | string | null;
+}
+
+export default defineComponent({
   name: 'CategoryEditModal',
   components: {
     'color-picker': ColorPicker,
@@ -94,7 +117,7 @@ export default {
       editing: {
         id: 0, // Placeholder; replaced with the stored category id by resetModal()
         name: null,
-        rule: {},
+        rule: {} as Rule,
         parent: [],
         inherit_color: true,
         color: null,
@@ -102,7 +125,7 @@ export default {
         score: null,
         match_fields: [],
         priority: null,
-      },
+      } as EditingState,
     };
   },
   computed: {
@@ -171,7 +194,8 @@ export default {
   },
   methods: {
     showModal() {
-      this.$refs.edit?.show();
+      // ref="edit" is the b-modal this component renders
+      (this.$refs.edit as BModal | undefined)?.show();
     },
     hidden() {
       this.$emit('hidden');
@@ -190,11 +214,11 @@ export default {
       }
       return true;
     },
-    handleEnter(event) {
+    handleEnter(event: KeyboardEvent) {
       // Enter submits the modal, same as pressing OK (#232).
       // Skipped for elements where Enter already has a meaning of its own,
       // so we don't swallow their default behavior.
-      const tag = event.target && event.target.tagName;
+      const tag = (event.target as { tagName?: string } | null)?.tagName;
       if (tag === 'TEXTAREA' || tag === 'BUTTON' || tag === 'A' || tag === 'SELECT') {
         return;
       }
@@ -206,7 +230,7 @@ export default {
       this.handleSubmit();
       this.$emit('ok');
     },
-    handleOk(event) {
+    handleOk(event: Event) {
       // Prevent modal from closing
       event.preventDefault();
       // Trigger submit handler
@@ -226,15 +250,16 @@ export default {
       // classes[].name, which the query engine then tries to resolve as the
       // variable `null` and throws QueryInterpretException, breaking all
       // charts that call categorize(). See #1355.
-      const isValid = s => s !== null && s !== undefined && s !== '';
+      const isValid = (s: unknown): s is string => s !== null && s !== undefined && s !== '';
       const parent = Array.isArray(this.editing.parent) ? this.editing.parent.filter(isValid) : [];
       // The leaf name must be valid on its own — do NOT let a blank name
       // silently collapse a child into its parent's path.
-      if (!isValid(this.editing.name)) {
+      const leafName = this.editing.name;
+      if (!isValid(leafName)) {
         return;
       }
-      const nameSegments = parent.concat(this.editing.name);
-      const rule =
+      const nameSegments = parent.concat(leafName);
+      const rule: Rule =
         this.editing.rule.type !== 'none' ? _.cloneDeep(this.editing.rule) : { type: 'none' };
       if (rule.type === 'regex') {
         const selected = normalizeSelectKeys(this.editing.match_fields);
@@ -269,16 +294,17 @@ export default {
       // Hide the modal manually. Saving a rename or reparent re-renders the category
       // tree, which may destroy this component before the tick (activitywatch#1144).
       this.$nextTick(() => {
-        this.$refs.edit?.hide();
+        (this.$refs.edit as BModal | undefined)?.hide();
       });
     },
     resetModal() {
       const cat = this.categoryStore.get_category_by_id(this.categoryId);
+      if (!cat) throw new Error(`Unknown category ${this.categoryId}`);
       const color = cat.data ? cat.data.color : undefined;
       const inherit_color = !color;
       const score = cat.data ? cat.data.score : undefined;
       const inherit_score = score === null || score === undefined;
-      const rule = _.cloneDeep(cat.rule) || {};
+      const rule: Rule = _.cloneDeep(cat.rule) || {};
       const storedKeys = normalizeSelectKeys(rule.select_keys);
       this.editing = {
         id: cat.id,
@@ -293,7 +319,7 @@ export default {
         priority: this.priorityFromRule(rule),
       };
     },
-    priorityFromInput(value) {
+    priorityFromInput(value: number | string | null | undefined): number | null | undefined {
       if (value === null || value === undefined || value === '') {
         return null;
       }
@@ -303,10 +329,10 @@ export default {
       const priority = Number(value);
       return Number.isInteger(priority) && priority >= 0 ? priority : undefined;
     },
-    priorityFromRule(rule) {
+    priorityFromRule(rule: Rule): number | null {
       const value = rule.priority !== undefined ? rule.priority : rule.weight;
       return typeof value === 'number' && Number.isInteger(value) ? value : null;
     },
   },
-};
+});
 </script>

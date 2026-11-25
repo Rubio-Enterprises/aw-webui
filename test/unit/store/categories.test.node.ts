@@ -1,8 +1,8 @@
 import { isEqual } from 'lodash';
-import { setActivePinia, createPinia } from 'pinia';
+import { createPinia, setActivePinia } from 'pinia';
 
 import { useCategoryStore } from '~/stores/categories';
-import { createMissingParents, defaultCategories, Category } from '~/util/classes';
+import { type Category, createMissingParents, defaultCategories } from '~/util/classes';
 
 describe('categories store', () => {
   setActivePinia(createPinia());
@@ -45,8 +45,8 @@ describe('categories store', () => {
     expect(categoryStore.all_categories).toHaveLength(1);
   });
 
-  describe.each([1, -1])('score inheritance from parent %s', parentScore => {
-    test.each([0, 0.5, -0.5, null, undefined])('resolves child score %s', score => {
+  describe.each([1, -1])('score inheritance from parent %s', (parentScore) => {
+    test.each([0, 0.5, -0.5, null, undefined])('resolves child score %s', (score) => {
       categoryStore.load([
         { name: ['Parent'], rule: { type: 'none' }, data: { score: parentScore } },
         { name: ['Parent', 'Child'], rule: { type: 'none' }, data: { score } },
@@ -127,7 +127,7 @@ describe('categories store', () => {
     expect(music_cat.id).not.toBeUndefined();
 
     // Check that defaultCategories haven't mutated
-    expect(defaultCategories.map(c => c.name)).toContainEqual(['Media', 'Music']);
+    expect(defaultCategories.map((c) => c.name)).toContainEqual(['Media', 'Music']);
   });
 
   test('modify a category after deleting another', () => {
@@ -166,9 +166,11 @@ describe('categories store', () => {
     expect(video_2_cat.data.test).toBe(true);
 
     // Check that the category named "Video" no longer exists, and the category named "Video2" exists
-    expect(categoryStore.all_categories.filter(c => isEqual(c, ['Work', 'Video']))).toHaveLength(0);
-    expect(categoryStore.all_categories.filter(c => isEqual(c, ['Work', 'Video2']))).toHaveLength(
-      1
+    expect(categoryStore.all_categories.filter((c) => isEqual(c, ['Work', 'Video']))).toHaveLength(
+      0,
+    );
+    expect(categoryStore.all_categories.filter((c) => isEqual(c, ['Work', 'Video2']))).toHaveLength(
+      1,
     );
   });
 
@@ -223,7 +225,7 @@ describe('categories store', () => {
       { name: ['B'], rule: { type: 'none' } },
       { name: ['C'], rule: { type: 'none' } },
     ]);
-    const maxBefore = Math.max(...categoryStore.classes.map(c => c.id ?? -1));
+    const maxBefore = Math.max(...categoryStore.classes.map((c) => c.id ?? -1));
     categoryStore.removeClass(categoryStore.classes[1].id);
     const id = categoryStore.addClass({ name: ['D'], rule: { type: 'none' } });
     expect(id).toBe(maxBefore + 1);
@@ -236,7 +238,7 @@ describe('categories store', () => {
     expect(categoryStore.classes_unsaved_changes).toBeTruthy();
     expect(categoryStore.category_sets).toHaveLength(1);
     expect(categoryStore.category_sets[0].id).toBe('default');
-    const names = categoryStore.category_sets[0].categories.map(c => c.name);
+    const names = categoryStore.category_sets[0].categories.map((c) => c.name);
     expect(names).toContainEqual(['Work']);
     expect(names).toContainEqual(['Work', 'Coding']);
     categoryStore.save();
@@ -281,7 +283,7 @@ describe('categories store: multiple active sets', () => {
   setActivePinia(createPinia());
   const store = useCategoryStore();
   const names = (id: string) =>
-    (store.category_sets.find(s => s.id === id)?.categories ?? []).map(c => c.name);
+    (store.category_sets.find((s) => s.id === id)?.categories ?? []).map((c) => c.name);
 
   beforeEach(() => {
     store.$patch({
@@ -303,7 +305,7 @@ describe('categories store: multiple active sets', () => {
   });
 
   test('shows the categories of all active sets', () => {
-    const effective = store.classes.map(c => c.name);
+    const effective = store.classes.map((c) => c.name);
     expect(effective).toContainEqual(['Work']);
     expect(effective).toContainEqual(['Media', 'Video']);
   });
@@ -325,15 +327,15 @@ describe('categories store: multiple active sets', () => {
     store.updateClass({ ...video, rule: { type: 'regex', regex: 'YouTube|Vimeo' } });
     store.save();
     const override = store.category_sets
-      .find(s => s.id === 'mine')
-      ?.categories.find(c => isEqual(c.name, ['Media', 'Video']));
+      .find((s) => s.id === 'mine')
+      ?.categories.find((c) => isEqual(c.name, ['Media', 'Video']));
     expect(override?.rule.regex).toBe('YouTube|Vimeo');
-    expect(store.category_sets.find(s => s.id === 'shared')?.categories[0].rule.regex).toBe(
-      'YouTube'
+    expect(store.category_sets.find((s) => s.id === 'shared')?.categories[0].rule.regex).toBe(
+      'YouTube',
     );
   });
 
-  test.each(['rename', 'delete'])('%s of a secondary category survives reload', action => {
+  test.each(['rename', 'delete'])('%s of a secondary category survives reload', (action) => {
     const video = store.get_category(['Media', 'Video']) as Category;
     if (action === 'rename') {
       store.updateClass({ ...video, name: ['Media', 'Movies'] });
@@ -344,19 +346,19 @@ describe('categories store: multiple active sets', () => {
     // Round-trip the persisted sets, rather than checking only the edited view.
     store.category_sets = JSON.parse(JSON.stringify(store.category_sets));
     store.discardChanges();
-    expect(store.classes.map(c => c.name)).not.toContainEqual(['Media', 'Video']);
+    expect(store.classes.map((c) => c.name)).not.toContainEqual(['Media', 'Video']);
     if (action === 'rename') expect(store.get_category(['Media', 'Movies'])).toBeDefined();
     expect(names('shared')).toEqual([['Media', 'Video']]);
 
     store.setActiveSets(['mine']);
     store.save();
     store.setActiveSets(['mine', 'shared']);
-    expect(store.classes.map(c => c.name)).not.toContainEqual(['Media', 'Video']);
+    expect(store.classes.map((c) => c.name)).not.toContainEqual(['Media', 'Video']);
   });
 
   test.each(['save', 'switch'])(
     'deleted inherited child keeps no generated parent after %s',
-    action => {
+    (action) => {
       store.removeClass((store.get_category(['Media', 'Video']) as Category).id);
       store.save();
       if (action === 'save') store.save();
@@ -365,12 +367,12 @@ describe('categories store: multiple active sets', () => {
       store.category_sets = JSON.parse(JSON.stringify(store.category_sets));
       store.discardChanges();
       expect(names('mine')).toEqual([['Work']]);
-      expect(store.classes.map(c => c.name)).not.toContainEqual(['Media']);
+      expect(store.classes.map((c) => c.name)).not.toContainEqual(['Media']);
       expect(names('shared')).toEqual([['Media', 'Video']]);
       store.setActiveSets(['mine', 'shared']);
-      expect(store.classes.map(c => c.name)).not.toContainEqual(['Media']);
-      expect(store.classes.map(c => c.name)).not.toContainEqual(['Media', 'Video']);
-    }
+      expect(store.classes.map((c) => c.name)).not.toContainEqual(['Media']);
+      expect(store.classes.map((c) => c.name)).not.toContainEqual(['Media', 'Video']);
+    },
   );
 
   test('an edited generated parent survives deletion of its last inherited child', () => {
@@ -390,9 +392,9 @@ describe('categories store: multiple active sets', () => {
     store.updateClass({ ...parent, name: ['Entertainment'] });
     store.save();
     store.discardChanges();
-    expect(store.classes.map(c => c.name)).not.toContainEqual(['Media', 'Video']);
-    expect(store.classes.map(c => c.name)).not.toContainEqual(['Media']);
-    expect(store.classes.map(c => c.name)).toContainEqual(['Entertainment', 'Video']);
+    expect(store.classes.map((c) => c.name)).not.toContainEqual(['Media', 'Video']);
+    expect(store.classes.map((c) => c.name)).not.toContainEqual(['Media']);
+    expect(store.classes.map((c) => c.name)).toContainEqual(['Entertainment', 'Video']);
     expect(names('shared')).toEqual([['Media', 'Video']]);
   });
 
@@ -403,7 +405,7 @@ describe('categories store: multiple active sets', () => {
     store.removeClass(video.id);
     store.save();
     store.discardChanges();
-    expect(store.classes.map(c => c.name)).not.toContainEqual(['Media', 'Video']);
+    expect(store.classes.map((c) => c.name)).not.toContainEqual(['Media', 'Video']);
   });
 
   test('explicitly re-adding a hidden category restores it', () => {
@@ -417,7 +419,7 @@ describe('categories store: multiple active sets', () => {
     });
     store.save();
     store.discardChanges();
-    expect(store.classes.map(c => c.name)).toContainEqual(['Media', 'Video']);
+    expect(store.classes.map((c) => c.name)).toContainEqual(['Media', 'Video']);
     expect(names('mine')).toEqual([['Work']]);
   });
 
@@ -426,7 +428,7 @@ describe('categories store: multiple active sets', () => {
     store.discardChanges();
     store.save();
     store.discardChanges();
-    expect(store.classes.map(c => c.name)).toContainEqual(['Media', 'Video']);
+    expect(store.classes.map((c) => c.name)).toContainEqual(['Media', 'Video']);
   });
 
   test('primary priority is respected even when sets appear in a different array order', () => {
@@ -450,7 +452,7 @@ describe('categories store: multiple active sets', () => {
     expect(store.get_category(['Work']).rule.regex).toBe('mine');
 
     store.save();
-    expect(store.category_sets.find(s => s.id === 'mine')?.categories[0].rule.regex).toBe('mine');
+    expect(store.category_sets.find((s) => s.id === 'mine')?.categories[0].rule.regex).toBe('mine');
   });
 
   test('an edit that only adds empty data does not create a primary override', () => {
@@ -505,8 +507,8 @@ describe('import add-on-top via setActiveSets', () => {
     store.setActiveSets(['mine', 'shared']);
     store.save();
 
-    expect(store.category_sets.find(s => s.id === 'mine')?.categories).toHaveLength(1);
-    expect(store.category_sets.find(s => s.id === 'mine')?.categories[0].name).toEqual(['Work']);
+    expect(store.category_sets.find((s) => s.id === 'mine')?.categories).toHaveLength(1);
+    expect(store.category_sets.find((s) => s.id === 'mine')?.categories[0].name).toEqual(['Work']);
   });
 
   test('updating an existing imported set on top replaces its categories', () => {
@@ -517,12 +519,71 @@ describe('import add-on-top via setActiveSets', () => {
     store.setActiveSets(['mine', 'shared']);
 
     // Re-import with updated categories (simulates "Add on top" with existing set)
-    const existing = store.category_sets.find(s => s.id === 'shared');
+    const existing = store.category_sets.find((s) => s.id === 'shared');
     if (existing)
       existing.categories = [{ name: ['Dev'], rule: { type: 'regex', regex: 'editor' } }];
     // active_set_ids unchanged since it already included 'shared'
     expect(store.active_set_ids).toEqual(['mine', 'shared']);
     store.discardChanges();
     expect(store.get_category(['Dev'])?.rule.regex).toBe('editor');
+  });
+});
+
+describe('strict-typing regressions', () => {
+  setActivePinia(createPinia());
+  const categoryStore = useCategoryStore();
+
+  beforeEach(() => {
+    categoryStore.clearAll();
+  });
+
+  test('category_select lists categories in text order', () => {
+    categoryStore.classes = [
+      { id: 0, name: ['Work'], rule: { type: 'none' } },
+      { id: 1, name: ['Media'], rule: { type: 'none' } },
+      { id: 2, name: ['Media', 'Audio'], rule: { type: 'none' } },
+      { id: 3, name: ['Comms'], rule: { type: 'none' } },
+      { id: 4, name: ['Uncategorized'], rule: { type: 'none' } },
+    ] as Category[];
+    const texts = categoryStore.category_select(false).map((o) => o.text);
+    // The old comparator returned a boolean, which never sorts a list in place
+    expect(texts).toEqual(['Comms', 'Media', 'Media > Audio', 'Uncategorized', 'Work']);
+  });
+
+  test('category_select puts the meta entries first, before the sorted categories', () => {
+    categoryStore.classes = [
+      { id: 0, name: ['Work'], rule: { type: 'none' } },
+      { id: 1, name: ['Media'], rule: { type: 'none' } },
+    ] as Category[];
+    const options = categoryStore.category_select(true);
+    expect(options.map((o) => o.text)).toEqual(['All', 'Uncategorized', 'Media', 'Work']);
+    expect(options[0].value).toBeNull();
+  });
+
+  test('updateClass rejects an unknown category id and leaves the classes untouched', () => {
+    categoryStore.restoreDefaultClasses();
+    const before = JSON.stringify(categoryStore.classes);
+    expect(() =>
+      categoryStore.updateClass({ id: 9999, name: ['Ghost'], rule: { type: 'none' } }),
+    ).toThrow(/unknown category 9999/);
+    expect(JSON.stringify(categoryStore.classes)).toBe(before);
+  });
+
+  test('appendClassRule rejects an unknown category id', () => {
+    categoryStore.restoreDefaultClasses();
+    expect(() => categoryStore.appendClassRule(9999, 'foo')).toThrow(/unknown category 9999/);
+  });
+
+  test('a string score from the editor input counts like a numeric one', () => {
+    // The editor's score input binds a string, so "5" can reach the store
+    categoryStore.classes = [
+      { id: 0, name: ['Work'], rule: { type: 'none' }, data: { score: '5' } },
+      { id: 1, name: ['Work', 'Code'], rule: { type: 'none' } },
+    ] as Category[];
+    expect(categoryStore.get_category_score(['Work'])).toBe(5);
+    // inherited from the parent
+    expect(categoryStore.get_category_score(['Work', 'Code'])).toBe(5);
+    // the old code returned the string, so sums concatenated ("1" + "5" = "15")
+    expect(1 + categoryStore.get_category_score(['Work'])).toBe(6);
   });
 });

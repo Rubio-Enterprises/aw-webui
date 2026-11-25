@@ -1,6 +1,6 @@
 import { createPinia, setActivePinia } from 'pinia';
 
-import { useActivityStore } from '~/stores/activity';
+import { type QueryOptions, useActivityStore } from '~/stores/activity';
 import { createClient, getClient } from '~/util/awclient';
 
 createClient();
@@ -26,10 +26,11 @@ describe('Android browser completion', () => {
       .mockResolvedValue([
         { app_events: [], app_cat_events: [], title_events: [], cat_events: [] },
       ]);
-    const options = {
+    const options: QueryOptions = {
+      host: 'device',
       timeperiod: { start: '2024-01-01T00:00:00Z', length: [1, 'day'] },
       filter_categories: [],
-    } as any;
+    };
 
     await store.query_android(options);
 
@@ -48,9 +49,10 @@ describe('Android browser completion', () => {
     jest.spyOn(getClient(), 'query').mockResolvedValue([]);
 
     await store.query_android({
+      host: 'device',
       timeperiod: { start: '2024-01-01T00:00:00Z', length: [1, 'day'] },
       filter_categories: [],
-    } as any);
+    });
 
     expect(store.browser.top_domains).toEqual([]);
     expect(store.browser.top_urls).toEqual([]);
@@ -74,9 +76,10 @@ describe('Android browser completion', () => {
       .mockResolvedValueOnce([]);
 
     await store.query_android({
+      host: 'device',
       timeperiod: { start: '2024-01-01T00:00:00Z', length: [1, 'day'] },
       filter_categories: [],
-    } as any);
+    });
 
     expect(store.browser.top_domains).toEqual([]);
     expect(store.browser.top_urls).toEqual([]);
@@ -89,7 +92,7 @@ describe('Android browser completion', () => {
     store.buckets.android = ['aw-watcher-android_device'];
     store.buckets.browser = ['aw-watcher-web-chrome'];
     store.browser.available = true;
-    const chunks = [0, 1].map(chunk => [
+    const chunks = [0, 1].map((chunk) => [
       ...Array.from({ length: 100 }, (_, i) => event(`chunk${chunk}-${i}.example`, 11)),
       event('shared.example', 10),
     ]);
@@ -108,9 +111,10 @@ describe('Android browser completion', () => {
     });
 
     await store.query_android({
+      host: 'device',
       timeperiod: { start: '2024-01-01T00:00:00Z', length: [184, 'days'] },
       filter_categories: [],
-    } as any);
+    });
 
     expect(browserChunk).toBe(2);
     expect(store.browser.top_domains).toHaveLength(100);

@@ -19,7 +19,7 @@ export function sunburstLabelFontPx(relativeDepth: number): number {
 export function fitLabel(
   text: string,
   maxWidth: number,
-  measure: (s: string) => number
+  measure: (s: string) => number,
 ): string | null {
   if (measure(text) <= maxWidth) return text;
   // Cut on code points, not UTF-16 units, so an emoji is never split in half.
@@ -43,7 +43,7 @@ export function measureText(text: string, fontPx: number, fontFamily: string): n
   if (canvasCtx === undefined) {
     try {
       canvasCtx = document.createElement('canvas').getContext('2d');
-    } catch (e) {
+    } catch {
       canvasCtx = null;
     }
   }

@@ -23,7 +23,7 @@ export function querystr_to_array(querystr: string): string[] {
       current += char;
     } else if (char === ';' && !inString) {
       const trimmed = current.trim();
-      if (trimmed) statements.push(trimmed + ';');
+      if (trimmed) statements.push(`${trimmed};`);
       current = '';
     } else {
       current += char;
@@ -31,7 +31,7 @@ export function querystr_to_array(querystr: string): string[] {
   }
 
   const trimmed = current.trim();
-  if (trimmed) statements.push(trimmed + ';');
+  if (trimmed) statements.push(`${trimmed};`);
 
   return statements;
 }
@@ -46,7 +46,7 @@ export function safeHostname(hostname: string): string {
 }
 
 interface Rule {
-  type: string;
+  type: string | null;
   regex?: string;
   ignore_case?: boolean;
   select_keys?: string[];
@@ -54,10 +54,14 @@ interface Rule {
 
 type Category = [string[], Rule];
 
+// A category path with the rule that selects its events, as the queries take them
+export type QueryCategory = Category;
+
 export interface BaseQueryParams {
   include_audible?: boolean;
-  categories: Category[];
-  filter_categories: string[][];
+  // `null` leaves the corresponding step out of the query.
+  categories: Category[] | null;
+  filter_categories?: string[][] | null;
   bid_browsers?: string[];
   bid_stopwatch?: string;
   return_variable_suffix?: string;
@@ -66,7 +70,7 @@ export interface BaseQueryParams {
 export interface DesktopQueryParams extends BaseQueryParams {
   bid_window: string;
   bid_afk: string;
-  filter_afk: boolean;
+  filter_afk?: boolean;
   always_active_pattern?: string;
 }
 
@@ -88,8 +92,8 @@ export interface AndroidQueryParams extends BaseQueryParams {
 
 export interface MultiQueryParams extends BaseQueryParams {
   hosts: string[];
-  filter_afk: boolean;
-  always_active_pattern: string;
+  filter_afk?: boolean;
+  always_active_pattern?: string;
   // This can be used to override params on a per-host basis.  Only the
   // keys present (and non-empty) are applied, so partial objects such as
   // {bid_window, bid_afk} are valid overrides.
@@ -101,11 +105,11 @@ export interface MultiQueryParams extends BaseQueryParams {
 // (e.g. "work-laptop" and "worklaptop"), and would otherwise overwrite each
 // other's events.
 function hostVariableSuffix(params: MultiQueryParams, i: number): string {
-  return `${safeHostname(params.hosts[i])}_${i}`;
+  return `${safeHostname(params.hosts[i] ?? '')}_${i}`;
 }
 
 function get_params(params: MultiQueryParams, i: number): DesktopQueryParams | AndroidQueryParams {
-  const host = params.hosts[i];
+  const host = params.hosts[i] ?? '';
   // Return the params for a given host, based on the self params and any overrides in host_params.
   // If no overrides are found, return the base (desktop) params.
   const host_params = params.host_params[host];
@@ -126,8 +130,8 @@ function get_params(params: MultiQueryParams, i: number): DesktopQueryParams | A
 
   const new_params: DesktopQueryParams = {
     ...params,
-    bid_window: 'aw-watcher-window_' + host,
-    bid_afk: 'aw-watcher-afk_' + host,
+    bid_window: `aw-watcher-window_${host}`,
+    bid_afk: `aw-watcher-afk_${host}`,
     bid_browsers: [],
     return_variable_suffix: hostVariableSuffix(params, i),
   };
@@ -139,7 +143,7 @@ function get_params(params: MultiQueryParams, i: number): DesktopQueryParams | A
     // Only override the params if they are defined and set to a truthy value
     const overrides = host_params as Record<string, unknown>;
     const target = new_params as unknown as Record<string, unknown>;
-    Object.keys(overrides).forEach(key => {
+    Object.keys(overrides).forEach((key) => {
       const value = overrides[key];
       if ((typeof value === 'string' || Array.isArray(value)) && value.length > 0) {
         target[key] = value;
@@ -149,15 +153,15 @@ function get_params(params: MultiQueryParams, i: number): DesktopQueryParams | A
   return new_params;
 }
 
-function isDesktopParams(object: any): object is DesktopQueryParams {
+function isDesktopParams(object: object): object is Partial<DesktopQueryParams> {
   return 'bid_window' in object;
 }
 
-function isAndroidParams(object: any): object is AndroidQueryParams {
+function isAndroidParams(object: object): object is Partial<AndroidQueryParams> {
   return 'bid_android' in object;
 }
 
-function isMultiParams(object: any): object is MultiQueryParams {
+function isMultiParams(object: object): object is MultiQueryParams {
   return 'hosts' in object;
 }
 
@@ -273,7 +277,7 @@ export function canonicalEvents(params: DesktopQueryParams | AndroidQueryParams)
 // overlap resolution.
 export function canonicalMultideviceEvents(
   params: MultiQueryParams,
-  trackHostDurations = false
+  trackHostDurations = false,
 ): string {
   // First, query each device individually
   const queries: string[] = _.map(params.hosts, (_hostname, i) => {
@@ -307,9 +311,9 @@ export const default_limit = 100; // Hardcoded limit per group
 export function appQuery(
   appbucket: string,
   categories: Category[],
-  filter_categories: string[][],
+  filter_categories?: string[][] | null,
   isIos = false,
-  limit = default_limit
+  limit = default_limit,
 ): string[] {
   appbucket = escape_doublequote(appbucket);
   const params: AndroidQueryParams = {
@@ -401,13 +405,13 @@ export const browser_appnames: Record<string, string[]> = {
 function browsersWithBuckets(browserbuckets: string[]): [string, string][] {
   const browsername_to_bucketid: [string, string | undefined][] = _.map(
     Object.keys(browser_appnames),
-    browserName => {
-      const bucketId = _.find(browserbuckets, bucket_id => _.includes(bucket_id, browserName));
+    (browserName) => {
+      const bucketId = _.find(browserbuckets, (bucket_id) => _.includes(bucket_id, browserName));
       return [browserName, bucketId];
-    }
+    },
   );
   // Skip browsers for which a bucket couldn't be found
-  return _.filter(browsername_to_bucketid, ([, bucketId]) => bucketId !== undefined);
+  return browsername_to_bucketid.filter((pair): pair is [string, string] => pair[1] !== undefined);
 }
 
 // Case-insensitive regex patterns covering all OS/platform process name variants
@@ -473,7 +477,7 @@ export const browser_appname_regex: Record<string, string> = {
 
 // Returns a list of active browser events (where the browser was the active window) from all browser buckets
 function browserEvents(params: DesktopQueryParams): string {
-  const browsers = browsersWithBuckets(params.bid_browsers);
+  const browsers = browsersWithBuckets(params.bid_browsers ?? []);
   // The chrome regex matches forks so a fork without a dedicated bucket still
   // counts (#927). A settings-override Arc bucket can coexist with the default
   // chrome bucket, and then the same Arc activity would be counted by both
@@ -483,7 +487,7 @@ function browserEvents(params: DesktopQueryParams): string {
   // Dia stays on the chrome stream: it has no dedicated bucket today.
   const dedicatedChromeForks = browsers
     .map(([browserName]) => browserName)
-    .filter(name => name in CHROME_FORK_ALTS);
+    .filter((name) => name in CHROME_FORK_ALTS);
 
   let code = `
     browser_events = [];
@@ -527,7 +531,7 @@ export function browserSearchQuery(browserBuckets: string[], pattern: string): s
   // needs a single backslash, so patterns like '\d' must be un-escaped to match
   // (same treatment as `categories_str` in canonicalEvents).
   // Match window search's ignore_case rule for both URL and title matches.
-  const escapedPattern = JSON.stringify('(?i)' + pattern).replace(/\\\\/g, '\\');
+  const escapedPattern = JSON.stringify(`(?i)${pattern}`).replace(/\\\\/g, '\\');
   let code = 'browser_results = [];';
   // Use numeric indices as variable-name suffixes so every bucket is queried
   // regardless of whether its name matches a known browser — this also handles
@@ -602,7 +606,7 @@ export function fullDesktopQuery(params: DesktopQueryParams): string[] {
         "stopwatch": {
             "stopwatch_events": stopwatch_events
         }
-    };`
+    };`,
   );
 }
 
@@ -628,8 +632,8 @@ export function multideviceQuery(params: MultiQueryParams): string[] {
   // breakdown even though their duration is counted; title breakdown
   // (which mobile hosts can't provide) stays desktop-only.
   const hostIndexes = _.range(params.hosts.length);
-  const hostCumulative = hostIndexes.map(i => `host_cumulative_${i}`).join(', ');
-  const hostRaw = hostIndexes.map(i => `host_raw_${i}`).join(', ');
+  const hostCumulative = hostIndexes.map((i) => `host_cumulative_${i}`).join(', ');
+  const hostRaw = hostIndexes.map((i) => `host_raw_${i}`).join(', ');
   return querystr_to_array(
     `
     ${canonicalMultideviceEvents(params, true)}
@@ -653,7 +657,7 @@ export function multideviceQuery(params: MultiQueryParams): string[] {
             "host_cumulative_durations": [${hostCumulative}],
             "host_raw_durations": [${hostRaw}]
         }
-    };`
+    };`,
   );
 }
 
@@ -721,21 +725,21 @@ export interface ActivityQueryOptions {
 // returning them so overlapping evidence and devices are counted only once.
 export function activeDurationQuery(
   sources: ActivityQuerySource[],
-  options: ActivityQueryOptions = {}
+  options: ActivityQueryOptions = {},
 ): string[] {
   let code = 'history_events = [];';
   for (const source of sources) {
     if (source.bid_android) {
       // Preserve mobile intervals so overlapping devices count only once.
       code += `history_events = union_no_overlap(history_events, flood(${queryBucket(
-        escape_doublequote(source.bid_android)
+        escape_doublequote(source.bid_android),
       )}));`;
     } else if (source.bid_window) {
       code += canonicalEvents({
         ...options,
         filter_afk: options.filter_afk !== false,
         bid_window: escape_doublequote(source.bid_window),
-        bid_afk: escape_doublequote(source.bid_afk),
+        bid_afk: escape_doublequote(source.bid_afk ?? ''),
         bid_browsers: (source.bid_browsers || []).map(escape_doublequote),
         always_active_pattern: options.always_active_pattern
           ? escape_doublequote(options.always_active_pattern)
@@ -756,7 +760,7 @@ export function activeDurationQuery(
       // duration. That is no longer an interval, so unioning it against
       // another source's real periods trims time that was never concurrent,
       // and multidevice with an AFK-only host under-counted.
-      const bid_afk = escape_doublequote(source.bid_afk);
+      const bid_afk = escape_doublequote(source.bid_afk ?? '');
       code += `
         not_afk = flood(${queryBucket(bid_afk)});
         not_afk = filter_keyvals(not_afk, "status", ["not-afk"]);
@@ -764,7 +768,7 @@ export function activeDurationQuery(
       code += 'history_events = union_no_overlap(history_events, not_afk);';
     }
   }
-  return querystr_to_array(code + 'RETURN = history_events;');
+  return querystr_to_array(`${code}RETURN = history_events;`);
 }
 
 // Equivalent function to activityQuery, but for Android (which doesn't have an afk bucket)
@@ -826,12 +830,12 @@ export function analysisContextQuery(params: DesktopQueryParams): string[] {
         "events": events,
         "browser_domains": browser_domains,
         "tracked_duration": sum_durations(tracked_events)
-    };`
+    };`,
   );
 }
 
 export function categoryQuery(
-  params: MultiQueryParams | DesktopQueryParams | AndroidQueryParams
+  params: MultiQueryParams | DesktopQueryParams | AndroidQueryParams,
 ): string[] {
   const q = `
   ${isMultiParams(params) ? canonicalMultideviceEvents(params) : canonicalEvents(params)}
@@ -890,8 +894,8 @@ export function androidBrowserQuery(
   bid_android: string,
   bid_browsers: string[],
   categories: Category[],
-  filter_categories: string[][],
-  isIos = false
+  filter_categories?: string[][] | null,
+  isIos = false,
 ): string[] {
   bid_android = escape_doublequote(bid_android);
   const escaped_browsers = bid_browsers.map(escape_doublequote);
@@ -914,17 +918,17 @@ export function androidBrowserQuery(
     keep_event_timestamps: true,
   };
   // Unlike the desktop selector, keep every profile bucket for each browser.
-  const browsers: [string, string][] = Object.keys(browser_appnames)
-    .filter(browserName => browser_appnames[browserName].length > 0)
-    .flatMap(browserName =>
+  const browsers: [string, string][] = Object.entries(browser_appnames)
+    .filter(([, appnames]) => appnames.length > 0)
+    .flatMap(([browserName]) =>
       escaped_browsers
         .filter(
-          bucketId =>
+          (bucketId) =>
             bucketId === `aw-watcher-web-${browserName}` ||
             bucketId.startsWith(`aw-watcher-web-${browserName}_`) ||
-            bucketId.startsWith(`aw-watcher-web-${browserName}-synced-from-`)
+            bucketId.startsWith(`aw-watcher-web-${browserName}-synced-from-`),
         )
-        .map(bucketId => [browserName, bucketId] as [string, string])
+        .map((bucketId) => [browserName, bucketId] as [string, string]),
     );
 
   // Mirror browserEvents() but rely on the `events` variable set by
@@ -952,7 +956,7 @@ export function androidBrowserQuery(
   // previous browser-only behavior for those buckets instead of dropping them.
   const matchedBuckets = new Set(browsers.map(([, bucketId]) => bucketId));
   escaped_browsers
-    .filter(bucketId => !matchedBuckets.has(bucketId))
+    .filter((bucketId) => !matchedBuckets.has(bucketId))
     .forEach((bucketId, i) => {
       browser_code += `
       events_custom_${i} = flood(query_bucket("${bucketId}"));

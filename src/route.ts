@@ -32,7 +32,7 @@ const router = new VueRouter({
   routes: [
     {
       path: '/',
-      redirect: _to => {
+      redirect: (_to) => {
         return localStorage.landingpage || '/home';
       },
     },

@@ -1,13 +1,14 @@
-import { createPinia, setActivePinia } from 'pinia';
 import moment from 'moment';
+import { createPinia, setActivePinia } from 'pinia';
 import 'moment/locale/de';
 
+import { useSettingsStore } from '~/stores/settings';
 import {
-  MAX_DAILY_BUCKETS,
   dateRangeDays,
   dateRangeToTimeperiod,
   formatDateRange,
   hourlyLabels,
+  MAX_DAILY_BUCKETS,
   parseDateRange,
   periodStartDate,
   shiftDateRange,
@@ -15,10 +16,9 @@ import {
   timeperiodsCalendarMonthsOfPeriod,
   timeperiodsForBarchart,
   timeperiodsHoursOfPeriod,
-  usesMonthlyBuckets,
   timeperiodToStr,
+  usesMonthlyBuckets,
 } from '~/util/timeperiod';
-import { useSettingsStore } from '~/stores/settings';
 
 beforeEach(() => {
   setActivePinia(createPinia());
@@ -80,7 +80,7 @@ describe('parseDateRange', () => {
     ['2026-02-30..2026-03-01'],
     ['2026-1-1..2026-2-1'],
     ['2026-01-01..2026-02-01..2026-03-01'],
-  ])('rejects %p', input => {
+  ])('rejects %p', (input) => {
     expect(parseDateRange(input)).toBeNull();
   });
 
@@ -118,28 +118,28 @@ describe('timeperiodsForBarchart', () => {
 
   it('uses days up to MAX_DAILY_BUCKETS', () => {
     expect(timeperiodsForBarchart({ start, length: [MAX_DAILY_BUCKETS, 'days'] })).toHaveLength(
-      MAX_DAILY_BUCKETS
+      MAX_DAILY_BUCKETS,
     );
   });
 
   it('uses clipped calendar months for longer ranges', () => {
     // 2026-01-15 .. 2026-05-14 (120 days)
     const periods = timeperiodsForBarchart({ start, length: [120, 'days'] });
-    expect(periods.map(p => moment(p.start).format('YYYY-MM-DD'))).toEqual([
+    expect(periods.map((p) => moment(p.start).format('YYYY-MM-DD'))).toEqual([
       '2026-01-15',
       '2026-02-01',
       '2026-03-01',
       '2026-04-01',
       '2026-05-01',
     ]);
-    expect(periods.map(p => p.length[0])).toEqual([17, 28, 31, 30, 14]);
+    expect(periods.map((p) => p.length[0])).toEqual([17, 28, 31, 30, 14]);
   });
 
   it('keeps the day-start offset on month boundaries', () => {
     const tp = dateRangeToTimeperiod({ start: '2026-01-01', end: '2026-12-31' }, '04:00');
     const periods = timeperiodsCalendarMonthsOfPeriod(tp);
     expect(periods).toHaveLength(12);
-    expect(periods.every(p => moment(p.start).format('D HH:mm') === '1 04:00')).toBe(true);
+    expect(periods.every((p) => moment(p.start).format('D HH:mm') === '1 04:00')).toBe(true);
   });
 
   it('uses calendar months for a year, matching the chunk-derived keys', () => {
@@ -149,8 +149,8 @@ describe('timeperiodsForBarchart', () => {
     expect(periods).toHaveLength(12);
     expect(periods.map(timeperiodToStr)).toEqual(
       timeperiodsCalendarMonthsOfPeriod({ start: yearStart, length: [1, 'year'] }).map(
-        timeperiodToStr
-      )
+        timeperiodToStr,
+      ),
     );
     expect(usesMonthlyBuckets({ start, length: [1, 'year'] })).toBe(true);
     expect(usesMonthlyBuckets({ start, length: [1, 'month'] })).toBe(false);
@@ -163,7 +163,7 @@ describe('timeperiodsHoursOfPeriod', () => {
   it('produces 24 one-hour periods on an ordinary day', () => {
     const periods = timeperiodsHoursOfPeriod({ start, length: [1, 'day'] });
     expect(periods).toHaveLength(24);
-    expect(periods.every(p => p.length[0] === 1 && p.length[1] === 'hour')).toBe(true);
+    expect(periods.every((p) => p.length[0] === 1 && p.length[1] === 'hour')).toBe(true);
   });
 
   it('covers the whole interval contiguously with no gaps or overrun', () => {
@@ -176,14 +176,14 @@ describe('timeperiodsHoursOfPeriod', () => {
       const prev = periods[i - 1];
       const prevEnd = moment(prev.start).add(
         prev.length[0],
-        prev.length[1] as moment.unitOfTime.DurationConstructor
+        prev.length[1] as moment.unitOfTime.DurationConstructor,
       );
       expect(prevEnd.format()).toBe(moment(periods[i].start).format());
     }
     const last = periods[periods.length - 1];
     const lastEnd = moment(last.start).add(
       last.length[0],
-      last.length[1] as moment.unitOfTime.DurationConstructor
+      last.length[1] as moment.unitOfTime.DurationConstructor,
     );
     expect(lastEnd.format()).toBe(endM.format());
 
@@ -215,7 +215,7 @@ describe('hourlyLabels', () => {
     const labels = hourlyLabels(tp);
     expect(labels).toHaveLength(timeperiodsHoursOfPeriod(tp).length);
     // Ordinary days keep bare hours, derived from each interval's local clock.
-    expect(labels).toEqual(timeperiodsHoursOfPeriod(tp).map(p => String(moment(p.start).hour())));
+    expect(labels).toEqual(timeperiodsHoursOfPeriod(tp).map((p) => String(moment(p.start).hour())));
   });
 });
 

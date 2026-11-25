@@ -39,8 +39,8 @@ describe('saved query helpers', () => {
           start_offset: 0,
           end_offset: -23,
         },
-        moment('2026-05-27T12:00:00')
-      )
+        moment('2026-05-27T12:00:00'),
+      ),
     ).toEqual({
       startdate: '2026-05-27',
       enddate: '2026-05-28',
@@ -63,17 +63,17 @@ describe('saved query helpers', () => {
 
   test('slugifies and de-duplicates saved query ids', () => {
     expect(buildSavedQueryId('Daily Coding Time', ['daily-coding-time'])).toBe(
-      'daily-coding-time-2'
+      'daily-coding-time-2',
     );
     expect(buildSavedQueryId('!!!', [])).toBe('saved-query');
   });
 
   test('derives a default name from the first non-empty query line', () => {
     expect(
-      getDefaultSavedQueryName('\n  merged_events = merge_events();\nRETURN = merged_events;')
+      getDefaultSavedQueryName('\n  merged_events = merge_events();\nRETURN = merged_events;'),
     ).toBe('merged_events = merge_events();');
     expect(getDefaultSavedQueryName('   \n  ', moment('2026-05-20T12:00:00'))).toBe(
-      'Query 2026-05-20'
+      'Query 2026-05-20',
     );
   });
 
@@ -83,7 +83,7 @@ describe('saved query helpers', () => {
         { id: 'b', name: 'Work', query_code: '' },
         { id: 'a', name: 'Work', query_code: '' },
         { id: 'c', name: 'Browser', query_code: '' },
-      ]).map(query => query.id)
+      ]).map((query) => query.id),
     ).toEqual(['c', 'a', 'b']);
   });
 });

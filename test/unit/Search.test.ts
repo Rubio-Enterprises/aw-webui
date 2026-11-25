@@ -1,7 +1,7 @@
 import SearchComponent from '~/views/Search.vue';
+import { optionsApi } from '../helpers/vue';
 
-// Tests call Options API members directly, which the Vue constructor type doesn't expose.
-const Search: any = SearchComponent;
+const Search = optionsApi(SearchComponent);
 
 const mockBuckets = {
   ensureLoaded: jest.fn(),
@@ -73,7 +73,7 @@ describe('Search query failure isolation', () => {
       jest
         .fn()
         .mockResolvedValueOnce([[windowEvent]])
-        .mockRejectedValueOnce(new Error('Browser failed'))
+        .mockRejectedValueOnce(new Error('Browser failed')),
     );
 
     await Search.methods.search.call(vm);

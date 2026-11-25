@@ -1,5 +1,5 @@
 import { findCommonPhrases } from '~/util/categorization';
-import { IEvent } from '~/util/interfaces';
+import type { IEvent } from '~/util/interfaces';
 
 function makeEvent(title: string, duration: number): IEvent {
   return {

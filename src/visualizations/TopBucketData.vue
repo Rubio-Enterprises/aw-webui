@@ -49,15 +49,18 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import _ from 'lodash';
 import moment from 'moment';
 import { earliestEventInBucket, rangeCoveringEarliest } from '~/util/earliestEvent';
 import { useActivityStore } from '~/stores/activity';
 import { useBucketsStore } from '~/stores/buckets';
 import { getClient } from '~/util/awclient';
+import type { IEvent } from '~/util/interfaces';
+
 interface AggregatedEvent {
   duration: number;
-  data: Record<string, any>;
+  data: { display: string; raw: unknown; colorKey: string };
 }
 function formatValue(value: unknown): string {
   if (Array.isArray(value)) return value.join(' > ');
@@ -65,7 +68,7 @@ function formatValue(value: unknown): string {
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
 }
-export default {
+export default defineComponent({
   name: 'aw-top-bucket-data',
   props: {
     initialBucketId: { type: String, default: '' },
@@ -80,7 +83,7 @@ export default {
       selectedField: this.initialField || '',
       customField: this.initialCustomField || '',
       fieldOptions: [] as string[],
-      events: [] as any[],
+      events: [] as IEvent[],
       aggregated: [] as AggregatedEvent[],
       // bucket id -> earliest event, for All time (see queryRange)
       earliestByBucket: {} as Record<string, Date | null>,
@@ -97,7 +100,7 @@ export default {
     },
     fieldSelectOptions(): { value: string; text: string }[] {
       const options = this.fieldOptions.map(f => ({ value: f, text: f }));
-      options.push({ value: '__custom', text: this.$t('ui.topBucket.customField') });
+      options.push({ value: '__custom', text: this.$t('ui.topBucket.customField') as string });
       return options;
     },
     selectedFieldValue(): string {
@@ -109,7 +112,10 @@ export default {
       if (!opts || !opts.timeperiod) return null;
       const start = opts.timeperiod.start;
       const end = moment(start)
-        .add(...opts.timeperiod.length)
+        .add(
+          opts.timeperiod.length[0],
+          opts.timeperiod.length[1] as moment.unitOfTime.DurationConstructor
+        )
         .toISOString();
       return { start, end };
     },
@@ -161,10 +167,12 @@ export default {
       if (this.selectedBucketId) return;
       const host = this.activityStore.query_options && this.activityStore.query_options.host;
       const byHost = host ? this.bucketsStore.buckets.filter(b => b.hostname === host) : [];
-      if (byHost.length > 0) {
-        this.selectedBucketId = byHost[0].id;
-      } else if (this.bucketsStore.buckets.length > 0) {
-        this.selectedBucketId = this.bucketsStore.buckets[0].id;
+      const [firstByHost] = byHost;
+      const [firstBucket] = this.bucketsStore.buckets;
+      if (firstByHost) {
+        this.selectedBucketId = firstByHost.id;
+      } else if (firstBucket) {
+        this.selectedBucketId = firstBucket.id;
       }
     },
     // The shared range, widened for All time to the selected bucket's own
@@ -190,7 +198,7 @@ export default {
         );
         this.earliestByBucket = { ...this.earliestByBucket, [bucketId]: earliest };
       }
-      return rangeCoveringEarliest(range, this.earliestByBucket[bucketId]);
+      return rangeCoveringEarliest(range, this.earliestByBucket[bucketId] ?? null);
     },
     async loadEvents() {
       // Capture the bucket at call time: the earliest-event lookup below can
@@ -205,16 +213,19 @@ export default {
       try {
         const range = await this.queryRange(bucketId);
         if (!range || bucketId !== this.selectedBucketId) return;
-        this.events = await getClient().getEvents(bucketId, {
-          start: range.start,
-          end: range.end,
+        // aw-client types the options and event timestamps as Date; the API takes and
+        // returns ISO strings.
+        this.events = (await getClient().getEvents(bucketId, {
+          start: range.start as unknown as Date,
+          end: range.end as unknown as Date,
           limit: -1,
-        });
+        })) as unknown as IEvent[];
         if (bucketId !== this.selectedBucketId) return;
         this.fieldOptions = this.extractFields(this.events);
-        if (!this.selectedField && this.fieldOptions.length > 0) {
-          this.selectedField = this.fieldOptions[0];
-        } else if (!this.selectedField && this.fieldOptions.length === 0) {
+        const [firstField] = this.fieldOptions;
+        if (!this.selectedField && firstField !== undefined) {
+          this.selectedField = firstField;
+        } else if (!this.selectedField && firstField === undefined) {
           this.selectedField = '__custom';
         }
         this.aggregate();
@@ -224,14 +235,16 @@ export default {
         if (bucketId !== this.selectedBucketId) return;
         this.events = [];
         this.fieldOptions = [];
-        this.error = err?.message || this.$t('ui.topBucket.loadError');
+        this.error =
+          (err as { message?: string } | undefined)?.message ||
+          (this.$t('ui.topBucket.loadError') as string);
       } finally {
         // Only clear the spinner for the run that is still the selected bucket;
         // a superseded run must not hide a newer in-flight load.
         if (bucketId === this.selectedBucketId) this.loading = false;
       }
     },
-    extractFields(events: any[]): string[] {
+    extractFields(events: IEvent[]): string[] {
       // Sample first 100 events for field discovery (performance vs coverage tradeoff)
       const keys = new Set<string>();
       events.slice(0, 100).forEach(e => {
@@ -253,13 +266,14 @@ export default {
         const value = _.get(e, path);
         const display = formatValue(value);
         const key = Array.isArray(value) ? JSON.stringify(value) : String(display);
-        if (!grouped.has(key)) {
-          grouped.set(key, {
+        let entry = grouped.get(key);
+        if (!entry) {
+          entry = {
             duration: 0,
             data: { display, raw: value, colorKey: display },
-          });
+          };
+          grouped.set(key, entry);
         }
-        const entry = grouped.get(key);
         entry.duration += e.duration || 0;
       });
       this.aggregated = Array.from(grouped.values()).sort((a, b) => b.duration - a.duration);
@@ -272,7 +286,7 @@ export default {
       });
     },
   },
-};
+});
 </script>
 
 <style scoped>

@@ -1,15 +1,15 @@
-import { defineStore } from 'pinia';
-import moment, { Moment } from 'moment';
-import { getClient } from '~/util/awclient';
-import { Category, CategorySet, getDefaultClasses, cleanCategory } from '~/util/classes';
-import { SavedQuery } from '~/util/savedQueries';
-import { AlertGoal, cleanAlertGoals } from '~/util/alerts';
-import { View, defaultViews } from '~/stores/views';
-import type { PrivacyFilterRule } from '~/util/privacyFilters';
 import { isEqual } from 'lodash';
-import { AppLocale, i18n, isAppLocale, setAppLocale } from '~/i18n';
+import moment, { type Moment } from 'moment';
+import { defineStore } from 'pinia';
+import { type AppLocale, i18n, isAppLocale, setAppLocale } from '~/i18n';
+import { defaultViews, type View } from '~/stores/views';
+import { type AlertGoal, cleanAlertGoals } from '~/util/alerts';
+import { getClient } from '~/util/awclient';
+import { type Category, type CategorySet, cleanCategory, getDefaultClasses } from '~/util/classes';
+import type { PrivacyFilterRule } from '~/util/privacyFilters';
+import type { SavedQuery } from '~/util/savedQueries';
 
-function jsonEq(a: any, b: any) {
+function jsonEq(a: unknown, b: unknown) {
   try {
     const jsonA = JSON.parse(JSON.stringify(a));
     const jsonB = JSON.parse(JSON.stringify(b));
@@ -44,7 +44,12 @@ interface State {
   theme: 'light' | 'dark' | 'auto';
   locale: string;
 
-  newReleaseCheckData: Record<string, any>;
+  newReleaseCheckData: {
+    isEnabled: boolean;
+    nextCheckTime: Moment | string;
+    howOftenToCheck: number;
+    timesChecked: number;
+  };
   userSatisfactionPollData: {
     isEnabled: boolean;
     nextPollTime: Moment;
@@ -183,7 +188,7 @@ export const useSettingsStore = defineStore('settings', {
       const client = getClient();
 
       // Fetch from server, fall back to localStorage
-      const server_settings = await client.get_settings();
+      const server_settings = (await client.get_settings()) as Record<string, unknown>;
 
       // Build a unified map: server value wins, localStorage is fallback.
       // Skip keys that are missing from BOTH sources — otherwise `null` from
@@ -194,12 +199,12 @@ export const useSettingsStore = defineStore('settings', {
       // 1. Server settings take priority
       for (const key of Object.keys(server_settings)) {
         if (key.startsWith('_') || REMOVED_KEYS.has(key)) continue;
-        if (key === 'locale' && !isAppLocale(server_settings[key])) {
-          console.warn('Ignoring invalid locale from server:', server_settings[key]);
+        const serverValue = server_settings[key];
+        if (key === 'locale' && !(typeof serverValue === 'string' && isAppLocale(serverValue))) {
+          console.warn('Ignoring invalid locale from server:', serverValue);
           continue;
         }
-        storage[key] =
-          key === 'alerts' ? cleanAlertGoals(server_settings[key]) : server_settings[key];
+        storage[key] = key === 'alerts' ? cleanAlertGoals(serverValue) : serverValue;
         used.add(key);
       }
 
@@ -212,19 +217,19 @@ export const useSettingsStore = defineStore('settings', {
         // Keys ending with 'Data' are JSON-serialized objects in localStorage
         const isJsonKey =
           key.endsWith('Data') ||
-          key == 'views' ||
-          key == 'classes' ||
-          key == 'category_sets' ||
-          key == 'active_set_ids' ||
-          key == 'saved_queries' ||
-          key == 'category_builder_ignored_words' ||
-          key == 'alerts';
+          key === 'views' ||
+          key === 'classes' ||
+          key === 'category_sets' ||
+          key === 'active_set_ids' ||
+          key === 'saved_queries' ||
+          key === 'category_builder_ignored_words' ||
+          key === 'alerts';
         try {
           if (isJsonKey) {
             let parsed = JSON.parse(raw);
-            if (key == 'classes') {
+            if (key === 'classes') {
               parsed = parsed.map(cleanCategory);
-            } else if (key == 'alerts') {
+            } else if (key === 'alerts') {
               parsed = cleanAlertGoals(parsed);
             }
             storage[key] = parsed;
@@ -280,10 +285,11 @@ export const useSettingsStore = defineStore('settings', {
       const client = getClient();
 
       // Fetch current settings from server
-      const server_settings = await client.get_settings();
+      const server_settings = (await client.get_settings()) as Record<string, unknown>;
 
       // Save settings
-      for (const key of Object.keys(this.$state)) {
+      const currentState: Record<string, unknown> = { ...this.$state };
+      for (const key of Object.keys(currentState)) {
         // Skip keys starting with underscore, as they are local to the vuex store.
         if (key.startsWith('_')) {
           continue;
@@ -300,15 +306,15 @@ export const useSettingsStore = defineStore('settings', {
           continue;
         }
 
-        const value = this.$state[key];
+        const value = currentState[key];
 
         // Save to localStorage
         // NOTE: we always save the theme and landingpage to localStorage, since they are used before the settings are loaded
-        if (saveToLocalStorage || key == 'theme' || key == 'landingpage') {
+        if (saveToLocalStorage || key === 'theme' || key === 'landingpage') {
           if (typeof value === 'object') {
             localStorage.setItem(key, JSON.stringify(value));
           } else {
-            localStorage.setItem(key, value);
+            localStorage.setItem(key, String(value));
           }
         }
 
@@ -321,7 +327,7 @@ export const useSettingsStore = defineStore('settings', {
           console.log('Saving', { [key]: value });
           //console.log('Was:', server_settings[key]);
           //console.log('Now:', value);
-          await client.req.post('/0/settings/' + key, value, {
+          await client.req.post(`/0/settings/${key}`, value, {
             headers: {
               'Content-Type': 'application/json',
             },
@@ -332,10 +338,13 @@ export const useSettingsStore = defineStore('settings', {
       // After save, reload
       await this.load({ save: false });
     },
-    async update(new_state: Record<string, any>) {
+    async update(new_state: Partial<State>) {
       console.log('Updating state', new_state);
       await this.ensureLoaded();
-      this.$patch(new_state);
+      // pinia's _DeepPartial maps `unknown` values to `{}`, which rejects Record<string, unknown>
+      // fields such as Category.data; the object form (deep merge) is kept on purpose.
+      const patch = this.$patch as (partial: Partial<State>) => void;
+      patch.call(this, new_state);
       // Explicitly updated keys are saved even if never stored before. A
       // successful save reloads _storedKeys from the server.
       await this.save(Object.keys(new_state));

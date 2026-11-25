@@ -1,8 +1,8 @@
-import { createPinia, setActivePinia } from 'pinia';
 import moment from 'moment';
+import { createPinia, setActivePinia } from 'pinia';
 import { useActivityStore } from '~/stores/activity';
-import { useSettingsStore } from '~/stores/settings';
 import { useBucketsStore } from '~/stores/buckets';
+import { useSettingsStore } from '~/stores/settings';
 import { createClient } from '~/util/awclient';
 
 function setup() {

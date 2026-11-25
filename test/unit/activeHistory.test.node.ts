@@ -14,7 +14,7 @@ const baseSources = [
   { bid_afk: 'aw-watcher-afk_hostA', bid_window: 'aw-watcher-window_hostA', bid_browsers: ['b1'] },
 ];
 
-const key = (ctx = {}, sources = baseSources) =>
+const key = (ctx = {}, sources: Parameters<typeof activeHistoryCacheKey>[1] = baseSources) =>
   activeHistoryCacheKey({ ...baseContext, ...ctx }, sources);
 
 describe('activeHistoryCacheKey', () => {
@@ -62,29 +62,27 @@ describe('activeHistoryCacheKey', () => {
     ['added source', [...baseSources, { bid_afk: 'aw-watcher-afk_hostB' }]],
     ['removed source', []],
   ])('a different %s produces a different key', (_label, sources) => {
-    expect(key({}, sources as any)).not.toBe(key());
+    expect(key({}, sources)).not.toBe(key());
   });
 
   test('source discovery order does not affect the key', () => {
-    const a: any[] = [{ bid_afk: 'afk_a' }, { bid_afk: 'afk_b' }];
-    const b: any[] = [{ bid_afk: 'afk_b' }, { bid_afk: 'afk_a' }];
+    const a = [{ bid_afk: 'afk_a' }, { bid_afk: 'afk_b' }];
+    const b = [{ bid_afk: 'afk_b' }, { bid_afk: 'afk_a' }];
     expect(key({}, a)).toBe(key({}, b));
   });
 
   test('browser bucket order does not affect the key', () => {
-    const a: any[] = [{ bid_afk: 'afk', bid_browsers: ['b1', 'b2'] }];
-    const b: any[] = [{ bid_afk: 'afk', bid_browsers: ['b2', 'b1'] }];
+    const a = [{ bid_afk: 'afk', bid_browsers: ['b1', 'b2'] }];
+    const b = [{ bid_afk: 'afk', bid_browsers: ['b2', 'b1'] }];
     expect(key({}, a)).toBe(key({}, b));
   });
 
   test('a bare bucket id is equivalent to an AFK-only source', () => {
-    expect(key({}, ['afk_only'] as any)).toBe(key({}, [{ bid_afk: 'afk_only' }] as any));
+    expect(key({}, ['afk_only'])).toBe(key({}, [{ bid_afk: 'afk_only' }]));
   });
 
   test('a missing browser list matches an empty one', () => {
-    expect(key({}, [{ bid_afk: 'afk' }] as any)).toBe(
-      key({}, [{ bid_afk: 'afk', bid_browsers: [] }] as any)
-    );
+    expect(key({}, [{ bid_afk: 'afk' }])).toBe(key({}, [{ bid_afk: 'afk', bid_browsers: [] }]));
   });
 
   test('an omitted filter_afk matches an explicit true', () => {
@@ -98,8 +96,8 @@ describe('activeHistoryCacheKey', () => {
     expect(
       activeHistoryCacheKey(
         { platform: 'desktop', host: 'h', useMultidevice: false, startOfDay: '04:00' },
-        [{ bid_afk: 'afk' }]
-      )
+        [{ bid_afk: 'afk' }],
+      ),
     ).toBe(
       activeHistoryCacheKey(
         {
@@ -110,8 +108,8 @@ describe('activeHistoryCacheKey', () => {
           include_audible: false,
           always_active_pattern: '',
         },
-        [{ bid_afk: 'afk' }]
-      )
+        [{ bid_afk: 'afk' }],
+      ),
     );
   });
 });
@@ -136,7 +134,7 @@ describe('selectPeriodsToQuery', () => {
 
   test('skips closedPeriod periods already cached', () => {
     expect(
-      selectPeriodsToQuery([past, yesterday, today], { [past]: [], [yesterday]: [] }, now)
+      selectPeriodsToQuery([past, yesterday, today], { [past]: [], [yesterday]: [] }, now),
     ).toEqual([today]);
   });
 
@@ -156,7 +154,7 @@ describe('selectPeriodsToQuery', () => {
 
   test('returns nothing when every period is cached and closedPeriod', () => {
     expect(selectPeriodsToQuery([past, yesterday], { [past]: [], [yesterday]: [] }, now)).toEqual(
-      []
+      [],
     );
   });
 

@@ -105,6 +105,7 @@ div
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import moment from 'moment';
 import {
   get_today_with_offset,
@@ -112,9 +113,10 @@ import {
   format_date_short,
   format_date_with_weekday,
 } from '~/util/time';
-import { buildBarchartDataset, groupDaysIntoWeeks } from '~/util/datasets';
+import { buildBarchartDataset, groupDaysIntoWeeks, type HourlyData } from '~/util/datasets';
 import { canonicalEvents, querystr_to_array } from '~/queries';
 import { getClient } from '~/util/awclient';
+import type { IEvent } from '~/util/interfaces';
 import { useBucketsStore } from '~/stores/buckets';
 import { useCategoryStore } from '~/stores/categories';
 import { useSettingsStore } from '~/stores/settings';
@@ -131,7 +133,7 @@ interface CategoryTrend {
   absDelta: number;
 }
 
-export default {
+export default defineComponent({
   name: 'Trends',
   data() {
     return {
@@ -152,7 +154,7 @@ export default {
       refreshGeneration: 0,
 
       // Per-day events for the current period (used for the barchart).
-      byPeriod: null as Record<string, any> | null,
+      byPeriod: null as Record<string, HourlyData> | null,
 
       // Per-category totals for current and previous periods.
       currentTotals: {} as CategoryTotals,
@@ -163,20 +165,20 @@ export default {
   computed: {
     periodOptions(): { value: number; text: string }[] {
       return [
-        { value: 7, text: this.$t('ui.trends.period7d') },
-        { value: 30, text: this.$t('ui.trends.period30d') },
-        { value: 90, text: this.$t('ui.trends.period90d') },
+        { value: 7, text: this.$t('ui.trends.period7d') as string },
+        { value: 30, text: this.$t('ui.trends.period30d') as string },
+        { value: 90, text: this.$t('ui.trends.period90d') as string },
       ];
     },
 
     groupByOptions(): { value: string; text: string }[] {
       return [
-        { value: 'day', text: this.$t('ui.trends.groupByDay') },
-        { value: 'week', text: this.$t('ui.trends.groupByWeek') },
+        { value: 'day', text: this.$t('ui.trends.groupByDay') as string },
+        { value: 'week', text: this.$t('ui.trends.groupByWeek') as string },
       ];
     },
 
-    weekly(): { firstWeekStart: string | null; byWeek: Record<string, any> } | null {
+    weekly(): { firstWeekStart: string | null; byWeek: Record<string, HourlyData> } | null {
       if (!this.byPeriod) return null;
       return groupDaysIntoWeeks(this.byPeriod, this.settingsStore.startOfWeek);
     },
@@ -298,17 +300,17 @@ export default {
       if (!this.byPeriod) return null;
       let best: { label: string; duration: number } | null = null;
       for (const [period, entry] of Object.entries(this.byPeriod)) {
-        const evts: any[] = (entry as any)?.cat_events || [];
+        const evts = entry?.cat_events || [];
         const total = evts.reduce((a, e) => a + (e.duration || 0), 0);
         if (!best || total > best.duration) {
-          const start = period.split('/')[0];
+          const start = period.split('/')[0] ?? '';
           best = { label: format_date_with_weekday(new Date(start)), duration: total };
         }
       }
       return best && best.duration > 0 ? best : null;
     },
 
-    datasets(): any {
+    datasets(): ReturnType<typeof buildBarchartDataset> | null {
       if (this.loading) return [];
       if (!this.byPeriod) return null;
       const source = this.groupBy === 'week' && this.weekly ? this.weekly.byWeek : this.byPeriod;
@@ -373,7 +375,7 @@ export default {
 
     formatDelta(current: number, previous: number): string {
       const delta = current - previous;
-      if (previous === 0) return delta > 0 ? this.$t('ui.trends.new') : '0';
+      if (previous === 0) return delta > 0 ? this.$t('ui.trends.new') as string : '0';
       const pct = (delta / previous) * 100;
       const sign = delta >= 0 ? '+' : '';
       return `${sign}${pct.toFixed(0)}%`;
@@ -449,10 +451,10 @@ export default {
       start: moment.Moment,
       end: moment.Moment,
       isCurrent: () => boolean = () => true
-    ): Promise<{ byPeriod: Record<string, any>; totals: CategoryTotals }> {
+    ): Promise<{ byPeriod: Record<string, HourlyData>; totals: CategoryTotals }> {
       const periods = this.dayPeriods(start, end);
       const query = this.buildCategoryQuery(host);
-      const results: any[] = [];
+      const results: { cat_events?: IEvent[] }[] = [];
       for (const period of periods) {
         const r = await getClient().query([period], query, { name: 'trendsByDay', verbose: true });
         results.push(r[0]);
@@ -460,7 +462,7 @@ export default {
         // stop spending day queries on a response that will be discarded.
         if (!isCurrent()) break;
       }
-      const byPeriod: Record<string, any> = {};
+      const byPeriod: Record<string, HourlyData> = {};
       const totals: CategoryTotals = {};
       periods.forEach((p, i) => {
         const events = (results[i] && results[i].cat_events) || [];
@@ -513,5 +515,5 @@ export default {
       return querystr_to_array(code);
     },
   },
-};
+});
 </script>

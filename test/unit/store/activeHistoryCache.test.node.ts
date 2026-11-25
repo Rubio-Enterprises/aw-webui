@@ -1,9 +1,10 @@
-import { setActivePinia, createPinia } from 'pinia';
+import { createPinia, setActivePinia } from 'pinia';
 
 import { useActivityStore } from '~/stores/activity';
 import { useBucketsStore } from '~/stores/buckets';
 import { useSettingsStore } from '~/stores/settings';
 import * as awclient from '~/util/awclient';
+import type { IBucket, IEvent } from '~/util/interfaces';
 
 // Captures the query the store submits, without reaching a server.
 function mockQuery(result: unknown[] = []) {
@@ -13,14 +14,14 @@ function mockQuery(result: unknown[] = []) {
     abort: jest.fn(),
     controller: new AbortController(),
     req: { defaults: {} },
-  } as any);
+  } as unknown as ReturnType<typeof awclient.getClient>);
   return query;
 }
 
 const HOST = 'testhost';
 
 function seedBuckets(hosts: Record<string, { window?: boolean; browser?: boolean }>) {
-  const buckets: any[] = [];
+  const buckets: IBucket[] = [];
   for (const [host, has] of Object.entries(hosts)) {
     buckets.push({ id: `aw-watcher-afk_${host}`, type: 'afkstatus', hostname: host, data: {} });
     if (has.window) {
@@ -46,7 +47,7 @@ function seedBuckets(hosts: Record<string, { window?: boolean; browser?: boolean
 const TIMEPERIOD = { start: '2026-09-10T00:00:00+00:00', length: [1, 'day'] as [number, string] };
 
 describe('query_active_history caching', () => {
-  let activityStore: any;
+  let activityStore: ReturnType<typeof useActivityStore>;
   let query: jest.Mock;
 
   const DESKTOP_BUCKETS = {
@@ -67,7 +68,7 @@ describe('query_active_history caching', () => {
     // activeDurationQuery returns an event array per period on this branch.
     query = mockQuery([]);
     query.mockImplementation(async (periods: string[]) =>
-      periods.map((tp: string) => [{ timestamp: tp.split('/')[0], duration: 60, data: {} }])
+      periods.map((tp: string) => [{ timestamp: tp.split('/')[0], duration: 60, data: {} }]),
     );
     activityStore.buckets = { ...DESKTOP_BUCKETS };
   });
@@ -80,7 +81,7 @@ describe('query_active_history caching', () => {
   const run = (options: Record<string, unknown> = {}) =>
     activityStore.query_active_history({ host: HOST, timeperiod: TIMEPERIOD, ...options });
 
-  const periodsAsked = () => query.mock.calls.map(call => call[0]);
+  const periodsAsked = () => query.mock.calls.map((call) => call[0]);
 
   test('repeating the same request skips cached closed periods', async () => {
     await run();
@@ -101,7 +102,7 @@ describe('query_active_history caching', () => {
 
   test('a cached empty result is not refetched', async () => {
     query.mockImplementation(async (periods: string[]) =>
-      periods.map((tp: string) => [{ timestamp: tp.split('/')[0], duration: 0, data: {} }])
+      periods.map((tp: string) => [{ timestamp: tp.split('/')[0], duration: 0, data: {} }]),
     );
     await run();
     const first = periodsAsked()[0];
@@ -228,21 +229,21 @@ describe('query_active_history caching', () => {
     };
     query.mockImplementationOnce(
       (periods: string[]) =>
-        new Promise(resolve => {
+        new Promise((resolve) => {
           releaseA = () =>
             resolve(
               periods.map((tp: string) => [
                 { timestamp: tp.split('/')[0], duration: 111, data: {} },
-              ])
+              ]),
             );
-        })
+        }),
     );
 
     // Host A's request starts but does not resolve.
     const pendingA = run();
     // Host B completes first.
     query.mockImplementation(async (periods: string[]) =>
-      periods.map((tp: string) => [{ timestamp: tp.split('/')[0], duration: 222, data: {} }])
+      periods.map((tp: string) => [{ timestamp: tp.split('/')[0], duration: 222, data: {} }]),
     );
     await activityStore.query_active_history({ host: 'hostB', timeperiod: TIMEPERIOD });
 
@@ -254,26 +255,26 @@ describe('query_active_history caching', () => {
     await pendingA;
 
     for (const [tp, events] of Object.entries(activityStore.active.history)) {
-      expect((events as any[])[0].duration).not.toBe(111);
+      expect((events as IEvent[])[0].duration).not.toBe(111);
       expect(afterB[tp]).toBeDefined();
     }
   });
 
   test.each([false, true])(
     'a host without history buckets clears old data and rejects late responses (pending=%s)',
-    async requestPending => {
+    async (requestPending) => {
       await run();
       let release: () => void;
       let oldRequest: Promise<void>;
       if (requestPending) {
         query.mockImplementationOnce(
-          periods =>
-            new Promise(resolve => {
+          (periods) =>
+            new Promise((resolve) => {
               release = () =>
                 resolve(
-                  periods.map(tp => [{ timestamp: tp.split('/')[0], duration: 111, data: {} }])
+                  periods.map((tp) => [{ timestamp: tp.split('/')[0], duration: 111, data: {} }]),
                 );
-            })
+            }),
         );
         oldRequest = run({ force: true });
       }
@@ -286,7 +287,7 @@ describe('query_active_history caching', () => {
         await oldRequest;
       }
       expect(activityStore.active.history).toEqual({});
-    }
+    },
   );
 
   test('a failed request leaves the cache untouched and is retryable', async () => {
@@ -295,7 +296,7 @@ describe('query_active_history caching', () => {
     expect(activityStore.active.history).toEqual({});
 
     query.mockImplementation(async (periods: string[]) =>
-      periods.map((tp: string) => [{ timestamp: tp.split('/')[0], duration: 60, data: {} }])
+      periods.map((tp: string) => [{ timestamp: tp.split('/')[0], duration: 60, data: {} }]),
     );
     await run();
     expect(Object.keys(activityStore.active.history).length).toBeGreaterThan(0);
@@ -303,7 +304,7 @@ describe('query_active_history caching', () => {
 
   test('the open period keeps growing across repeated requests', async () => {
     query.mockImplementation(async (periods: string[]) =>
-      periods.map((tp: string) => [{ timestamp: tp.split('/')[0], duration: 100, data: {} }])
+      periods.map((tp: string) => [{ timestamp: tp.split('/')[0], duration: 100, data: {} }]),
     );
     await run();
 
@@ -316,7 +317,7 @@ describe('query_active_history caching', () => {
     expect(activityStore.active.history[openPeriod][0].duration).toBe(100);
 
     query.mockImplementation(async (periods: string[]) =>
-      periods.map((tp: string) => [{ timestamp: tp.split('/')[0], duration: 250, data: {} }])
+      periods.map((tp: string) => [{ timestamp: tp.split('/')[0], duration: 250, data: {} }]),
     );
     await run();
     expect(activityStore.active.history[openPeriod][0].duration).toBe(250);
@@ -324,7 +325,7 @@ describe('query_active_history caching', () => {
 });
 
 describe('query_active_history_android caching', () => {
-  let activityStore: any;
+  let activityStore: ReturnType<typeof useActivityStore>;
   let query: jest.Mock;
 
   beforeEach(() => {
@@ -420,12 +421,12 @@ describe('multidevice history cache after merging device selection', () => {
         type: 'currentwindow',
         hostname: 'phone',
         data: {},
-      } as any,
+      },
     ]);
     store = useActivityStore();
     query = mockQuery();
-    query.mockImplementation(async periods =>
-      periods.map(tp => [{ timestamp: tp.split('/')[0], duration: 60, data: {} }])
+    query.mockImplementation(async (periods) =>
+      periods.map((tp) => [{ timestamp: tp.split('/')[0], duration: 60, data: {} }]),
     );
   });
 
@@ -436,8 +437,8 @@ describe('multidevice history cache after merging device selection', () => {
       'query_multidevice_full',
       'query_editor',
       'query_category_time_by_period',
-    ]) {
-      jest.spyOn(store, name as any).mockResolvedValue(undefined);
+    ] as const) {
+      jest.spyOn(store, name).mockResolvedValue(undefined);
     }
     await store.ensure_loaded_multidevice(options, ['desktop', 'phone']);
     await store.ensure_loaded_multidevice(options, ['desktop', 'phone']);
@@ -446,12 +447,12 @@ describe('multidevice history cache after merging device selection', () => {
 
   test.each([{ force: true }, { filter_afk: false }, { always_active_pattern: 'Code' }])(
     'refreshes when the query semantics or force option changes: %j',
-    async overrides => {
+    async (overrides) => {
       await run();
       await run(overrides);
       expect(query).toHaveBeenCalledTimes(2);
       expect(query.mock.calls[1][0]).toEqual(query.mock.calls[0][0]);
-    }
+    },
   );
 
   test('adding a device under @all invalidates closed periods', async () => {
@@ -471,7 +472,7 @@ describe('multidevice history cache after merging device selection', () => {
         type: 'app',
         hostname: 'phone',
         data: {},
-      } as any,
+      },
     ]);
     await run();
     expect(query).toHaveBeenCalledTimes(2);
@@ -481,11 +482,13 @@ describe('multidevice history cache after merging device selection', () => {
   test('year requests remain chunked and stale chunks cannot overwrite a new selection', async () => {
     let release: () => void;
     query.mockImplementationOnce(
-      periods =>
-        new Promise(resolve => {
+      (periods) =>
+        new Promise((resolve) => {
           release = () =>
-            resolve(periods.map(tp => [{ timestamp: tp.split('/')[0], duration: 111, data: {} }]));
-        })
+            resolve(
+              periods.map((tp) => [{ timestamp: tp.split('/')[0], duration: 111, data: {} }]),
+            );
+        }),
     );
     const pendingRequest = run({
       timeperiod: { start: '2020-01-01T00:00:00Z', length: [1, 'year'] },

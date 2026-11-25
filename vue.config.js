@@ -1,9 +1,9 @@
-import path from 'path';
-import webpack from 'webpack';
+import child_process from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { parseArgs } from 'node:util';
 import CopyWebpackPlugin from 'copy-webpack-plugin';
-import child_process from 'child_process';
-import { fileURLToPath } from 'url';
-import { parseArgs } from 'util';
+import webpack from 'webpack';
 
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename); // get the name of the directory
@@ -34,8 +34,8 @@ export default {
       },
     },
   },
-  chainWebpack: config => {
-    config.plugin('define').tap(options => {
+  chainWebpack: (config) => {
+    config.plugin('define').tap((options) => {
       options[0]['process.env'].VUE_APP_ON_ANDROID = onAndroid;
       return options;
     });

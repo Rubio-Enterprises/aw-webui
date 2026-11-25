@@ -9,6 +9,7 @@ div.small(v-else, style="font-size: 16pt; color: #aaa;")
 </template>
 
 <script lang="ts">
+import { defineComponent, type PropType } from 'vue';
 import _ from 'lodash';
 import { ChartOptions } from 'chart.js';
 import 'chart.js/auto';
@@ -30,6 +31,13 @@ import {
 import { i18n } from '~/i18n';
 import { clampStackedHours } from '~/util/timelineClamp';
 
+// A series of hours per bucket (null for a missing bucket)
+type BarDataset = {
+  label?: string;
+  backgroundColor?: string | string[];
+  data?: (number | null)[];
+};
+
 function hourToTick(hours: number): string {
   if (hours > 1) {
     return `${hours}h`;
@@ -44,12 +52,12 @@ function hourToTick(hours: number): string {
   }
 }
 
-export default {
+export default defineComponent({
   name: 'TimelineBarChart',
   components: { Bar },
   props: {
     datasets: {
-      type: Array,
+      type: Array as PropType<BarDataset[]>,
       default: () => [
         {
           label: i18n.t('ui.timeline.totalTime'),
@@ -59,11 +67,11 @@ export default {
       ],
     },
     timeperiod_start: {
-      type: String,
+      type: String as PropType<string | null>,
       default: () => null,
     },
     timeperiod_length: {
-      type: Array,
+      type: Array as unknown as PropType<[number, string]>,
       default: () => [1, 'day'],
     },
     // Only hourly activity views (single-day or exact interval) should trim overlapping stacks.
@@ -79,8 +87,10 @@ export default {
     },
   },
   computed: {
-    labels() {
+    labels(): string[] {
       const start = this.timeperiod_start;
+      // new Date(null) is the epoch, so a missing start keeps labelling from there
+      const startDate = () => new Date(start ?? 0);
       const [count, resolution] = this.timeperiod_length;
       if (resolution === 'milliseconds') {
         // Exact interval: the same clipped buckets the category query uses
@@ -95,12 +105,12 @@ export default {
         // Long custom ranges are bucketed by calendar month (see timeperiodsForBarchart)
         const fmt = new Intl.DateTimeFormat(i18n.locale, { month: 'short', year: 'numeric' });
         return timeperiodsCalendarMonthsOfPeriod({
-          start,
+          start: start ?? '',
           length: [count, resolution],
         }).map(p => fmt.format(new Date(p.start)));
       } else if (resolution.startsWith('day')) {
         return _.range(count).map(d => {
-          const date = new Date(start);
+          const date = startDate();
           date.setHours(12, 0, 0, 0);
           date.setDate(date.getDate() + d);
           return format_date_short(date, i18n.locale);
@@ -108,7 +118,7 @@ export default {
       } else if (resolution === 'weeks') {
         // One bar per week (Trends), labelled with each week's start date
         return _.range(count).map(w => {
-          const date = new Date(start);
+          const date = startDate();
           date.setHours(12, 0, 0, 0);
           date.setDate(date.getDate() + 7 * w);
           return format_date_short(date, i18n.locale);
@@ -116,14 +126,14 @@ export default {
       } else if (resolution.startsWith('week')) {
         // Look up days of the week from `start`
         return _.range(7).map(d => {
-          const date = new Date(start);
+          const date = startDate();
           date.setHours(12, 0, 0, 0);
           date.setDate(date.getDate() + d);
           return format_weekday_short(date);
         });
       } else if (resolution.startsWith('month')) {
         // How many days are in the month containing `start`?
-        const date = new Date(start);
+        const date = startDate();
         const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
         return _.range(1, daysInMonth + 1).map(d =>
           format_date_short(new Date(date.getFullYear(), date.getMonth(), d, 12))
@@ -143,7 +153,7 @@ export default {
           datasets = clampStackedHours(datasets);
         } else if (resolution === 'milliseconds' && count <= EXACT_HOURLY_MAX_MS) {
           const bucketHours = timeperiodsHoursOfPeriod({
-            start: this.timeperiod_start,
+            start: this.timeperiod_start ?? '',
             length: [count, resolution],
           }).map(period => period.length[0]);
           datasets = clampStackedHours(datasets, bucketHours);
@@ -198,7 +208,7 @@ export default {
             min: 0,
             suggestedMax: singleDay ? 1 : undefined,
             ticks: {
-              callback: hourToTick,
+              callback: value => hourToTick(Number(value)),
               stepSize: singleDay ? 0.25 : undefined,
             },
           },
@@ -206,7 +216,7 @@ export default {
       };
     },
   },
-};
+});
 </script>
 
 <style></style>

@@ -7,14 +7,14 @@ interface CalendarEvent {
 
 export function calendarTimeBounds(events: CalendarEvent[], fitToActive: boolean) {
   const fullDay = { slotMinTime: '00:00:00', slotMaxTime: '24:00:00' };
-  if (!fitToActive || !events.length) return fullDay;
+  if (!(fitToActive && events.length)) return fullDay;
 
   let firstHour = 24;
   let lastHour = 0;
   for (const event of events) {
     const start = moment(event.start, moment.ISO_8601, true);
     const end = moment(event.end, moment.ISO_8601, true);
-    if (!start.isValid() || !end.isValid() || !end.isAfter(start)) return fullDay;
+    if (!(start.isValid() && end.isValid() && end.isAfter(start))) return fullDay;
 
     // Midnight is a valid exclusive upper bound. Events continuing into
     // another day need the full grid so neither daily segment is clipped.

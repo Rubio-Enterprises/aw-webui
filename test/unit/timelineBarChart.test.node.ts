@@ -1,14 +1,16 @@
 jest.mock('vue-chartjs/legacy', () => ({ Bar: {} }));
-import { createPinia, setActivePinia } from 'pinia';
+
+import { execFileSync } from 'node:child_process';
+import path from 'node:path';
 import moment from 'moment';
-import { execFileSync } from 'child_process';
-import path from 'path';
-import TimelineBarChart from '~/visualizations/TimelineBarChart.vue';
+import { createPinia, setActivePinia } from 'pinia';
 import { i18n } from '~/i18n';
 import { hourlyLabels, timeperiodsHoursOfPeriod } from '~/util/timeperiod';
+import TimelineBarChart from '~/visualizations/TimelineBarChart.vue';
+import { optionsApi } from '../helpers/vue';
 
 // Inspect computed Chart.js configuration without mounting a canvas in Node.
-const computed = (TimelineBarChart as any).computed;
+const { computed } = optionsApi(TimelineBarChart);
 
 function chartOptions(count: number, resolution = 'days') {
   return computed.chartOptions.call({ timeperiod_length: [count, resolution] });
@@ -94,7 +96,7 @@ describe('TimelineBarChart hourly labels', () => {
     // Preserve its legacy no-start labels; report query semantics are separate.
     const labels = chartLabels(null);
     expect(labels).toHaveLength(24);
-    expect(labels.every(l => /^\d+$/.test(l))).toBe(true);
+    expect(labels.every((l) => /^\d+$/.test(l))).toBe(true);
   });
 });
 
@@ -124,7 +126,7 @@ describe('TimelineBarChart weekly labels', () => {
   test('keeps singular week as seven consecutive weekday labels', () => {
     const weekday = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
     expect(chartLabels('2026-01-05T00:00:00', 1, 'week')).toEqual(
-      [5, 6, 7, 8, 9, 10, 11].map(day => weekday.format(new Date(2026, 0, day, 12)))
+      [5, 6, 7, 8, 9, 10, 11].map((day) => weekday.format(new Date(2026, 0, day, 12))),
     );
   });
 });
@@ -148,8 +150,8 @@ if (process.env.TZ !== 'Europe/Stockholm') {
           env: { ...process.env, TZ: 'Europe/Stockholm' },
           stdio: 'pipe',
           timeout: 60000,
-        }
-      )
+        },
+      ),
     ).not.toThrow();
   }, 65000);
 }
@@ -187,12 +189,12 @@ describeStockholm('TimelineBarChart DST labels', () => {
       } finally {
         i18n.locale = originalLocale;
       }
-    }
+    },
   );
 
   test('distinguishes the two autumn 02:00 intervals', () => {
     expect(
-      chartLabels(moment('2026-10-24T04:00:00').format()).filter(l => l.startsWith('2 '))
+      chartLabels(moment('2026-10-24T04:00:00').format()).filter((l) => l.startsWith('2 ')),
     ).toEqual(['2 (+02:00)', '2 (+01:00)']);
   });
 });

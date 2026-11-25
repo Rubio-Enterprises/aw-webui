@@ -77,6 +77,8 @@ div
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
+import type { IEvent as AWEvent } from 'aw-client';
 import _ from 'lodash';
 import moment from 'moment';
 
@@ -85,7 +87,15 @@ import 'vue-awesome/icons/play';
 import 'vue-awesome/icons/trash';
 import 'vue-awesome/icons/question-circle';
 
-export default {
+// A timer: a running one keeps `running: true` until it is stopped
+interface StopwatchEvent {
+  id?: number;
+  timestamp: Date;
+  duration?: number;
+  data: { running?: boolean; label?: string; [key: string]: unknown };
+}
+
+export default defineComponent({
   name: 'Stopwatch',
   components: {
     'stopwatch-entry': StopwatchEntry,
@@ -94,7 +104,7 @@ export default {
     return {
       loading: true,
       refreshing: false,
-      error: null,
+      error: null as string | null,
       requestId: 0,
       runningLimit: 100,
       historyLimit: 100,
@@ -103,7 +113,7 @@ export default {
       hasMoreRunning: false,
       hasMoreHistory: false,
       bucket_id: 'aw-stopwatch',
-      events: [],
+      events: [] as StopwatchEvent[],
       label: '',
       now: moment(),
     };
@@ -131,19 +141,21 @@ export default {
     setInterval(() => (this.now = moment()), 1000);
   },
   methods: {
-    startTimer: async function (label) {
-      const event = {
+    startTimer: async function (label: string) {
+      const event: StopwatchEvent = {
         timestamp: new Date(),
         data: {
           running: true,
           label: label,
         },
       };
-      await this.$aw.heartbeat(this.bucket_id, 1, event);
+      // aw-client's EventData only allows strings and numbers, but the server stores
+      // the running flag as a boolean.
+      await this.$aw.heartbeat(this.bucket_id, 1, event as unknown as AWEvent);
       await this.getEvents();
     },
 
-    updateTimer: async function (new_event) {
+    updateTimer: async function (new_event: StopwatchEvent) {
       const i = this.events.findIndex(e => e.id == new_event.id);
       if (i != -1) {
         // This is needed instead of this.events[i] because insides of arrays
@@ -155,15 +167,14 @@ export default {
       await this.getEvents();
     },
 
-    removeTimer: async function (event) {
+    removeTimer: async function (event: StopwatchEvent) {
       this.events = _.filter(this.events, e => e.id != event.id);
       await this.getEvents();
     },
 
-    getEvents: async function (
-      runningLimit = this.requestedRunningLimit,
-      historyLimit = this.requestedHistoryLimit
-    ) {
+    getEvents: async function (runningLimit?: number, historyLimit?: number) {
+      runningLimit ??= this.requestedRunningLimit;
+      historyLimit ??= this.requestedHistoryLimit;
       this.requestedRunningLimit = runningLimit;
       this.requestedHistoryLimit = historyLimit;
       const requestId = ++this.requestId;
@@ -186,9 +197,13 @@ export default {
           query: [query],
         });
         if (requestId !== this.requestId) return;
-        const { running, history: stopped } = response.data[0];
+        // The query result carries ISO timestamps
+        const { running, history: stopped } = response.data[0] as {
+          running: (Omit<StopwatchEvent, 'timestamp'> & { timestamp: string })[];
+          history: (Omit<StopwatchEvent, 'timestamp'> & { timestamp: string })[];
+        };
         this.events = [...running.slice(0, runningLimit), ...stopped.slice(0, historyLimit)].map(
-          e => ({ ...e, timestamp: new Date(e.timestamp) })
+          (e): StopwatchEvent => ({ ...e, timestamp: new Date(e.timestamp) })
         );
         this.runningLimit = runningLimit;
         this.historyLimit = historyLimit;
@@ -206,5 +221,5 @@ export default {
       }
     },
   },
-};
+});
 </script>

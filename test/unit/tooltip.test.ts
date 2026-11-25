@@ -10,7 +10,7 @@ describe('buildTooltip', () => {
         timestamp,
         duration: 5,
         data: { app: 'Firefox', title: 'ActivityWatch' },
-      }
+      },
     );
     expect(html).toContain('Firefox');
     expect(html).toContain('ActivityWatch');
@@ -25,7 +25,7 @@ describe('buildTooltip', () => {
         timestamp,
         duration: 12,
         data: { title: 'Inbox', url: 'https://mail.example.com' },
-      }
+      },
     );
     expect(html).toContain('Inbox');
     expect(html).toContain('https://mail.example.com');
@@ -38,7 +38,7 @@ describe('buildTooltip', () => {
         timestamp,
         duration: 1,
         data: { custom: 'payload' },
-      }
+      },
     );
     expect(html).toContain('payload');
   });

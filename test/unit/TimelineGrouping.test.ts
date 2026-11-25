@@ -1,15 +1,16 @@
-import Vue from 'vue';
 import { createPinia, setActivePinia } from 'pinia';
+import Vue from 'vue';
 import VisTimelineComponent from '~/visualizations/VisTimeline.vue';
+import { optionsApi } from '../helpers/vue';
 
-const VisTimeline: any = VisTimelineComponent;
+const VisTimeline = optionsApi(VisTimelineComponent);
 jest.mock('vis-timeline/esnext', () => ({ Timeline: jest.fn() }));
 jest.mock('vis-timeline/styles/vis-timeline-graph2d.css', () => ({}));
 
 beforeEach(() => setActivePinia(createPinia()));
 
 function makeVm(seconds = 6, duration = 2) {
-  const vm: any = {
+  const vm = {
     ...VisTimeline.data(),
     ...VisTimeline.methods,
     groupGranularity: seconds,
@@ -48,7 +49,7 @@ test('default-off keeps raw items and short-event suppression; grouping includes
   expect(makeVm(0, 0.5).items).toHaveLength(0);
   const grouped = makeVm(1, 0.5);
   expect(grouped.items).toHaveLength(3);
-  expect(grouped.items.every(item => item.className === 'timeline-composite')).toBe(true);
+  expect(grouped.items.every((item) => item.className === 'timeline-composite')).toBe(true);
 });
 
 test('hover breakdown sums each activity and escapes untrusted app labels', () => {
@@ -71,7 +72,7 @@ test('composite activity headers support wrapping without changing ordinary tool
   vm.update();
   const container = document.createElement('div');
   container.innerHTML = vm.tooltipForItem(vm.items[0].id);
-  const header = [...container.querySelectorAll('th')].find(cell => cell.textContent === label);
+  const header = [...container.querySelectorAll('th')].find((cell) => cell.textContent === label);
   expect(header).toBeDefined();
   expect(header.classList.contains('timeline-composite-activity')).toBe(true);
   expect(header.getAttribute('scope')).toBe('row');
@@ -98,21 +99,21 @@ test('tap expands original members without synthetic lookup; raw members still o
   expect(vm.items).toHaveLength(4);
   expect(vm.timeline.getWindow()).toEqual(currentWindow);
   expect(vm.timeline.setWindow).not.toHaveBeenCalled();
-  const member = vm.items.find(item => !item.className);
+  const member = vm.items.find((item) => !item.className);
   await vm.onSelect({ items: [member.id] });
   expect(vm.$aw.getEvent).toHaveBeenCalledWith('aw-watcher-window_test', 1);
   vm.collapseGroups();
-  expect(vm.items.map(item => item.id)).toContain(id);
+  expect(vm.items.map((item) => item.id)).toContain(id);
   expect(vm.items).toHaveLength(2);
   expect(vm.timeline.getWindow()).toEqual(currentWindow);
 });
 
 test('membership survives viewport changes and explicit upstream filtering', () => {
   const vm = makeVm();
-  const ids = vm.items.map(item => item.id);
+  const ids = vm.items.map((item) => item.id);
   vm.timeline.setWindow(1000, 9000);
   vm.update(false);
-  expect(vm.items.map(item => item.id)).toEqual(ids);
+  expect(vm.items.map((item) => item.id)).toEqual(ids);
   vm.bucketsFromEither[0].events = vm.bucketsFromEither[0].events.slice(0, 3);
   vm.update();
   expect(vm.itemEvents.get(vm.items[0].id).members).toHaveLength(3);
@@ -120,13 +121,13 @@ test('membership survives viewport changes and explicit upstream filtering', () 
 
 test('categorized row keeps its existing events while raw rows group', () => {
   const vm = makeVm();
-  vm.categorizedEvents = vm.bucketsFromEither[0].events.map(event => ({
+  vm.categorizedEvents = vm.bucketsFromEither[0].events.map((event) => ({
     ...event,
     data: { $category: ['Work'] },
   }));
   const index = vm.eventIndex;
-  expect(index.entries.filter(item => item.bucket.id === '__categorized__')).toHaveLength(6);
-  expect(index.entries.filter(item => item.members)).toHaveLength(2);
+  expect(index.entries.filter((item) => item.bucket.id === '__categorized__')).toHaveLength(6);
+  expect(index.entries.filter((item) => item.members)).toHaveLength(2);
 });
 
 test('changing grouping setting collapses groups and preserves the viewport', async () => {

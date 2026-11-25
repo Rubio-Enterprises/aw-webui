@@ -8,10 +8,10 @@ jest.mock('~/util/awclient', () => ({
   }),
 }));
 
-import { createPinia, setActivePinia } from 'pinia';
 import { shallowMount } from '@vue/test-utils';
-import TimelineDurationSettings from '~/views/settings/TimelineDurationSettings.vue';
+import { createPinia, setActivePinia } from 'pinia';
 import { useSettingsStore } from '~/stores/settings';
+import TimelineDurationSettings from '~/views/settings/TimelineDurationSettings.vue';
 
 beforeEach(() => {
   setActivePinia(createPinia());
@@ -40,7 +40,7 @@ describe('timeline grouping preference', () => {
     expect(store.timelineGroupGranularity).toBe(30);
   });
 
-  test.each(['bad', '-1', 'Infinity'])('ignores invalid local preference %s', async value => {
+  test.each(['bad', '-1', 'Infinity'])('ignores invalid local preference %s', async (value) => {
     localStorage.setItem('timelineGroupGranularity', value);
     const store = useSettingsStore();
     await store.load();
@@ -71,7 +71,7 @@ describe('timeline grouping preference', () => {
     const store = useSettingsStore();
     store.$patch({ _loaded: true });
     const update = jest.spyOn(store, 'update').mockResolvedValue();
-    const wrapper = shallowMount(TimelineDurationSettings as any, {
+    const wrapper = shallowMount(TimelineDurationSettings, {
       stubs: {
         'b-select': { template: '<select><slot /></select>' },
         'b-form-input': {

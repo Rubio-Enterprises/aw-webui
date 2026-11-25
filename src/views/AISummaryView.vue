@@ -81,6 +81,7 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { useBucketsStore } from '~/stores/buckets';
 import { useCategoryStore } from '~/stores/categories';
 import { getClient } from '~/util/awclient';
@@ -98,7 +99,7 @@ const DEFAULT_PROMPT =
   'Based on the following activity data, provide a concise summary of how I spent my time. ' +
   'Highlight the main activities, identify focus areas, and suggest any observations about productivity patterns.';
 
-export default {
+export default defineComponent({
   name: 'AISummaryView',
   data() {
     const saved = loadLLMConfig();
@@ -132,7 +133,11 @@ export default {
         // Android buckets so Android-only hosts are not offered: aw-watcher-android
         // uses the same 'currentwindow' type but its events would be intersected
         // with a desktop AFK bucket, yielding wrong or empty results.
-        if (b.type === 'currentwindow' && !b.id.startsWith('aw-watcher-android')) {
+        if (
+          b.type === 'currentwindow' &&
+          b.hostname !== undefined &&
+          !b.id.startsWith('aw-watcher-android')
+        ) {
           hosts.add(b.hostname);
         }
       }
@@ -165,8 +170,9 @@ export default {
   async mounted() {
     await this.bucketsStore.ensureLoaded();
     await this.categoryStore.load();
-    if (this.hostOptions.length > 0 && !this.selectedHost) {
-      this.selectedHost = this.hostOptions[0].value;
+    const [firstHost] = this.hostOptions;
+    if (firstHost && !this.selectedHost) {
+      this.selectedHost = firstHost.value;
     }
     if (!this.model) {
       this.model = this.defaultModel;
@@ -196,11 +202,11 @@ export default {
       this.aggregatedText = '';
 
       if (!this.selectedHost) {
-        this.error = this.$t('ui.aiSummary.noHost');
+        this.error = this.$t('ui.aiSummary.noHost') as string;
         return;
       }
       if (!this.apiKey.trim()) {
-        this.error = this.$t('ui.aiSummary.apiKeyRequired');
+        this.error = this.$t('ui.aiSummary.apiKeyRequired') as string;
         return;
       }
 
@@ -221,8 +227,8 @@ export default {
           fullPrompt
         );
         this.llmResponse = response;
-      } catch (err: any) {
-        this.error = err?.message || String(err);
+      } catch (err) {
+        this.error = (err as { message?: string } | undefined)?.message || String(err);
       } finally {
         this.loading = false;
       }
@@ -303,9 +309,9 @@ export default {
           this.copied = false;
         }, 2000);
       } catch {
-        this.error = this.$t('ui.aiSummary.copyError');
+        this.error = this.$t('ui.aiSummary.copyError') as string;
       }
     },
   },
-};
+});
 </script>

@@ -10,12 +10,12 @@ jest.mock('~/util/awclient', () => ({
   }),
 }));
 
-import { setActivePinia, createPinia } from 'pinia';
-import { useSettingsStore } from '~/stores/settings';
+import { createPinia, setActivePinia } from 'pinia';
 import { i18n } from '~/i18n';
+import { useSettingsStore } from '~/stores/settings';
 
 describe('settings store locale loading', () => {
-  let settingsStore;
+  let settingsStore: ReturnType<typeof useSettingsStore>;
 
   beforeEach(() => {
     setActivePinia(createPinia());

@@ -46,7 +46,7 @@ export interface BucketLabelOptions {
 
 export function formatTimelineBucketLabelHtml(
   bucketId: string,
-  options: BucketLabelOptions = {}
+  options: BucketLabelOptions = {},
 ): string {
   const escaped = escapeHtml(bucketId);
 
@@ -73,7 +73,7 @@ export function formatTimelineBucketLabelHtml(
       (underscoreIdx !== -1 ? basePart.slice(0, underscoreIdx) : basePart);
     const display = `${shortWatcher} @ ${remotePart}`;
     return `<span class="timeline-label" title="${escaped}">${addWrapOpportunities(
-      escapeHtml(display)
+      escapeHtml(display),
     )}</span>`;
   }
 

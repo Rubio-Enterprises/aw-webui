@@ -1,6 +1,6 @@
-import moment, { Moment, Duration } from 'moment';
-import { useSettingsStore } from '~/stores/settings';
+import moment, { type Duration, type Moment } from 'moment';
 import { i18n } from '~/i18n';
+import { useSettingsStore } from '~/stores/settings';
 
 function getStartOfDayOffset() {
   const settingsStore = useSettingsStore();
@@ -38,7 +38,8 @@ export function friendlydate(timestamp: string | Moment) {
   const sinceNow = moment.duration(m.diff(now));
   if (-sinceNow.asSeconds() <= 60) {
     return `${Math.round(-sinceNow.asSeconds())}s ago`;
-  } else if (-sinceNow.asSeconds() <= 60 * 60 * 24) {
+  }
+  if (-sinceNow.asSeconds() <= 60 * 60 * 24) {
     return sinceNow.humanize(true);
   }
   return sinceNow.humanize(true);
@@ -49,18 +50,19 @@ export function compact_relative_time(
   timestamp: string,
   locale: string,
   unitOnly = false,
-  now = new Date()
+  now = new Date(),
 ) {
   const seconds = (new Date(timestamp).getTime() - now.getTime()) / 1000;
+  const second: [Intl.RelativeTimeFormatUnit, string, number] = ['second', 's', 1];
   const units: [Intl.RelativeTimeFormatUnit, string, number][] = [
     ['year', 'y', 365 * 86400],
     ['month', 'mo', 30 * 86400],
     ['day', 'd', 86400],
     ['hour', 'h', 3600],
     ['minute', 'min', 60],
-    ['second', 's', 1],
+    second,
   ];
-  const [unit, label, divisor] = units.find(([, , size]) => Math.abs(seconds) >= size) || units[5];
+  const [unit, label, divisor] = units.find(([, , size]) => Math.abs(seconds) >= size) ?? second;
   const value = Math.trunc(seconds / divisor);
   if (unitOnly) {
     return `${value > 0 ? '+' : ''}${Math.abs(value)}${label}`;
@@ -71,17 +73,25 @@ export function compact_relative_time(
   }
   return new Intl.RelativeTimeFormat(locale, { numeric: 'always', style: 'narrow' }).format(
     value === 0 ? -0 : value,
-    unit
+    unit,
   );
 }
 
-export function get_day_start_with_offset(dateParam: Moment | string, offset?: string) {
+/** Splits an "HH:MM" start-of-day offset; a missing part parses as NaN. */
+function parseOffset(offset: string): [number, number] {
+  const [hours = '', minutes = ''] = offset.split(':');
+  return [Number.parseInt(hours, 10), Number.parseInt(minutes, 10)];
+}
+
+export function get_day_start_with_offset(
+  dateParam: Moment | string | null | undefined,
+  offset?: string,
+) {
   if (!offset) {
     offset = getStartOfDayOffset();
   }
   const dateMoment = dateParam ? moment(dateParam) : moment().startOf('day');
-  const start_of_day_hours = parseInt(offset.split(':')[0]);
-  const start_of_day_minutes = parseInt(offset.split(':')[1]);
+  const [start_of_day_hours, start_of_day_minutes] = parseOffset(offset);
   // Zero seconds/ms too: callers pass "now"-derived Moments, and a boundary that
   // inherits the refresh instant's seconds shifts every report day by up to 59 s.
   return dateMoment
@@ -97,8 +107,7 @@ export function get_hour_offset(offset?: string): number {
   if (!offset) {
     offset = getStartOfDayOffset();
   }
-  const start_of_day_hours = parseInt(offset.split(':')[0]);
-  const start_of_day_minutes = parseInt(offset.split(':')[1]);
+  const [start_of_day_hours, start_of_day_minutes] = parseOffset(offset);
   return start_of_day_hours + start_of_day_minutes / 60;
 }
 
@@ -113,7 +122,7 @@ export function get_day_period(date: Moment | string, offset?: string): string {
   if (!offset) {
     offset = getStartOfDayOffset();
   }
-  return get_day_start_with_offset(date, offset) + '/' + get_day_end_with_offset(date, offset);
+  return `${get_day_start_with_offset(date, offset)}/${get_day_end_with_offset(date, offset)}`;
 }
 
 export function get_prev_day(datestr: string): Moment {
@@ -151,7 +160,7 @@ export function format_day_of_month(dateParam: Date, locale?: string | string[])
 
 export function get_short_month_labels(locale?: string | string[]) {
   return Array.from({ length: 12 }, (_, month) =>
-    new Intl.DateTimeFormat(locale, { month: 'short' }).format(new Date(2020, month, 1, 12))
+    new Intl.DateTimeFormat(locale, { month: 'short' }).format(new Date(2020, month, 1, 12)),
   );
 }
 

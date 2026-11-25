@@ -79,6 +79,7 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import moment from 'moment';
 import { getClient } from '~/util/awclient';
 import { useCategoryStore } from '~/stores/categories';
@@ -87,6 +88,7 @@ import { useBucketsStore } from '~/stores/buckets';
 import { get_day_start_with_offset, get_day_end_with_offset } from '~/util/time';
 import { periodStartDate } from '~/util/timeperiod';
 import { neutralizeCsvFormula } from '~/util/export';
+import type { IEvent } from '~/util/interfaces';
 import {
   getWorkReportHostBuckets,
   getWorkReportHostOptions,
@@ -109,6 +111,7 @@ function buildBillingQuery(hosts: WorkReportHostBuckets[], categoriesStr: string
   let query = '';
   for (let hi = 0; hi < hosts.length; hi++) {
     const bucketIds = hosts[hi];
+    if (!bucketIds) continue;
     query += `
 events_${hi} = flood(query_bucket(${JSON.stringify(bucketIds.window)}));
 not_afk_${hi} = flood(query_bucket(${JSON.stringify(bucketIds.afk)}));
@@ -129,7 +132,7 @@ RETURN = {"events": events, "duration": duration};`;
     .join('\n');
 }
 
-export default {
+export default defineComponent({
   name: 'BillingView',
   data() {
     return {
@@ -140,7 +143,7 @@ export default {
       selectedHosts: [] as string[],
       dateRange: 'thisMonth',
       defaultRate: 0,
-      categoryRates: {} as Record<string, number>,
+      categoryRates: {} as Record<string, number | string | null | undefined>,
 
       loading: false,
       errorMessage: '',
@@ -155,10 +158,10 @@ export default {
     },
     dateRangeOptions() {
       return [
-        { value: 'thisMonth', text: this.$t('common.thisMonth') },
-        { value: 'last30d', text: this.$t('common.last30d') },
-        { value: 'thisWeek', text: this.$t('common.thisWeek') },
-        { value: 'last7d', text: this.$t('common.last7d') },
+        { value: 'thisMonth', text: this.$t('common.thisMonth') as string },
+        { value: 'last30d', text: this.$t('common.last30d') as string },
+        { value: 'thisWeek', text: this.$t('common.thisWeek') as string },
+        { value: 'last7d', text: this.$t('common.last7d') as string },
       ];
     },
     hasData() {
@@ -208,7 +211,7 @@ export default {
         const client = getClient();
 
         if (this.selectedHosts.length === 0) {
-          this.errorMessage = this.$t('common.selectHost');
+          this.errorMessage = this.$t('common.selectHost') as string;
           return;
         }
 
@@ -223,7 +226,7 @@ export default {
         if (hostsToQuery.length === 0) {
           this.errorMessage = this.$t('ui.billing.noSupportedHosts', {
             hosts: unsupported.join(', '),
-          });
+          }) as string;
           return;
         }
 
@@ -236,14 +239,14 @@ export default {
         // Only update queriedPeriod after a successful query so that on
         // failure the existing rows continue to display with their correct period.
         this.queriedPeriod = tp;
-        const events: any[] = result.events || [];
+        const events: IEvent[] = result.events || [];
         this.totalDuration = result.duration || 0;
 
         // Aggregate duration by category path.
         // Key: JSON.stringify(parts) — unambiguous even if a segment contains ' > '.
         const durationMap: Record<string, number> = {};
         for (const event of events) {
-          const cat: string[] = event.data?.['$category'] || ['Uncategorized'];
+          const cat: string[] = event.data?.$category || ['Uncategorized'];
           const key = JSON.stringify(cat);
           durationMap[key] = (durationMap[key] || 0) + event.duration;
         }
@@ -256,15 +259,15 @@ export default {
             return {
               key,
               category: parts.join(' > '),
-              label: parts[parts.length - 1],
+              label: parts[parts.length - 1] ?? '',
               depth: parts.length - 1,
               duration,
             };
           });
-      } catch (err: any) {
+      } catch (err) {
         this.errorMessage = this.$t('ui.billing.loadError', {
-          error: err?.message || err,
-        });
+          error: (err as { message?: string } | undefined)?.message || err,
+        }) as string;
         console.error(err);
       } finally {
         this.loading = false;
@@ -272,7 +275,8 @@ export default {
     },
 
     getEffectiveRate(row: CategoryRow): number {
-      const explicit = this.categoryRates[row.key];
+      // The rate input binds a string, so a cleared field arrives as ''
+      const explicit: number | string | null | undefined = this.categoryRates[row.key];
       // Treat explicitly-entered 0 as "not billable" (don't fall back to defaultRate).
       // Only fall back when the field has never been touched (undefined/null/'').
       if (explicit !== undefined && explicit !== null && explicit !== '') return Number(explicit);
@@ -290,7 +294,7 @@ export default {
     formatDuration(seconds: number): string {
       const h = Math.floor(seconds / 3600);
       const m = Math.floor((seconds % 3600) / 60);
-      return `${h}${this.$t('common.durationHours')} ${m}${this.$t('common.durationMinutes')}`;
+      return `${h}${this.$t('common.durationHours') as string} ${m}${this.$t('common.durationMinutes') as string}`;
     },
 
     formatAmount(amount: number): string {
@@ -344,7 +348,7 @@ export default {
       URL.revokeObjectURL(url);
     },
   },
-};
+});
 </script>
 
 <style scoped>

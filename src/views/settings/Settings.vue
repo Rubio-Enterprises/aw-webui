@@ -23,6 +23,7 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { useSettingsStore } from '~/stores/settings';
 import { useCategoryStore } from '~/stores/categories';
 
@@ -47,7 +48,7 @@ interface Group {
   components: { name: string }[];
 }
 
-export default {
+export default defineComponent({
   name: 'Settings',
   components: {
     LanguageSettings,
@@ -68,11 +69,11 @@ export default {
     const categoryStore = useCategoryStore();
     if (categoryStore.classes_unsaved_changes) {
       const confirmed = await this.$bvModal.msgBoxConfirm(
-        this.$t('settings.unsavedCategoriesLeave'),
+        this.$t('settings.unsavedCategoriesLeave') as string,
         {
-          title: this.$t('settings.unsavedCategoriesLeaveTitle'),
-          okTitle: this.$t('settings.unsavedCategoriesLeaveOk'),
-          cancelTitle: this.$t('settings.unsavedCategoriesLeaveCancel'),
+          title: this.$t('settings.unsavedCategoriesLeaveTitle') as string,
+          okTitle: this.$t('settings.unsavedCategoriesLeaveOk') as string,
+          cancelTitle: this.$t('settings.unsavedCategoriesLeaveCancel') as string,
           centered: true,
         }
       );
@@ -96,8 +97,8 @@ export default {
     groups(): Group[] {
       const general: Group = {
         id: 'general',
-        label: this.$t('settings.groups.general'),
-        help: this.$t('settings.groups.generalHelp'),
+        label: this.$t('settings.groups.general') as string,
+        help: this.$t('settings.groups.generalHelp') as string,
         components: [
           { name: 'LanguageSettings' },
           { name: 'DaystartSettings' },
@@ -109,32 +110,32 @@ export default {
       };
       const appearance: Group = {
         id: 'appearance',
-        label: this.$t('settings.groups.appearance'),
-        help: this.$t('settings.groups.appearanceHelp'),
+        label: this.$t('settings.groups.appearance') as string,
+        help: this.$t('settings.groups.appearanceHelp') as string,
         components: [{ name: 'Theme' }, { name: 'ColorSettings' }],
       };
       const categorization: Group = {
         id: 'categorization',
-        label: this.$t('settings.groups.categorization'),
-        help: this.$t('settings.groups.categorizationHelp'),
+        label: this.$t('settings.groups.categorization') as string,
+        help: this.$t('settings.groups.categorizationHelp') as string,
         components: [{ name: 'CategorizationSettings' }, { name: 'ActivePatternSettings' }],
       };
       const privacy: Group = {
         id: 'privacy',
-        label: this.$t('settings.groups.privacy'),
-        help: this.$t('settings.groups.privacyHelp'),
+        label: this.$t('settings.groups.privacy') as string,
+        help: this.$t('settings.groups.privacyHelp') as string,
         components: [{ name: 'PrivacyFilterSettings' }],
       };
       const developer: Group = {
         id: 'developer',
-        label: this.$t('settings.groups.developer'),
+        label: this.$t('settings.groups.developer') as string,
         components: [{ name: 'DeveloperSettings' }],
       };
 
       const notifications: Group = {
         id: 'notifications',
-        label: this.$t('settings.notifications.title'),
-        help: this.$t('settings.notifications.help'),
+        label: this.$t('settings.notifications.title') as string,
+        help: this.$t('settings.notifications.help') as string,
         components: [{ name: 'AwNotifySettings' }],
       };
 
@@ -150,7 +151,7 @@ export default {
       return settingsStore.load();
     },
   },
-};
+});
 </script>
 
 <style scoped lang="scss">

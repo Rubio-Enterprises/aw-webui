@@ -128,6 +128,7 @@ div
       b-btn(variant="primary" @click="onImportAddOnTop") {{ $t('settings.categorization.importAddOnTop') }}
 </template>
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { mapState, mapGetters } from 'pinia';
 import CategoryEditTree from '~/components/CategoryEditTree.vue';
 import CategoryEditModal from '~/components/CategoryEditModal.vue';
@@ -136,11 +137,12 @@ import 'vue-awesome/icons/angle-double-down';
 import 'vue-awesome/icons/angle-double-up';
 
 import { useCategoryStore } from '~/stores/categories';
+import type { Category } from '~/util/classes';
 
 import { downloadFile } from '~/util/export';
 import { parseCategoryImport, shouldAttemptJsonImport } from '~/util/importFile';
 
-export default {
+export default defineComponent({
   name: 'CategorizationSettings',
   components: {
     CategoryEditTree,
@@ -149,7 +151,7 @@ export default {
   },
   data: () => ({
     categoryStore: useCategoryStore(),
-    editingId: null,
+    editingId: null as number | null,
     activeSetId: 'default',
     builderOpen: false,
     builderMounted: false,
@@ -157,7 +159,7 @@ export default {
     newSetName: '',
     showImportModal: false,
     pendingImportSetId: '',
-    pendingImportCategories: null as any[] | null,
+    pendingImportCategories: null as Category[] | null,
   }),
   computed: {
     ...mapState(useCategoryStore, ['classes_unsaved_changes']),
@@ -176,7 +178,7 @@ export default {
     'categoryStore.active_set_ids': {
       handler(newIds: string[]) {
         if (newIds && newIds.length > 0) {
-          this.activeSetId = newIds[0];
+          this.activeSetId = newIds[0] ?? 'default';
         }
       },
       immediate: true,
@@ -212,8 +214,9 @@ export default {
         await this.categoryStore.save();
       } catch (e) {
         console.error('Failed to save categories', e);
-        const httpStatus = e && e.response && e.response.status;
-        const detail = (e && e.message) || String(e);
+        const err = e as { message?: string; response?: { status?: number } } | undefined;
+        const httpStatus = err?.response?.status;
+        const detail = err?.message || String(e);
         const prefix = httpStatus
           ? `Failed to save categories (HTTP ${httpStatus})`
           : 'Failed to save categories';
@@ -235,18 +238,19 @@ export default {
       const text = JSON.stringify(export_data, null, 2);
       await downloadFile(`aw-category-export-${export_data.id}.json`, text, 'application/json');
     },
-    importCategories: async function (elem) {
-      const file = elem.target.files[0];
+    importCategories: async function (elem: Event) {
+      const input = elem.target as HTMLInputElement;
+      const file = input.files?.[0];
       if (!file) return;
       // Reset so picking the same file again retriggers change.
-      elem.target.value = '';
+      input.value = '';
 
       if (!shouldAttemptJsonImport(file)) {
         alert('Please select a JSON category export, not an image or other file type.');
         return;
       }
 
-      let import_obj;
+      let import_obj: ReturnType<typeof parseCategoryImport>;
       try {
         import_obj = parseCategoryImport(await file.text());
       } catch (e) {
@@ -304,7 +308,7 @@ export default {
       this.newSetName = '';
       this.showCreateSetModal = true;
     },
-    onCreateSetConfirm: function (event) {
+    onCreateSetConfirm: function (event: Event) {
       const name = this.newSetName.trim();
       if (!name) {
         event.preventDefault();
@@ -357,15 +361,16 @@ export default {
       const ordered = this.otherSets.map(s => s.id).filter(id => extras.has(id));
       this.categoryStore.setActiveSets([this.activeSetId, ...ordered]);
     },
-    beforeUnload: function (e) {
+    beforeUnload: function (e: BeforeUnloadEvent): string | undefined {
       if (this.classes_unsaved_changes) {
-        const msg = this.$t('settings.unsavedCategoriesLeave');
+        const msg = this.$t('settings.unsavedCategoriesLeave') as string;
         e = e || window.event;
         e.preventDefault();
         e.returnValue = msg;
         return msg;
       }
+      return undefined;
     },
   },
-};
+});
 </script>

@@ -21,6 +21,7 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import 'vue-awesome/icons/desktop';
 import 'vue-awesome/icons/sun';
 import 'vue-awesome/icons/moon';
@@ -28,7 +29,7 @@ import { mapState } from 'pinia';
 import { useSettingsStore } from '~/stores/settings';
 import { DARK_THEME_HREF, detectPreferredTheme } from '~/util/theme';
 
-export default {
+export default defineComponent({
   name: 'Theme',
   data() {
     return {
@@ -46,7 +47,7 @@ export default {
         const settingsStore = useSettingsStore();
         return settingsStore.theme;
       },
-      set(value) {
+      set(value: 'light' | 'dark' | 'auto') {
         console.log('Set theme to ' + value);
         const settingsStore = useSettingsStore();
         settingsStore.update({
@@ -67,10 +68,10 @@ export default {
 
         // Append Dark Theme Element if dark theme should be applied
         if (detectedTheme === 'dark') {
-          document.querySelector('head').appendChild(themeLink);
+          document.head.appendChild(themeLink);
         }
       },
     },
   },
-};
+});
 </script>

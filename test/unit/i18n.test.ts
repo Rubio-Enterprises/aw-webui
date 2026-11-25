@@ -187,7 +187,7 @@ describe('i18n', () => {
 
   test.each(['in-ID', 'in', 'IN-id'])(
     'initial locale maps legacy %s browser language to Indonesian',
-    language => {
+    (language) => {
       Object.defineProperty(navigator, 'language', {
         value: language,
         configurable: true,
@@ -195,7 +195,7 @@ describe('i18n', () => {
       const { i18n } = loadI18n();
       expect(i18n.locale).toBe('id');
       expect(document.documentElement.lang).toBe('id');
-    }
+    },
   );
 
   test('saved Indonesian preference wins over browser language', () => {
@@ -242,13 +242,13 @@ describe('i18n', () => {
   test('Japanese messages keep every interpolation placeholder from English', () => {
     const en = require('~/i18n/locales/en').default;
     const ja = require('~/i18n/locales/ja').default;
-    const placeholders = v => (v.match(/\{[^}]+\}/g) || []).sort();
+    const placeholders = (v) => (v.match(/\{[^}]+\}/g) || []).sort();
     const walk = (a, b, path) => {
       for (const [k, v] of Object.entries(a)) {
         if (typeof v === 'string') {
           expect([path + k, placeholders(b[k] ?? '')]).toEqual([path + k, placeholders(v)]);
         } else {
-          walk(v, b[k] ?? {}, path + k + '.');
+          walk(v, b[k] ?? {}, `${path}${k}.`);
         }
       }
     };
@@ -295,13 +295,13 @@ describe('i18n', () => {
   test('Brazilian Portuguese messages keep every interpolation placeholder from English', () => {
     const en = require('~/i18n/locales/en').default;
     const ptBR = require('~/i18n/locales/pt-BR').default;
-    const placeholders = v => (v.match(/\{[^}]+\}/g) || []).sort();
+    const placeholders = (v) => (v.match(/\{[^}]+\}/g) || []).sort();
     const walk = (a, b, path) => {
       for (const [k, v] of Object.entries(a)) {
         if (typeof v === 'string') {
           expect([path + k, placeholders(b[k] ?? '')]).toEqual([path + k, placeholders(v)]);
         } else {
-          walk(v, b[k] ?? {}, path + k + '.');
+          walk(v, b[k] ?? {}, `${path}${k}.`);
         }
       }
     };
@@ -353,16 +353,19 @@ describe('i18n', () => {
     expect(moment('2026-10-19T19:23:00').format('LLLL')).toBe(formatted);
   });
 
-  test.each(['bn-BD', 'bn-IN', 'bn'])('initial locale detects Bengali browser language %s', tag => {
-    Object.defineProperty(navigator, 'language', {
-      value: tag,
-      configurable: true,
-    });
-    const { i18n } = loadI18n();
-    expect(i18n.locale).toBe('bn');
-    expect(document.documentElement.lang).toBe('bn');
-    expect(document.documentElement.dir).toBe('ltr');
-  });
+  test.each(['bn-BD', 'bn-IN', 'bn'])(
+    'initial locale detects Bengali browser language %s',
+    (tag) => {
+      Object.defineProperty(navigator, 'language', {
+        value: tag,
+        configurable: true,
+      });
+      const { i18n } = loadI18n();
+      expect(i18n.locale).toBe('bn');
+      expect(document.documentElement.lang).toBe('bn');
+      expect(document.documentElement.dir).toBe('ltr');
+    },
+  );
 
   test('saved Bengali locale wins over browser language', () => {
     Object.defineProperty(navigator, 'language', {
@@ -425,7 +428,7 @@ describe('i18n', () => {
     expect(formatted).not.toMatch(/[০-৯]/);
   });
 
-  test.each(['ur-PK', 'ur-IN', 'ur'])('initial locale detects Urdu browser language %s', lang => {
+  test.each(['ur-PK', 'ur-IN', 'ur'])('initial locale detects Urdu browser language %s', (lang) => {
     Object.defineProperty(navigator, 'language', {
       value: lang,
       configurable: true,

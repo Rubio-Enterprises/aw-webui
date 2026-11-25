@@ -56,6 +56,7 @@ div
 <style scoped lang="scss"></style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import _ from 'lodash';
 import moment from 'moment';
 import { canonicalEvents, querystr_to_array } from '~/queries';
@@ -69,9 +70,18 @@ import { useBucketsStore } from '~/stores/buckets';
 import { useCategoryStore } from '~/stores/categories';
 import { useSettingsStore } from '~/stores/settings';
 import { get_day_start_with_offset } from '~/util/time';
-import { cleanAlertGoal, cleanAlertGoals, getDefaultAlertGoals } from '~/util/alerts';
+import {
+  type AlertGoal,
+  cleanAlertGoal,
+  cleanAlertGoals,
+  getDefaultAlertGoals,
+} from '~/util/alerts';
+import type { IEvent } from '~/util/interfaces';
 
-export default {
+// The error shape of a failed aw-client request
+type RequestError = { message?: string; response?: { data?: { message?: string } } };
+
+export default defineComponent({
   name: 'Alerts',
   data() {
     return {
@@ -82,23 +92,27 @@ export default {
       // TODO: Support negative goals (avoid distractions)
       // Loaded from settings in mounted(); sample goals are seeded there only
       // when nothing has been stored yet.
-      alerts: [],
-      editing_alert: {},
+      alerts: [] as AlertGoal[],
+      // The goal being typed into the form; validated by cleanAlertGoal on add
+      editing_alert: {} as Partial<AlertGoal>,
 
       // Set while an add/delete is being persisted, to block duplicate writes.
       saving: false,
 
-      alert_times: {},
+      // Minutes spent per category path (joined by ',')
+      alert_times: {} as Record<string, number>,
 
       error: '',
+      status: null as 'searching' | null,
+      events: [] as IEvent[],
 
-      hostnames: [],
+      hostnames: [] as string[],
       hostname: '',
 
-      last_updated: null,
+      last_updated: null as Date | null,
 
       autorefresh: false,
-      running_interval: null,
+      running_interval: null as ReturnType<typeof setInterval> | null,
 
       // Options
       show_options: false,
@@ -110,8 +124,8 @@ export default {
     categories: function () {
       return this.categoryStore.category_select(true, key => this.$t(key) as string);
     },
-    alertTime: function () {
-      return cat => {
+    alertTime: function (): (cat: string[]) => number {
+      return (cat: string[]) => {
         let time = 0;
         _.map(Object.entries(this.alert_times), ([c, t]) => {
           if (c.startsWith(cat.join(','))) {
@@ -138,7 +152,7 @@ export default {
       h =>
         this.bucketsStore.bucketsWindow(h).length > 0 && this.bucketsStore.bucketsAFK(h).length > 0
     );
-    this.hostname = this.hostnames[0];
+    this.hostname = this.hostnames[0] ?? '';
   },
   methods: {
     addAlert: async function () {
@@ -151,14 +165,14 @@ export default {
         this.editing_alert = {};
       }
     },
-    deleteAlert: async function (name) {
+    deleteAlert: async function (name: string) {
       await this.persistAlerts(this.alerts.filter(a => a.name !== name));
     },
 
     // Save the given goals, keeping the shown list and storage in step. Returns
     // whether the write succeeded; on failure the previous list is restored so
     // the view never implies a failed write was durable.
-    persistAlerts: async function (alerts) {
+    persistAlerts: async function (alerts: AlertGoal[]): Promise<boolean> {
       if (this.saving) return false;
       const previous = this.alerts;
       const previousStored = this.settingsStore.alerts;
@@ -184,7 +198,7 @@ export default {
     toggleAutoRefresh: function () {
       if (!this.autorefresh || this.running_interval) {
         console.log('Stopping autorefresh');
-        clearInterval(this.running_interval);
+        if (this.running_interval) clearInterval(this.running_interval);
         this.autorefresh = false;
         this.running_interval = null;
       } else {
@@ -223,21 +237,23 @@ export default {
       try {
         this.status = 'searching';
         const data = await this.$aw.query(timeperiods, query_array);
-        this.events = data[0];
+        this.events = data[0] as IEvent[];
         this.error = '';
       } catch (e) {
         console.error(e);
-        this.error = e?.response?.data?.message || e?.message || this.$t('common.requestFailed');
+        const err = e as RequestError | undefined;
+        this.error =
+          err?.response?.data?.message || err?.message || (this.$t('common.requestFailed') as string);
         return;
       } finally {
         this.status = null;
       }
 
-      const grouped = _.groupBy(this.events, e => e.data.$category);
+      const grouped = _.groupBy(this.events, e => (e.data.$category ?? []).join(','));
       const sumCats = Object.fromEntries(
         _.map(Object.entries(grouped), entry => {
           const [group, events] = entry;
-          return [group.split(','), _.sumBy(events, 'duration')];
+          return [group, _.sumBy(events, 'duration')];
         })
       );
       this.alert_times = sumCats;
@@ -245,5 +261,5 @@ export default {
       this.last_updated = new Date();
     },
   },
-};
+});
 </script>

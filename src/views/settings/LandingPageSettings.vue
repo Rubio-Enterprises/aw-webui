@@ -16,11 +16,12 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { useSettingsStore } from '~/stores/settings';
 import { useBucketsStore } from '~/stores/buckets';
 import { formatHostParam } from '~/util/multidevice';
 
-export default {
+export default defineComponent({
   name: 'LandingPageSettings',
   data: () => {
     return {
@@ -35,7 +36,7 @@ export default {
         const settingsStore = useSettingsStore();
         return settingsStore.landingpage || '/home';
       },
-      set: function (val) {
+      set: function (val: string) {
         const settingsStore = useSettingsStore();
         settingsStore.update({ landingpage: val });
       },
@@ -54,5 +55,5 @@ export default {
       return formatHostParam([hostname]);
     },
   },
-};
+});
 </script>

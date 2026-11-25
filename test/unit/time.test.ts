@@ -38,7 +38,7 @@ describe('seconds_to_duration', () => {
 function hasLocale(locale) {
   try {
     return new Intl.DateTimeFormat(locale).resolvedOptions().locale === locale;
-  } catch (_) {
+  } catch {
     return false;
   }
 }
@@ -50,10 +50,10 @@ describe('locale-aware time labels', () => {
     const monday = new Date(2026, 4, 18, 12);
 
     expect(format_weekday_short(monday, 'en-US')).toBe(
-      new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(monday)
+      new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(monday),
     );
     expect(format_weekday_short(monday, 'sv-SE')).toBe(
-      new Intl.DateTimeFormat('sv-SE', { weekday: 'short' }).format(monday)
+      new Intl.DateTimeFormat('sv-SE', { weekday: 'short' }).format(monday),
     );
     if (HAS_SV_SE) {
       expect(format_weekday_short(monday, 'sv-SE')).not.toBe(format_weekday_short(monday, 'en-US'));
@@ -70,13 +70,13 @@ describe('locale-aware time labels', () => {
 
     expect(enUSMonths).toEqual(
       Array.from({ length: 12 }, (_, month) =>
-        new Intl.DateTimeFormat('en-US', { month: 'short' }).format(new Date(2020, month, 1, 12))
-      )
+        new Intl.DateTimeFormat('en-US', { month: 'short' }).format(new Date(2020, month, 1, 12)),
+      ),
     );
     expect(svSEMonths).toEqual(
       Array.from({ length: 12 }, (_, month) =>
-        new Intl.DateTimeFormat('sv-SE', { month: 'short' }).format(new Date(2020, month, 1, 12))
-      )
+        new Intl.DateTimeFormat('sv-SE', { month: 'short' }).format(new Date(2020, month, 1, 12)),
+      ),
     );
     if (HAS_SV_SE) {
       expect(svSEMonths).not.toEqual(enUSMonths);

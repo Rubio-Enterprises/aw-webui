@@ -17,9 +17,10 @@ div
     | {{ $t('settings.daystart.startOfWeekHelp') }}
 </template>
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { useSettingsStore } from '~/stores/settings';
 
-export default {
+export default defineComponent({
   name: 'DaystartSettings',
   data() {
     return {
@@ -31,7 +32,7 @@ export default {
       get: function () {
         return this.settingsStore.startOfDay;
       },
-      set: function (value) {
+      set: function (value: string) {
         console.log('Set start of day to ' + value);
         this.settingsStore.update({ startOfDay: value });
       },
@@ -40,7 +41,7 @@ export default {
       get: function () {
         return this.settingsStore.startOfWeek;
       },
-      set: function (value) {
+      set: function (value: string) {
         console.log('Set start of week to ' + value);
         this.settingsStore.update({ startOfWeek: value });
       },
@@ -57,5 +58,5 @@ export default {
       return option?.text || this.startOfWeek;
     },
   },
-};
+});
 </script>

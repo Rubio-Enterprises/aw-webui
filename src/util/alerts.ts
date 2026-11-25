@@ -28,7 +28,7 @@ export function cleanAlertGoal(candidate: unknown): AlertGoal | null {
 
   if (typeof name !== 'string' || name.trim() === '') return null;
   if (!Array.isArray(category) || category.length === 0) return null;
-  if (!category.every(segment => typeof segment === 'string')) return null;
+  if (!category.every((segment) => typeof segment === 'string')) return null;
 
   const goalNumber = typeof goal === 'string' ? Number(goal.trim()) : goal;
   if (typeof goalNumber !== 'number' || !Number.isFinite(goalNumber) || goalNumber < 0) {

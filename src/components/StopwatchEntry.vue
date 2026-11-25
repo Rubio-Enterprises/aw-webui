@@ -39,6 +39,8 @@ div
 </style>
 
 <script lang="ts">
+import { defineComponent, type PropType } from 'vue';
+import type { IEvent } from 'aw-client';
 import moment from 'moment';
 import 'vue-awesome/icons/edit';
 import 'vue-awesome/icons/stop';
@@ -46,14 +48,14 @@ import 'vue-awesome/icons/play';
 
 import EventEditor from './EventEditor.vue';
 
-export default {
+export default defineComponent({
   name: 'StopwatchEntry',
   components: {
     'event-editor': EventEditor,
   },
   props: {
-    event: Object,
-    bucket_id: String,
+    event: Object as PropType<IEvent>,
+    bucket_id: { type: String, required: true },
     now: {
       type: moment,
       default: moment(),
@@ -67,12 +69,12 @@ export default {
       await this.$aw.replaceEvent(this.bucket_id, new_event);
       this.$emit('update', new_event);
     },
-    save: async function (new_event) {
+    save: async function (new_event: IEvent) {
       this.$emit('update', new_event);
     },
-    delete_: async function (new_event) {
+    delete_: async function (new_event: IEvent) {
       this.$emit('delete', new_event);
     },
   },
-};
+});
 </script>

@@ -14,16 +14,24 @@ div
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
+import { defineComponent, type PropType } from 'vue';
 import moment from 'moment';
 import { useBucketsStore } from '~/stores/buckets';
 import { preferKnownHostnames } from '~/util/hostnames';
 
-export default Vue.extend({
+// The options the parent edits; every field is filled in once this has mounted
+interface QueryOptionsData {
+  hostname: string;
+  start: string;
+  stop: string;
+  filter_afk: boolean;
+}
+
+export default defineComponent({
   name: 'QueryOptions',
   props: {
     queryOptions: {
-      type: Object,
+      type: Object as PropType<Partial<QueryOptionsData>>,
     },
   },
   data() {
@@ -35,12 +43,12 @@ export default Vue.extend({
         start: moment().subtract(1, 'day').format('YYYY-MM-DD'),
         stop: moment().add(1, 'day').format('YYYY-MM-DD'),
         filter_afk: true,
-      },
+      } as QueryOptionsData,
     };
   },
 
   computed: {
-    hostnameChoices() {
+    hostnameChoices(): string[] {
       return preferKnownHostnames(this.bucketsStore.hosts);
     },
   },
@@ -58,7 +66,8 @@ export default Vue.extend({
     await this.bucketsStore.ensureLoaded();
     this.queryOptionsData = {
       ...this.queryOptionsData,
-      hostname: this.hostnameChoices[0],
+      // Without any known host the field stays empty
+      hostname: this.hostnameChoices[0] ?? '',
       ...this.queryOptions,
     };
     this.$emit('input', this.queryOptionsData);

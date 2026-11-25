@@ -1,33 +1,35 @@
 import router from '~/route';
 
-const routes: any[] = router.options.routes;
+const routes = router.options.routes;
 
 describe('router', () => {
   test('root redirect uses localStorage landingpage when set', () => {
-    const rootRoute = routes.find(route => route.path === '/');
+    const rootRoute = routes.find((route) => route.path === '/');
 
     localStorage.landingpage = '/work-report';
     expect(rootRoute.redirect({})).toBe('/work-report');
   });
 
   test('root redirect falls back to /home when localStorage landingpage is missing', () => {
-    const rootRoute = routes.find(route => route.path === '/');
+    const rootRoute = routes.find((route) => route.path === '/');
 
     delete localStorage.landingpage;
     expect(rootRoute.redirect({})).toBe('/home');
   });
 
   test('opens Category Builder as a standalone page and redirects its legacy URL', () => {
-    const builderRoute = router.options.routes.find(route => route.path === '/category-builder');
+    const builderRoute = router.options.routes.find((route) => route.path === '/category-builder');
 
     expect(builderRoute).toBeTruthy();
-    expect(typeof (builderRoute as any).component).toBe('function');
+    expect(
+      typeof (builderRoute && 'component' in builderRoute ? builderRoute.component : undefined),
+    ).toBe('function');
     expect(router.resolve('/settings/category-builder').route.path).toBe('/category-builder');
     expect(router.resolve('/settings/categorization').route.path).toBe('/settings/categorization');
   });
 
   test('includes the work report route', () => {
-    const workReportRoute = routes.find(route => route.path === '/work-report');
+    const workReportRoute = routes.find((route) => route.path === '/work-report');
 
     expect(workReportRoute).toBeTruthy();
     expect(typeof workReportRoute.component).toBe('function');
@@ -43,7 +45,7 @@ describe('activity route host param', () => {
     // list items are encoded twice so a ',' inside a hostname survives
     ['/activity/self,a%252Cb/day', 'self,a%2Cb'],
   ])('%s resolves to the activity view with host %s', (path, host) => {
-    const resolved = router.resolve(path + '/view/').route;
+    const resolved = router.resolve(`${path}/view/`).route;
     expect(resolved.name).toBe('activity-view');
     expect(resolved.params.host).toBe(host);
   });
@@ -53,7 +55,7 @@ describe('activity route exact interval segment', () => {
   test.each([
     '2026-10-20T13:00:00Z..2026-10-20T14:30:00Z',
     '2026-10-20T15:00:00+02:00..2026-10-20T16:30:00+02:00',
-  ])('%s survives path resolution and URI encoding unchanged', segment => {
+  ])('%s survives path resolution and URI encoding unchanged', (segment) => {
     for (const path of [
       `/activity/host/interval/${segment}/view/`,
       `/activity/host/interval/${encodeURIComponent(segment)}/view/`,

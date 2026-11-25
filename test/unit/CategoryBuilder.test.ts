@@ -1,42 +1,65 @@
-import { createLocalVue, mount, shallowMount } from '@vue/test-utils';
 import { createTestingPinia } from '@pinia/testing';
-import { PiniaVuePlugin, setActivePinia, createPinia } from 'pinia';
-import CategoryBuilderComponent from '~/views/settings/CategoryBuilder.vue';
-import Settings from '~/views/settings/Settings.vue';
+import { createLocalVue, mount, shallowMount, type Wrapper } from '@vue/test-utils';
+import { createPinia, PiniaVuePlugin, setActivePinia } from 'pinia';
+import type { VueConstructor } from 'vue';
 import QueryOptions from '~/components/QueryOptions.vue';
 import { useBucketsStore } from '~/stores/buckets';
 import { useCategoryStore } from '~/stores/categories';
 import { useSettingsStore } from '~/stores/settings';
 import { getClient as getClientImpl } from '~/util/awclient';
+import CategoryBuilderComponent from '~/views/settings/CategoryBuilder.vue';
+import Settings from '~/views/settings/Settings.vue';
+import { optionsApi } from '../helpers/vue';
 
 jest.mock('~/util/awclient', () => ({ getClient: jest.fn() }));
 
-// Tests call Options API members directly, which the Vue constructor type doesn't expose.
-const CategoryBuilder: any = CategoryBuilderComponent;
+const CategoryBuilder = optionsApi(CategoryBuilderComponent);
 const getClient = getClientImpl as jest.Mock;
 
 const localVue = createLocalVue();
 localVue.use(PiniaVuePlugin);
 localVue.component('aw-query-options', QueryOptions);
-const flush = () => new Promise(resolve => setTimeout(resolve, 0));
+const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 const androidBucket = {
   id: 'aw-watcher-android-legacy',
   hostname: 'unknown',
   type: 'currentwindow',
   data: {},
 };
-const events = app => [[{ data: { app }, duration: 120 }]];
+const events = (app: string) => [[{ data: { app }, duration: 120 }]];
 const deferred = () => {
-  let resolve, reject;
-  const promise = new Promise((res, rej) => {
+  let resolve: (rows: ReturnType<typeof events>) => void;
+  let reject: (error: unknown) => void;
+  const promise = new Promise<ReturnType<typeof events>>((res, rej) => {
     resolve = res;
     reject = rej;
   });
   return { promise, resolve, reject };
 };
 
+type BuilderVm = InstanceType<typeof CategoryBuilderComponent> & {
+  beforeUnload(event: BeforeUnloadEvent): void;
+  classes_unsaved_changes: boolean;
+  categoryStore: ReturnType<typeof useCategoryStore>;
+  queryOptions: { hostname: string; start: string };
+};
+
+// Stand-in `this` for the Options API members under test; `ignored_words` is defined as the
+// component's computed once the object exists.
+interface IgnoredWordsVm {
+  settingsStore: { update: ReturnType<typeof useSettingsStore>['update'] };
+  show_ignored: boolean;
+  fetchWords: jest.Mock;
+  persistIgnoredWords: (next: string[]) => Promise<void>;
+  ignored_words: string[];
+}
+
 describe('CategoryBuilder loading', () => {
-  let wrapper, pinia, buckets, categories, query;
+  let wrapper: Wrapper<BuilderVm>;
+  let pinia: ReturnType<typeof createTestingPinia>;
+  let buckets: ReturnType<typeof useBucketsStore>;
+  let categories: ReturnType<typeof useCategoryStore>;
+  let query: jest.Mock<Promise<ReturnType<typeof events>>, [string[], string[]]>;
 
   beforeEach(() => {
     pinia = createTestingPinia({ createSpy: jest.fn });
@@ -54,22 +77,25 @@ describe('CategoryBuilder loading', () => {
   });
 
   function mountBuilder(realOptions = false) {
-    wrapper = (realOptions ? mount : shallowMount)(CategoryBuilder, {
-      localVue,
-      pinia,
-      stubs: {
-        'aw-query-options': !realOptions,
-        'b-button': true,
-        'b-spinner': true,
-        'b-modal': true,
-        'b-form': true,
-        'b-form-group': true,
-        'b-form-select': true,
-        'b-form-select-option': true,
-        'b-form-input': true,
-        'b-form-checkbox': true,
+    wrapper = (realOptions ? mount : shallowMount)(
+      CategoryBuilderComponent as VueConstructor<BuilderVm>,
+      {
+        localVue,
+        pinia,
+        stubs: {
+          'aw-query-options': !realOptions,
+          'b-button': true,
+          'b-spinner': true,
+          'b-modal': true,
+          'b-form': true,
+          'b-form-group': true,
+          'b-form-select': true,
+          'b-form-select-option': true,
+          'b-form-input': true,
+          'b-form-checkbox': true,
+        },
       },
-    });
+    );
     return wrapper;
   }
 
@@ -77,7 +103,7 @@ describe('CategoryBuilder loading', () => {
     const addListener = jest.spyOn(window, 'addEventListener');
     const removeListener = jest.spyOn(window, 'removeEventListener');
     mountBuilder();
-    wrapper.vm.$t = key => key;
+    wrapper.vm.$t = (key) => key;
     await flush();
     const handler = addListener.mock.calls.find(([type]) => type === 'beforeunload')[1];
     expect(handler).toBe(wrapper.vm.beforeUnload);
@@ -115,21 +141,25 @@ describe('CategoryBuilder loading', () => {
 
   test.each(['buckets', 'categories', 'query'])(
     'recovers from a %s failure using Retry',
-    async stage => {
+    async (stage) => {
       // A known host also exercises failures independently of unknown-host selection.
       buckets.buckets = [{ ...androidBucket, hostname: 'phone' }];
-      const action = { buckets: buckets.ensureLoaded, categories: categories.load, query }[stage];
-      action.mockRejectedValueOnce(new Error('Server unavailable'));
+      const action = {
+        buckets: jest.mocked(buckets.ensureLoaded),
+        categories: jest.mocked(categories.load),
+        query,
+      }[stage];
+      action.mockImplementationOnce(() => Promise.reject(new Error('Server unavailable')));
       mountBuilder();
       await flush();
       expect(wrapper.text()).not.toContain('Loading...');
       expect(wrapper.find('[role="alert"]').text()).toContain('Could not load');
-      const retry = wrapper.findAll('b-button-stub').wrappers.find(w => w.text() === 'Retry');
+      const retry = wrapper.findAll('b-button-stub').wrappers.find((w) => w.text() === 'Retry');
       await retry.vm.$emit('click');
       await flush();
       expect(wrapper.find('[role="alert"]').exists()).toBe(false);
       expect(wrapper.text()).toContain('Firefox');
-    }
+    },
   );
 
   test('stops loading when there are no buckets', async () => {
@@ -142,7 +172,7 @@ describe('CategoryBuilder loading', () => {
   });
 
   test('waits for a choice when multiple known hosts exist', async () => {
-    buckets.buckets = ['phone', 'tablet'].map(hostname => ({ ...androidBucket, hostname }));
+    buckets.buckets = ['phone', 'tablet'].map((hostname) => ({ ...androidBucket, hostname }));
     mountBuilder();
     await flush();
     expect(query).not.toHaveBeenCalled();
@@ -184,7 +214,7 @@ describe('CategoryBuilder loading', () => {
   });
 
   test('preserves the chosen host and dates when reopening options', async () => {
-    buckets.buckets = ['phone', 'tablet'].map(hostname => ({ ...androidBucket, hostname }));
+    buckets.buckets = ['phone', 'tablet'].map((hostname) => ({ ...androidBucket, hostname }));
     mountBuilder(true);
     await flush();
     await wrapper.setData({
@@ -200,7 +230,10 @@ describe('CategoryBuilder loading', () => {
     for (let i = 0; i < 2; i++) {
       await wrapper.setData({ show_options: true });
       await flush();
-      expect(wrapper.findComponent(QueryOptions).vm.queryOptionsData).toEqual(chosen);
+      const optionsVm = wrapper.findComponent(QueryOptions).vm;
+      expect('queryOptionsData' in optionsVm ? optionsVm.queryOptionsData : undefined).toEqual(
+        chosen,
+      );
       expect(wrapper.vm.queryOptions).toEqual(chosen);
       await wrapper.setData({ show_options: false });
     }
@@ -223,7 +256,7 @@ describe('CategoryBuilder loading', () => {
     expect(wrapper.text()).not.toContain('Loading...');
   });
 
-  test.each(['resolve', 'reject'])('ignores an old query that later %ss', async completion => {
+  test.each(['resolve', 'reject'])('ignores an old query that later %ss', async (completion) => {
     buckets.buckets = [{ ...androidBucket, hostname: 'phone' }];
     const old = deferred();
     query.mockReturnValueOnce(old.promise);
@@ -244,22 +277,28 @@ describe('CategoryBuilder loading', () => {
 // reload. They now persist via the settings store.
 // See https://github.com/ActivityWatch/aw-webui/issues/486
 describe('CategoryBuilder ignored words', () => {
-  function ctx(ignored = []) {
+  function ctx(ignored: string[] | undefined = []) {
     const settingsStore = {
       category_builder_ignored_words: ignored,
       // $patch mirrors pinia's synchronous patch — update properties in place.
-      $patch: jest.fn(state => Object.assign(settingsStore, state)),
-      update: jest.fn(async state => Object.assign(settingsStore, state)),
+      $patch: jest.fn((state) => Object.assign(settingsStore, state)),
+      update: jest.fn(async (state) => Object.assign(settingsStore, state)),
     };
-    const vm: any = { settingsStore, show_ignored: true, fetchWords: jest.fn() };
-    vm.persistIgnoredWords = next => CategoryBuilder.methods.persistIgnoredWords.call(vm, next);
+    const vm = {
+      settingsStore,
+      show_ignored: true,
+      fetchWords: jest.fn(),
+      persistIgnoredWords: (next: string[]) =>
+        CategoryBuilder.methods.persistIgnoredWords.call(vm, next),
+    } as IgnoredWordsVm;
     // The component reads ignored_words through this computed.
     Object.defineProperty(vm, 'ignored_words', {
       get: () => CategoryBuilder.computed.ignored_words.call(vm),
     });
     return vm;
   }
-  const call = (name, vm, ...args) => CategoryBuilder.methods[name].call(vm, ...args);
+  const call = (name: string, vm: IgnoredWordsVm, ...args: unknown[]) =>
+    CategoryBuilder.methods[name].call(vm, ...args);
 
   test('ignoreWord persists the word to settings', async () => {
     const vm = ctx(['foo']);
@@ -327,14 +366,16 @@ describe('CategoryBuilder ignored words', () => {
 describe('CategoryBuilder ignored words with the real settings store', () => {
   const KEY = 'category_builder_ignored_words';
   const STEP = 20;
-  const delay = () => new Promise(resolve => setTimeout(resolve, STEP));
-  const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+  const delay = () => new Promise((resolve) => setTimeout(resolve, STEP));
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   function setup(initial = []) {
     setActivePinia(createPinia());
     // Seed the server with every default so a save only has to post KEY.
     const defaults = JSON.parse(JSON.stringify(useSettingsStore().$state));
-    Object.keys(defaults).forEach(k => k.startsWith('_') && delete defaults[k]);
+    for (const key of Object.keys(defaults)) {
+      if (key.startsWith('_')) delete defaults[key];
+    }
     const server = { ...defaults, [KEY]: initial };
     getClient.mockReturnValue({
       req: {
@@ -351,14 +392,20 @@ describe('CategoryBuilder ignored words with the real settings store', () => {
     });
     const settingsStore = useSettingsStore();
     settingsStore.$patch({ _loaded: true });
-    const vm: any = { settingsStore, show_ignored: true, fetchWords: jest.fn() };
-    vm.persistIgnoredWords = next => CategoryBuilder.methods.persistIgnoredWords.call(vm, next);
+    const vm = {
+      settingsStore,
+      show_ignored: true,
+      fetchWords: jest.fn(),
+      persistIgnoredWords: (next: string[]) =>
+        CategoryBuilder.methods.persistIgnoredWords.call(vm, next),
+    } as IgnoredWordsVm;
     Object.defineProperty(vm, 'ignored_words', {
       get: () => CategoryBuilder.computed.ignored_words.call(vm),
     });
     return { vm, server, settingsStore };
   }
-  const call = (name, vm, ...args) => CategoryBuilder.methods[name].call(vm, ...args);
+  const call = (name: string, vm: IgnoredWordsVm, ...args: unknown[]) =>
+    CategoryBuilder.methods[name].call(vm, ...args);
 
   test('overlapping ignores persist every word', async () => {
     const { vm, server, settingsStore } = setup();
@@ -406,7 +453,7 @@ describe('CategoryBuilder navigation guards', () => {
       const categoryStore = useCategoryStore();
       categoryStore.classes_unsaved_changes = unsavedChanges;
       const msgBoxConfirm = jest.fn().mockResolvedValue(msgBoxConfirmResult);
-      return { $t: key => key, $bvModal: { msgBoxConfirm } };
+      return { $t: (key) => key, $bvModal: { msgBoxConfirm } };
     }
 
     test('calls next() immediately when there are no unsaved changes', async () => {
@@ -438,7 +485,7 @@ describe('CategoryBuilder navigation guards', () => {
     function makeVm(unsavedChanges) {
       return {
         classes_unsaved_changes: unsavedChanges,
-        $t: key => key,
+        $t: (key) => key,
       };
     }
 

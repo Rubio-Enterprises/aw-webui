@@ -1,12 +1,12 @@
 export function preferKnownHostnames(hosts: string[]): string[] {
-  const knownHosts = hosts.filter(host => host !== 'unknown');
+  const knownHosts = hosts.filter((host) => host !== 'unknown');
   return knownHosts.length > 0
-    ? [...knownHosts, ...hosts.filter(host => host === 'unknown')]
+    ? [...knownHosts, ...hosts.filter((host) => host === 'unknown')]
     : hosts;
 }
 
 export function knownHostnames(hosts: string[]): string[] {
-  return hosts.filter(host => Boolean(host) && host !== 'unknown');
+  return hosts.filter((host) => Boolean(host) && host !== 'unknown');
 }
 
 // Hosts to offer in device pickers: everything except the "unknown" pseudo-host
@@ -25,7 +25,7 @@ export type CategoryBuilderHostnameEmptyKind = 'no-hosts' | 'hostname-unselected
 
 export function categoryBuilderHostnameEmptyKind(
   hosts: string[],
-  hostname?: string | null
+  hostname?: string | null,
 ): CategoryBuilderHostnameEmptyKind {
   if (hostname) {
     return null;

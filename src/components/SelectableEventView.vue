@@ -19,10 +19,15 @@ div
 </template>
 
 <script lang="ts">
-export default {
+import { defineComponent, type PropType } from 'vue';
+import type { IEvent } from '~/util/interfaces';
+
+type EventKeyFunc = (e: IEvent) => string;
+
+export default defineComponent({
   name: 'aw-selectable-eventview',
   props: {
-    events: Array,
+    events: Array as PropType<IEvent[]>,
     event_type: { type: String, default: 'currentwindow' },
   },
   data: function () {
@@ -31,8 +36,8 @@ export default {
 
       /* Summary props */
       summaryKey: 'title',
-      colorfunc: null,
-      namefunc: null,
+      colorfunc: null as EventKeyFunc | null,
+      namefunc: null as EventKeyFunc | null,
     };
   },
   mounted: async function () {
@@ -40,9 +45,9 @@ export default {
     this.namefunc = this.summaryKeyFunc;
   },
   methods: {
-    summaryKeyFunc: function (e) {
-      return e.data[this.summaryKey];
+    summaryKeyFunc: function (e: IEvent): string {
+      return String(e.data[this.summaryKey]);
     },
   },
-};
+});
 </script>

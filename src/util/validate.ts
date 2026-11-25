@@ -8,19 +8,13 @@ type UnicodeAliases = Record<string, string[]>;
 let _unicodeNames: Map<number, string> | null = null;
 let _unicodeAliases: UnicodeAliases[] = [];
 try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   _unicodeNames = require('@unicode/unicode-13.0.0/Names');
   _unicodeAliases = [
     // Python's \N{...} lookup accepts NameAliases.txt aliases too.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     require('@unicode/unicode-13.0.0/Names/Abbreviation'),
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     require('@unicode/unicode-13.0.0/Names/Alternate'),
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     require('@unicode/unicode-13.0.0/Names/Control'),
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     require('@unicode/unicode-13.0.0/Names/Correction'),
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     require('@unicode/unicode-13.0.0/Names/Figment'),
   ];
 } catch {
@@ -33,7 +27,7 @@ const PYTHON_INCOMPLETE_ESCAPE =
   /\\(?:N(?!\{[^}]+\})|u(?![0-9A-Fa-f]{4})|U(?![0-9A-Fa-f]{8})|x(?![0-9A-Fa-f]{2}))/;
 const PYTHON_UNICODE_NAMES = new Set([
   ...(_unicodeNames?.values() ?? []),
-  ..._unicodeAliases.flatMap(aliases => Object.values(aliases).flat()),
+  ..._unicodeAliases.flatMap((aliases) => Object.values(aliases).flat()),
 ]);
 
 function hasJavaScriptNamedGroup(re: string): boolean {
@@ -50,7 +44,11 @@ function hasJavaScriptNamedGroup(re: string): boolean {
       inClass = true;
     } else if (char === ']' && inClass) {
       inClass = false;
-    } else if (!inClass && re.startsWith('(?<', index) && !['=', '!'].includes(re[index + 3])) {
+    } else if (
+      !inClass &&
+      re.startsWith('(?<', index) &&
+      !['=', '!'].includes(re.charAt(index + 3))
+    ) {
       return true;
     }
   }
@@ -79,7 +77,7 @@ function hasPythonInvalidEscape(re: string): boolean {
     return /\\N\{[^}]+\}/.test(escapes);
   }
   return [...escapes.matchAll(/\\N\{([^}]+)\}/g)].some(
-    match => !PYTHON_UNICODE_NAMES.has(match[1])
+    (match) => !PYTHON_UNICODE_NAMES.has(match[1] ?? ''),
   );
 }
 
@@ -132,7 +130,7 @@ function splitTopLevelPipe(s: string): string[] {
 function applyQuantifier(
   s: string,
   i: number,
-  baseWidth: number
+  baseWidth: number,
 ): { added: number | null; newI: number } {
   if (i >= s.length) return { added: baseWidth, newI: i };
   if (s[i] === '+' || s[i] === '*') return { added: null, newI: i + 1 };
@@ -144,7 +142,7 @@ function applyQuantifier(
       let newI = closeBrace + 1;
       if (newI < s.length && s[newI] === '?') newI++; // skip lazy modifier
       if (inner.includes(',')) {
-        const [lo, hi] = inner.split(',', 2);
+        const [lo = '', hi] = inner.split(',', 2);
         if (hi === '' || lo !== hi) return { added: null, newI };
         const n = parseInt(lo, 10);
         return isNaN(n) ? { added: null, newI } : { added: baseWidth * n, newI };
@@ -165,7 +163,7 @@ function computePatternWidth(s: string): number | null {
   const alts = splitTopLevelPipe(s);
   if (alts.length > 1) {
     const widths = alts.map(computePatternWidth);
-    if (widths.some(w => w === null)) return null;
+    if (widths.some((w) => w === null)) return null;
     const unique = new Set(widths);
     return unique.size === 1 ? (widths[0] as number) : null;
   }
@@ -416,7 +414,7 @@ export function validateRegex(re: string) {
   if (re === '') return false;
   try {
     new RegExp(re);
-  } catch (e) {
+  } catch {
     return false;
   }
   // Reject JS-only syntax that Python's re module doesn't support.
@@ -439,6 +437,6 @@ export function isRegexBroad(re: string | RegExp) {
   const alphabet = 'abcdefghijklmnopqrstuvwxyz';
   const numbers = '0123456789';
   return re.test(
-    'THIS STRING SHOULD PROBABLY NOT MATCH: ' + alphabet + alphabet.toUpperCase() + numbers
+    `THIS STRING SHOULD PROBABLY NOT MATCH: ${alphabet}${alphabet.toUpperCase()}${numbers}`,
   );
 }

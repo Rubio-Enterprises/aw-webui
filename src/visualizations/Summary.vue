@@ -18,6 +18,8 @@ div
 </style>
 
 <script lang="ts">
+import { defineComponent, type PropType } from 'vue';
+import type { IEvent } from '~/util/interfaces';
 // NOTE: This is just a Vue.js component wrapper for summary.ts
 //       Code should generally go in the framework-independent file.
 
@@ -25,19 +27,19 @@ import summary from './summary';
 import 'vue-awesome/icons/angle-double-down';
 import 'vue-awesome/icons/angle-double-up';
 
-export default {
+export default defineComponent({
   name: 'aw-summary',
   props: {
-    fields: Array,
-    namefunc: Function,
+    fields: Array as PropType<IEvent[]>,
+    namefunc: Function as PropType<(event: IEvent) => string>,
     hoverfunc: {
-      type: Function,
+      type: Function as PropType<(event: IEvent) => string>,
       default: null, // If not set we will default to namefunc
     },
-    colorfunc: Function,
+    colorfunc: Function as PropType<(event: IEvent) => string>,
     linkfunc: {
-      type: Function,
-      default: () => null,
+      type: Function as PropType<(event: IEvent) => string | undefined>,
+      default: () => undefined,
     },
     limit: {
       type: Number,
@@ -65,27 +67,32 @@ export default {
     },
   },
   mounted: function () {
-    const el = this.$el.children[0];
-    summary.create(el);
+    summary.create(this.container());
     this.update();
   },
   methods: {
-    update: function () {
+    // The wrapper's first child is the element the chart is drawn into
+    container: function (): HTMLElement {
       const el = this.$el.children[0];
+      if (!(el instanceof HTMLElement)) throw new Error('The summary container is missing');
+      return el;
+    },
+    update: function () {
+      const el = this.container();
       if (this.fields) {
         summary.updateSummedEvents(
           el,
           this.fields.slice(0, this.limit_),
-          this.namefunc,
+          this.namefunc ?? (e => e.data.app ?? ''),
           this.hoverfunc,
-          this.colorfunc,
+          this.colorfunc ?? (() => ''),
           this.linkfunc,
-          this.$t('visualizations.noData')
+          this.$t('visualizations.noData') as string
         );
       } else {
-        summary.set_status(el, this.$t('common.loading'));
+        summary.set_status(el, this.$t('common.loading') as string);
       }
     },
   },
-};
+});
 </script>

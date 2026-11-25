@@ -12,15 +12,15 @@ jest.mock('~/util/awclient', () => ({
 import { shallowMount } from '@vue/test-utils';
 import BucketMerge from '~/components/BucketMerge.vue';
 
-const flushPromises = () => new Promise(resolve => setTimeout(resolve, 0));
+const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 const inner = { id: 'inner', timestamp: '2026-10-19T00:00:10Z', duration: 10 };
 const outer = { id: 'outer', timestamp: '2026-10-19T00:00:00Z', duration: 30 };
 const disjoint = { id: 'disjoint', timestamp: '2026-10-19T01:00:00Z', duration: 10 };
 
 async function mountWith(fromEvents, toEvents) {
-  mockGetEvents.mockImplementation(async bucket_id =>
-    bucket_id === 'from' ? fromEvents : toEvents
+  mockGetEvents.mockImplementation(async (bucket_id) =>
+    bucket_id === 'from' ? fromEvents : toEvents,
   );
   const wrapper = shallowMount(BucketMerge);
   await flushPromises();

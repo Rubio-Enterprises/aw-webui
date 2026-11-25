@@ -33,12 +33,19 @@ div
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 // Based on https://codepen.io/Brownsugar/pen/NaGPKy
 import 'vue-awesome/icons/sync';
 
 import { Compact } from 'vue-color';
 
-export default {
+// What the vue-color picker emits when a colour is chosen
+interface PickedColor {
+  hex: string;
+  rgba: { r: number; g: number; b: number; a: number };
+}
+
+export default defineComponent({
   components: {
     picker: Compact,
   },
@@ -47,13 +54,13 @@ export default {
     return {
       colors: {
         hex: '#000000',
-      },
+      } as { hex: string; a?: string | number },
       colorValue: '',
       displayPicker: false,
     };
   },
   watch: {
-    colorValue(val) {
+    colorValue(val: string) {
       if (val) {
         this.updateColors(val);
         this.$emit('input', val);
@@ -64,20 +71,21 @@ export default {
     this.setColor(this.value);
   },
   methods: {
-    setColor(color) {
+    setColor(color: string) {
       this.updateColors(color);
       this.colorValue = color;
     },
-    updateColors(color) {
+    updateColors(color: string) {
       if (color.slice(0, 1) == '#') {
         this.colors = {
           hex: color,
         };
       } else if (color.slice(0, 4) == 'rgba') {
         const rgba = color.replace(/^rgba?\(|\s+|\)$/g, '').split(',');
+        const [r = '', g = '', b = ''] = rgba;
         const hex =
           '#' +
-          ((1 << 24) + (parseInt(rgba[0]) << 16) + (parseInt(rgba[1]) << 8) + parseInt(rgba[2]))
+          ((1 << 24) + (parseInt(r) << 16) + (parseInt(g) << 8) + parseInt(b))
             .toString(16)
             .slice(1);
         this.colors = {
@@ -100,7 +108,7 @@ export default {
     updateFromInput() {
       this.updateColors(this.colorValue);
     },
-    updateFromPicker(color) {
+    updateFromPicker(color: PickedColor) {
       this.colors = color;
       if (color.rgba.a == 1) {
         this.colorValue = color.hex;
@@ -111,13 +119,13 @@ export default {
     randomColor() {
       this.colorValue = '#' + (0x1000000 + Math.random() * 0xffffff).toString(16).substr(1, 6);
     },
-    documentClick(e) {
-      const el = this.$refs.colorpicker;
-      const target = e.target;
-      if (el !== target && !el.contains(target)) {
+    documentClick(e: MouseEvent) {
+      const el = this.$refs.colorpicker as HTMLElement | undefined;
+      const target = e.target as Node | null;
+      if (el && el !== target && !el.contains(target)) {
         this.hidePicker();
       }
     },
   },
-};
+});
 </script>

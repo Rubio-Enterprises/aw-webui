@@ -22,9 +22,10 @@ div
     | {{ $t('settings.timelineDuration.groupGranularityHelp') }}
 </template>
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { useSettingsStore } from '~/stores/settings';
 
-export default {
+export default defineComponent({
   name: 'TimelineDurationSettings',
   data() {
     return {
@@ -36,7 +37,7 @@ export default {
       get() {
         return Number(this.settingsStore.timelineGroupGranularity);
       },
-      set(value) {
+      set(value: number | string) {
         const seconds = Number(value);
         if (Number.isFinite(seconds) && seconds >= 0) {
           this.settingsStore.update({ timelineGroupGranularity: seconds });
@@ -47,11 +48,11 @@ export default {
       get() {
         return this.settingsStore.durationDefault;
       },
-      set(value) {
+      set(value: number) {
         console.log('Set default timeline duration to ' + value);
         this.settingsStore.update({ durationDefault: value });
       },
     },
   },
-};
+});
 </script>

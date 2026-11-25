@@ -11,9 +11,9 @@ describe('parseThresholds', () => {
 
   test.each(['', '60.5', '60, abc', '60, -5', '60, 0', '60,', '60،'])(
     'rejects invalid threshold input %p',
-    input => {
+    (input) => {
       expect(parseThresholds(input)).toBeNull();
-    }
+    },
   );
 });
 
@@ -60,7 +60,7 @@ describe('parseAwNotifyConfig', () => {
     expect(
       parseAwNotifyConfig([
         { category: null, label: 'All', thresholdMinutes: [60, 240], positive: false },
-      ])
+      ]),
     ).toEqual({
       alerts: [{ category: 'All', label: 'All', thresholds_minutes: [60, 240], positive: false }],
     });
@@ -79,7 +79,7 @@ describe('parseAwNotifyConfig', () => {
     { alerts: [canonicalAlert], hourly_checkins: 'yes' },
     { alerts: [canonicalAlert], http_port: 70000 },
     { alerts: [canonicalAlert], enabled: 'yes' },
-  ])('rejects unsupported config %p', config => {
+  ])('rejects unsupported config %p', (config) => {
     expect(parseAwNotifyConfig(config)).toBeNull();
   });
 });

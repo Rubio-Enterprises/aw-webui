@@ -61,25 +61,38 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import _ from 'lodash';
 import moment from 'moment';
 import { canonicalEvents, browserSearchQuery, querystr_to_array } from '~/queries';
 import { useBucketsStore } from '~/stores/buckets';
+import type { IEvent } from '~/util/interfaces';
+
+// Set by the query options component once it has mounted
+type SearchQueryOptions = {
+  hostname?: string;
+  filter_afk?: boolean;
+  start: string;
+  stop: string;
+};
+
+// The error shape of a failed aw-client request
+type RequestError = { message?: string; response?: { data?: { message?: string } } };
 
 import 'vue-awesome/icons/search';
 import 'vue-awesome/icons/spinner';
 import 'vue-awesome/icons/angle-double-down';
 import 'vue-awesome/icons/angle-double-up';
 
-export default {
+export default defineComponent({
   name: 'Search',
   data() {
     return {
       pattern: '',
-      events: null,
-      browserEvents: null,
+      events: null as IEvent[] | null,
+      browserEvents: null as IEvent[] | null,
 
-      status: null,
+      status: null as 'searching' | null,
       error: '',
 
       // Options
@@ -87,7 +100,7 @@ export default {
       queryOptions: {
         start: moment().subtract(1, 'day').format('YYYY-MM-DD'),
         stop: moment().add(1, 'day').format('YYYY-MM-DD'),
-      },
+      } as SearchQueryOptions,
     };
   },
   methods: {
@@ -98,7 +111,7 @@ export default {
 
       // Window search query
       let windowQuery = canonicalEvents({
-        ...useBucketsStore().desktopBucketIds(this.queryOptions.hostname),
+        ...useBucketsStore().desktopBucketIds(this.queryOptions.hostname ?? ''),
         filter_afk: this.queryOptions.filter_afk,
         categories: [[['searched'], { type: 'regex', regex: this.pattern, ignore_case: true }]],
         filter_categories: [['searched']],
@@ -116,7 +129,7 @@ export default {
         try {
           const bucketsStore = useBucketsStore();
           await bucketsStore.ensureLoaded();
-          const browserBuckets = bucketsStore.bucketsBrowser(this.queryOptions.hostname);
+          const browserBuckets = bucketsStore.bucketsBrowser(this.queryOptions.hostname ?? '');
           browserQueryArray = browserSearchQuery(browserBuckets, this.pattern);
         } catch (e) {
           console.error('Failed to load browser buckets for search', e);
@@ -126,13 +139,13 @@ export default {
         // window/AFK buckets). Keep successful matches and report partial failures.
         const errors: string[] = [];
         const results = await Promise.all([
-          this.$aw.query(timeperiods, windowQueryArray).catch(e => {
+          this.$aw.query(timeperiods, windowQueryArray).catch((e: RequestError) => {
             console.error('Window search failed', e);
             errors.push(`Window search: ${e.response?.data?.message ?? String(e)}`);
             return null;
           }),
           browserQueryArray.length > 0
-            ? this.$aw.query(timeperiods, browserQueryArray).catch(e => {
+            ? this.$aw.query(timeperiods, browserQueryArray).catch((e: RequestError) => {
                 console.error('Browser search failed', e);
                 errors.push(`Browser search: ${e.response?.data?.message ?? String(e)}`);
                 return null;
@@ -143,21 +156,22 @@ export default {
 
         // Every window hit carries the synthetic `searched` category the query
         // uses for filtering; it is not a real category, so drop it from results.
-        const windowResults = results[0] ? results[0][0] : [];
+        // aw-client types event timestamps as Date, but the JSON response carries ISO strings.
+        const windowResults = (results[0]?.[0] ?? []) as unknown as IEvent[];
         const windowEvents = windowResults.map(e => ({ ...e, data: _.omit(e.data, '$category') }));
         this.events = _.orderBy(windowEvents, ['timestamp'], ['desc']);
-        const browserResults = results[1] ? results[1][0] : [];
+        const browserResults = (results[1]?.[0] ?? []) as unknown as IEvent[];
         // An event can match the pattern in both its url and title, which the
         // query concatenates into two entries; dedup by event ID so each
         // database record appears at most once.
         this.browserEvents = _.orderBy(
-          _.uniqBy(browserResults, (e: any) => e.id),
+          _.uniqBy(browserResults, e => e.id),
           ['timestamp'],
           ['desc']
         );
       } catch (e) {
         console.error(e);
-        this.error = e.response?.data?.message ?? String(e);
+        this.error = (e as RequestError).response?.data?.message ?? String(e);
       } finally {
         this.status = null;
       }
@@ -169,5 +183,5 @@ export default {
       this.search();
     },
   },
-};
+});
 </script>

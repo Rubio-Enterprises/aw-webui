@@ -116,7 +116,7 @@ export function createClient(force?: boolean): AWClient {
 
 export function configureClient(): void {
   const settings = useSettingsStore();
-  _client.req.defaults.timeout = 1000 * settings.requestTimeout;
+  getClient().req.defaults.timeout = 1000 * settings.requestTimeout;
 }
 
 export function getClient(): AWClient {

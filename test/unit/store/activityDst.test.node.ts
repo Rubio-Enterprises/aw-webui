@@ -1,10 +1,10 @@
-import { execFileSync } from 'child_process';
-import path from 'path';
-import { createPinia, setActivePinia } from 'pinia';
+import { execFileSync } from 'node:child_process';
+import path from 'node:path';
 import moment from 'moment';
+import { createPinia, setActivePinia } from 'pinia';
 import { useActivityStore } from '~/stores/activity';
 import { createClient, getClient } from '~/util/awclient';
-import { TimePeriod, timeperiodToStr } from '~/util/timeperiod';
+import { type TimePeriod, timeperiodToStr } from '~/util/timeperiod';
 
 // Node reads TZ at process startup; changing it inside Jest does not change
 // the VM's Date timezone. Keep these regressions active in the default UTC CI.
@@ -27,8 +27,8 @@ if (process.env.TZ !== 'Europe/Stockholm') {
           env: { ...process.env, TZ: 'Europe/Stockholm' },
           stdio: 'pipe',
           timeout: 60000,
-        }
-      )
+        },
+      ),
     ).not.toThrow();
   }, 65000);
 }
@@ -58,14 +58,14 @@ describeStockholm('single-day category query coverage across DST', () => {
     const store = useActivityStore();
     store.buckets.afk = ['aw-watcher-afk_test'];
     store.buckets.window = ['aw-watcher-window_test'];
-    const query = jest.spyOn(getClient(), 'query').mockImplementation(async periods =>
-      periods.map((period: any) => [
+    const query = jest.spyOn(getClient(), 'query').mockImplementation(async (periods) =>
+      periods.map((period: string) => [
         {
           timestamp: period.split('/')[0],
           duration: moment.duration(1, 'hour').asSeconds(),
           data: { $category: ['Work'] },
         },
-      ])
+      ]),
     );
     const timeperiod: TimePeriod = { start: moment(start).format(), length: [1, 'day'] };
     const before = JSON.stringify(timeperiod);
@@ -74,9 +74,9 @@ describeStockholm('single-day category query coverage across DST', () => {
 
     await store.query_category_time_by_period({ host: 'test', timeperiod });
 
-    const requested = query.mock.calls.flatMap(call => call[0]);
+    const requested = query.mock.calls.flatMap((call) => call[0]);
     expect(requested).toHaveLength(hours);
-    const intervals = requested.map((period: any) => period.split('/').map(Date.parse));
+    const intervals = requested.map((period: string) => period.split('/').map(Date.parse));
     expect(intervals[0][0]).toBe(full[0]);
     expect(intervals[intervals.length - 1][1]).toBe(full[1]);
     intervals.forEach(([from, to], index) => {

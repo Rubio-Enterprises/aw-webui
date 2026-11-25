@@ -4,18 +4,21 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import moment from 'moment';
 import { useActivityStore } from '~/stores/activity';
 
-export default {
+export default defineComponent({
   name: 'aw-custom-watcher',
   props: {
     visname: String,
     title: String,
   },
   computed: {
-    src: function () {
+    src: function (): string {
       const options = useActivityStore().query_options;
+      // The page needs a host and period; until the activity store has them, show nothing
+      if (!options?.timeperiod) return 'about:blank';
       const start = options.timeperiod.start;
       const [amount, unit] = options.timeperiod.length;
       const end = moment(start)
@@ -25,7 +28,7 @@ export default {
         hostname: options.host,
         start,
         end,
-        title: this.title,
+        title: this.title ?? '',
       });
       let _origin = document.location.origin;
       if (document.location.port == '27180') {
@@ -35,5 +38,5 @@ export default {
       return _origin + '/pages/' + this.visname + '/?' + urlParams.toString();
     },
   },
-};
+});
 </script>

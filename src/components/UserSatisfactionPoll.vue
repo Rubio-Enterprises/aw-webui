@@ -64,6 +64,7 @@ ul {
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { range } from 'lodash/fp';
 import moment from 'moment';
 
@@ -76,7 +77,7 @@ const BACKOFF_PERIOD = 7 * 24 * 60 * 60;
 // const INITIAL_WAIT_PERIOD = 1;
 // const BACKOFF_PERIOD = 1;
 
-export default {
+export default defineComponent({
   name: 'user-satisfaction-poll',
   data() {
     return {
@@ -85,7 +86,7 @@ export default {
       isNegFollowUpVisible: false,
       // options is an array of [1, ..., NUM_OPTIONS]
       options: range(1, NUM_OPTIONS + 1),
-      rating: null,
+      rating: null as string | null,
     };
   },
   computed: {
@@ -94,7 +95,7 @@ export default {
         const settingsStore = useSettingsStore();
         return settingsStore.userSatisfactionPollData;
       },
-      set(value) {
+      set(value: Partial<ReturnType<typeof useSettingsStore>['userSatisfactionPollData']>) {
         const settingsStore = useSettingsStore();
         const data = settingsStore.userSatisfactionPollData;
         settingsStore.update({
@@ -125,7 +126,8 @@ export default {
       this.isPollVisible = false;
       this.data = { ...this.data, isEnabled: false };
 
-      if (parseInt(this.rating) >= 6) {
+      // No rating counts as NaN, i.e. not positive
+      if (parseInt(this.rating ?? '') >= 6) {
         this.isPosFollowUpVisible = true;
       } else {
         this.isNegFollowUpVisible = true;
@@ -136,5 +138,5 @@ export default {
       this.data = { ...this.data, isEnabled: false };
     },
   },
-};
+});
 </script>

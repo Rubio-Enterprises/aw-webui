@@ -9,9 +9,10 @@ div.d-flex.justify-content-between
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { useSettingsStore } from '~/stores/settings';
 
-export default {
+export default defineComponent({
   name: 'ColorSettings',
   computed: {
     useColorFallback: {
@@ -19,11 +20,11 @@ export default {
         const settingsStore = useSettingsStore();
         return settingsStore.useColorFallback;
       },
-      set: function (val) {
+      set: function (val: boolean) {
         const settingsStore = useSettingsStore();
         settingsStore.update({ useColorFallback: val });
       },
     },
   },
-};
+});
 </script>

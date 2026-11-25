@@ -1,7 +1,7 @@
 import moment from 'moment';
-import sunburst from '~/visualizations/sunburst-clock';
 import * as classes from '~/util/classes';
 import { getColorFromString } from '~/util/color';
+import sunburst from '~/visualizations/sunburst-clock';
 
 // Renders the clock into a detached element and returns the texts of all
 // markers drawn around the dial.
@@ -20,12 +20,12 @@ function renderMarkers(startOfDay) {
 
   return {
     el,
-    markers: Array.from(el.querySelectorAll('#container text')).map(t => t.textContent),
+    markers: Array.from(el.querySelectorAll('#container text')).map((t) => t.textContent),
   };
 }
 
 function nowMarkerCount(startOfDay) {
-  return renderMarkers(startOfDay).markers.filter(t => t === 'Now').length;
+  return renderMarkers(startOfDay).markers.filter((t) => t === 'Now').length;
 }
 
 describe('sunburst-clock Now marker', () => {
@@ -84,7 +84,7 @@ describe('sunburst-clock Now marker', () => {
     el.innerHTML = '<div class="legend"></div><div class="sequence"></div>';
     sunburst.create(el);
 
-    const render = startOfDay => {
+    const render = (startOfDay) => {
       sunburst.update(
         el,
         {
@@ -93,14 +93,14 @@ describe('sunburst-clock Now marker', () => {
           data: { title: 'ROOT' },
           children: [],
         },
-        startOfDay.clone()
+        startOfDay.clone(),
       );
-      return Array.from(el.querySelectorAll('#container text')).map(t => t.textContent);
+      return Array.from(el.querySelectorAll('#container text')).map((t) => t.textContent);
     };
 
-    expect(render(moment('2026-09-10T00:00:00')).filter(t => t === 'Now')).toHaveLength(1);
+    expect(render(moment('2026-09-10T00:00:00')).filter((t) => t === 'Now')).toHaveLength(1);
     // Re-rendering a historical day must clear the marker from the previous render.
-    expect(render(moment('2026-09-01T00:00:00')).filter(t => t === 'Now')).toHaveLength(0);
+    expect(render(moment('2026-09-01T00:00:00')).filter((t) => t === 'Now')).toHaveLength(0);
   });
 
   test('keeps the standard clock ticks regardless of the Now marker', () => {
@@ -112,7 +112,7 @@ describe('sunburst-clock Now marker', () => {
       expect(past).toContain(tick);
       expect(today).toContain(tick);
     }
-    expect(today.filter(t => t === 'Now')).toHaveLength(1);
+    expect(today.filter((t) => t === 'Now')).toHaveLength(1);
     expect(past).not.toContain('Now');
   });
 });
@@ -158,7 +158,7 @@ describe('sunburst-clock category colors', () => {
     sunburst.update(
       el,
       { timestamp: start.toISOString(), duration: 86400, data: {}, children: [statusEvent] },
-      start
+      start,
     );
     const paths = Array.from(el.querySelectorAll<SVGPathElement>('#container path'));
     return {
@@ -209,7 +209,7 @@ describe('sunburst-clock category colors', () => {
     expect(renderColors({ app: 'unknown-app', title: 'unmatched' }).window).toBe('#CCC');
     localStorage.useColorFallback = 'true';
     expect(renderColors({ app: 'unknown-app', title: 'unmatched' }).window).toBe(
-      getColorFromString('unknown-app\nunmatched')
+      getColorFromString('unknown-app\nunmatched'),
     );
   });
 });

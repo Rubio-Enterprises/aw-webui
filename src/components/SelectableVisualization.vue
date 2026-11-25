@@ -120,6 +120,7 @@ div(v-if="editable || !activityStore.buckets.loaded || has_prerequisites || !set
 </style>
 
 <script lang="ts">
+import { defineComponent, type PropType } from 'vue';
 import _ from 'lodash';
 import 'vue-awesome/icons/cog';
 import 'vue-awesome/icons/times';
@@ -128,7 +129,8 @@ import 'vue-awesome/icons/bars';
 import { buildBarchartDataset } from '~/util/datasets';
 
 // TODO: Move this somewhere else
-import { build_category_hierarchy } from '~/util/classes';
+import { build_category_hierarchy, type Category } from '~/util/classes';
+import type { IBucket, IEvent } from '~/util/interfaces';
 
 import { useActivityStore } from '~/stores/activity';
 import { useCategoryStore } from '~/stores/categories';
@@ -139,19 +141,31 @@ import { isBrowserAllowlistMiss } from '~/util/browserAllowlist';
 import { isExactTimeperiod } from '~/util/timeperiod';
 
 import moment from 'moment';
+import type { TranslateResult } from 'vue-i18n';
 
-function pick_subname_as_name(c) {
-  c.name = c.subname;
-  c.children = c.children.map(pick_subname_as_name);
-  return c;
+// A category as the sunburst draws it: named by its last path segment, sized by its time
+interface SunburstNode extends Omit<Category, 'name' | 'children'> {
+  name?: string;
+  size?: number;
+  children: SunburstNode[];
 }
 
-export default {
+function pick_subname_as_name(c: Category & { size?: number }): SunburstNode {
+  return { ...c, name: c.subname, children: (c.children ?? []).map(pick_subname_as_name) };
+}
+
+// The last path segment of a file or project path
+function lastPathSegment(path: string | undefined): string {
+  const segments = (path || '').split('/');
+  return segments[segments.length - 1] ?? '';
+}
+
+export default defineComponent({
   name: 'aw-selectable-vis',
   props: {
     id: Number,
     type: String,
-    props: Object,
+    props: Object as PropType<Record<string, unknown>>,
     viewId: { type: String, default: '' },
     editable: { type: Boolean, default: true },
   },
@@ -183,28 +197,18 @@ export default {
         'top_bucket_data',
       ],
       // TODO: Move this function somewhere else
-      top_editor_files_namefunc: e => {
-        let f = e.data.file || '';
-        f = f.split('/');
-        f = f[f.length - 1];
-        return f;
-      },
-      top_editor_files_hoverfunc: e => {
+      top_editor_files_namefunc: (e: IEvent): string => lastPathSegment(e.data.file),
+      top_editor_files_hoverfunc: (e: IEvent): string => {
         return 'file: ' + e.data.file + '\n' + 'project: ' + e.data.project;
       },
       // TODO: Move this function somewhere else
-      top_editor_projects_namefunc: e => {
-        let f = e.data.project || '';
-        f = f.split('/');
-        f = f[f.length - 1];
-        return f;
-      },
-      top_editor_projects_hoverfunc: e => e.data.project,
-      timeline_buckets: null,
+      top_editor_projects_namefunc: (e: IEvent): string => lastPathSegment(e.data.project),
+      top_editor_projects_hoverfunc: (e: IEvent) => e.data.project,
+      timeline_buckets: null as readonly IBucket[] | null,
     };
   },
   computed: {
-    visualizations: function () {
+    visualizations: function (): Record<string, { title: TranslateResult; available?: boolean }> {
       return {
         top_apps: {
           title: this.$t('visualizations.topApps'),
@@ -284,13 +288,13 @@ export default {
         },
       };
     },
-    has_prerequisites() {
-      return this.visualizations[this.type].available;
+    has_prerequisites(): boolean | undefined {
+      return this.visualizations[this.type ?? '']?.available;
     },
-    isBrowserVis() {
-      return ['top_domains', 'top_urls', 'top_browser_titles'].includes(this.type);
+    isBrowserVis(): boolean {
+      return ['top_domains', 'top_urls', 'top_browser_titles'].includes(this.type ?? '');
     },
-    browserAllowlistMiss() {
+    browserAllowlistMiss(): boolean {
       return isBrowserAllowlistMiss(this.activityStore.browser);
     },
     supports_period: function () {
@@ -303,7 +307,12 @@ export default {
       const top_categories = this.activityStore.category.top;
       if (top_categories) {
         const categories = top_categories.map(c => {
-          return { name: c.data.$category, size: c.duration };
+          // A category path is always set by the category query
+          return {
+            name: c.data.$category ?? ['Uncategorized'],
+            rule: { type: null },
+            size: c.duration,
+          };
         });
 
         return {
@@ -327,27 +336,22 @@ export default {
       if (datasets.length > 0) return datasets;
       else return null;
     },
-    date: function () {
-      let date = this.activityStore.query_options.date;
-      if (!date) {
-        date = this.activityStore.query_options.timeperiod.start;
-      }
-      return date;
+    date: function (): string | undefined {
+      const options = this.activityStore.query_options;
+      return options?.date || options?.timeperiod?.start;
     },
-    timeline_daterange: function () {
-      if (this.activityStore.query_options === null) return null;
+    timeline_daterange: function (): [moment.Moment, moment.Moment] | null {
+      const options = this.activityStore.query_options;
+      if (!options?.timeperiod) return null;
       // The timeline only supports whole days; never fetch a full day for an exact interval
-      if (isExactTimeperiod(this.activityStore.query_options.timeperiod)) return null;
+      if (isExactTimeperiod(options.timeperiod)) return null;
 
-      let date = this.activityStore.query_options.date;
-      if (!date) {
-        date = this.activityStore.query_options.timeperiod.start;
-      }
+      const date = options.date || options.timeperiod.start;
 
       return [moment(date), moment(date).add(1, 'day')];
     },
     isSingleDay: function () {
-      return _.isEqual(this.activityStore.query_options.timeperiod.length, [1, 'day']);
+      return _.isEqual(this.activityStore.query_options?.timeperiod?.length, [1, 'day']);
     },
   },
   watch: {
@@ -364,8 +368,8 @@ export default {
     }
   },
   methods: {
-    onWatcherPropsChange(newProps) {
-      if (!this.viewId) return;
+    onWatcherPropsChange(newProps: Record<string, unknown>) {
+      if (!this.viewId || this.id === undefined || this.type === undefined) return;
       const mergedProps = { ...(this.props || {}), ...newProps };
       useViewsStore().editView({
         view_id: this.viewId,
@@ -379,13 +383,14 @@ export default {
       if (!this.timeline_daterange) return;
 
       await useBucketsStore().ensureLoaded();
+      const [start, end] = this.timeline_daterange;
       this.timeline_buckets = Object.freeze(
         await useBucketsStore().getBucketsWithEvents({
-          start: this.timeline_daterange[0].format(),
-          end: this.timeline_daterange[1].format(),
+          start: start.format(),
+          end: end.format(),
         })
       );
     },
   },
-};
+});
 </script>

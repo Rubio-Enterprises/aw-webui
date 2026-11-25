@@ -1,18 +1,18 @@
 import moment from 'moment';
 
 import {
-  DESKTOP_QUERY_EVENT_LIMIT,
   categoryByPeriodFromChunks,
+  DESKTOP_QUERY_EVENT_LIMIT,
   mergeEventsByKeys,
   mergeFullDesktopResults,
   periodsForFullDesktopQuery,
 } from '~/util/desktopQuerySplit';
-import { IEvent } from '~/util/interfaces';
+import type { IEvent } from '~/util/interfaces';
 
 function ev(
   data: Record<string, unknown>,
   duration: number,
-  timestamp = '2026-02-01T00:00:00Z'
+  timestamp = '2026-02-01T00:00:00Z',
 ): IEvent {
   return { timestamp, duration, data };
 }
@@ -23,7 +23,7 @@ describe('periodsForFullDesktopQuery', () => {
   test('keeps a single day as one period', () => {
     const periods = periodsForFullDesktopQuery(
       { start: '2026-08-01T04:00:00Z', length: [1, 'day'] },
-      now
+      now,
     );
     expect(periods).toHaveLength(1);
     expect(periods[0]).toContain('2026-08-01');
@@ -32,9 +32,9 @@ describe('periodsForFullDesktopQuery', () => {
   test('keeps an exact interval up to a day as one request with exact bounds', () => {
     const periods = periodsForFullDesktopQuery(
       { start: '2026-08-01T13:00:00Z', length: [90 * 60 * 1000, 'milliseconds'] },
-      now
+      now,
     );
-    expect(periods.map(p => p.split('/').map(x => moment(x).toISOString()))).toEqual([
+    expect(periods.map((p) => p.split('/').map((x) => moment(x).toISOString()))).toEqual([
       ['2026-08-01T13:00:00.000Z', '2026-08-01T14:30:00.000Z'],
     ]);
   });
@@ -42,19 +42,21 @@ describe('periodsForFullDesktopQuery', () => {
   test('splits a longer exact interval into days with a clipped final chunk', () => {
     const periods = periodsForFullDesktopQuery(
       { start: '2026-08-01T13:00:00Z', length: [2.25 * 24 * 3600 * 1000, 'milliseconds'] },
-      now
+      now,
     );
-    const bounds = periods.map(p => p.split('/').map(x => moment(x).valueOf()));
+    const bounds = periods.map((p) => p.split('/').map((x) => moment(x).valueOf()));
     expect(bounds).toHaveLength(3);
     expect(bounds[0][0]).toBe(moment('2026-08-01T13:00:00Z').valueOf());
     expect(bounds[2][1]).toBe(moment('2026-08-03T19:00:00Z').valueOf());
-    bounds.forEach(([, end], i) => i < 2 && expect(bounds[i + 1][0]).toBe(end));
+    bounds.forEach(([, end], i) => {
+      if (i < 2) expect(bounds[i + 1][0]).toBe(end);
+    });
   });
 
   test('splits a week into 7 days', () => {
     const periods = periodsForFullDesktopQuery(
       { start: '2026-08-03T04:00:00Z', length: [1, 'week'] },
-      now
+      now,
     );
     expect(periods).toHaveLength(7);
   });
@@ -62,7 +64,7 @@ describe('periodsForFullDesktopQuery', () => {
   test('splits February into daysInMonth', () => {
     const periods = periodsForFullDesktopQuery(
       { start: '2026-02-01T04:00:00Z', length: [1, 'month'] },
-      now
+      now,
     );
     expect(periods).toHaveLength(28);
   });
@@ -70,7 +72,7 @@ describe('periodsForFullDesktopQuery', () => {
   test('drops days that start in the future', () => {
     const periods = periodsForFullDesktopQuery(
       { start: '2026-08-27T04:00:00Z', length: [1, 'week'] },
-      now
+      now,
     );
     expect(periods.length).toBeGreaterThan(0);
     expect(periods.length).toBeLessThan(7);
@@ -91,7 +93,7 @@ describe('long ranges', () => {
   test('splits into days, which never cross a calendar month', () => {
     const periods = periodsForFullDesktopQuery(tp, now);
     const total = periods.reduce((acc, p) => {
-      const [a, b] = p.split('/').map(d => moment(d));
+      const [a, b] = p.split('/').map((d) => moment(d));
       expect(b.diff(a, 'days', true)).toBeLessThanOrEqual(1.1);
       // start and (end - 1ms) are in the same month, counting days from 04:00
       const dayStart = (m: moment.Moment) => m.clone().subtract(4, 'hours');
@@ -105,20 +107,20 @@ describe('long ranges', () => {
   test('categoryByPeriodFromChunks sums chunk cat_events per month', () => {
     const periods = periodsForFullDesktopQuery(tp, now);
     const cat = (name: string, d: number) => ev({ $category: [name] }, d);
-    const chunks = periods.map(p => [
+    const chunks = periods.map((p): Parameters<typeof categoryByPeriodFromChunks>[1][number] => [
       p,
       { window: { cat_events: [cat('Work', 10), cat('Media', 1)] } },
-    ]) as any;
+    ]);
     const byPeriod = categoryByPeriodFromChunks(tp, chunks);
     const months = Object.keys(byPeriod);
-    expect(months.map(k => moment(k.split('/')[0]).format('YYYY-MM-DD'))).toEqual([
+    expect(months.map((k) => moment(k.split('/')[0]).format('YYYY-MM-DD'))).toEqual([
       '2026-01-15',
       '2026-02-01',
       '2026-03-01',
       '2026-04-01',
       '2026-05-01',
     ]);
-    const chunksInFeb = periods.filter(p => moment(p.split('/')[0]).month() === 1).length;
+    const chunksInFeb = periods.filter((p) => moment(p.split('/')[0]).month() === 1).length;
     const feb = byPeriod[months[1]].cat_events;
     expect(feb[0].data.$category).toEqual(['Work']);
     expect(feb[0].duration).toBe(10 * chunksInFeb);
@@ -133,13 +135,13 @@ describe('mergeEventsByKeys', () => {
         ev({ app: 'Firefox' }, 5, '2026-02-01T00:00:00Z'),
         ev({ app: 'Code' }, 20, '2026-02-01T00:00:00Z'),
       ],
-      ['app']
+      ['app'],
     );
-    expect(merged.map(e => [e.data.app, e.duration])).toEqual([
+    expect(merged.map((e) => [e.data.app, e.duration])).toEqual([
       ['Code', 20],
       ['Firefox', 15],
     ]);
-    expect(merged.find(e => e.data.app === 'Firefox')?.timestamp).toBe('2026-02-01T00:00:00Z');
+    expect(merged.find((e) => e.data.app === 'Firefox')?.timestamp).toBe('2026-02-01T00:00:00Z');
   });
 
   test('groups title events by app+title', () => {
@@ -149,15 +151,15 @@ describe('mergeEventsByKeys', () => {
         ev({ app: 'Firefox', title: 'B' }, 4),
         ev({ app: 'Firefox', title: 'A' }, 2),
       ],
-      ['app', 'title']
+      ['app', 'title'],
     );
     expect(merged).toHaveLength(2);
-    expect(merged.find(e => e.data.title === 'A')?.duration).toBe(5);
+    expect(merged.find((e) => e.data.title === 'A')?.duration).toBe(5);
   });
 
   test('respects the top-N limit after sort', () => {
     const events = Array.from({ length: DESKTOP_QUERY_EVENT_LIMIT + 5 }, (_, i) =>
-      ev({ app: `app-${i}` }, i + 1)
+      ev({ app: `app-${i}` }, i + 1),
     );
     const merged = mergeEventsByKeys(events, ['app'], DESKTOP_QUERY_EVENT_LIMIT);
     expect(merged).toHaveLength(DESKTOP_QUERY_EVENT_LIMIT);
@@ -215,11 +217,11 @@ describe('mergeFullDesktopResults', () => {
           duration: 17,
         }),
         expect.objectContaining({ data: expect.objectContaining({ app: 'Code' }), duration: 3 }),
-      ])
+      ]),
     );
     expect(merged.window?.cat_events).toHaveLength(2);
     expect(
-      merged.window?.app_cat_events?.map(e => [e.data.app, e.data.$category, e.duration])
+      merged.window?.app_cat_events?.map((e) => [e.data.app, e.data.$category, e.duration]),
     ).toEqual([
       ['Firefox', ['Work'], 17],
       ['Code', ['Work'], 3],

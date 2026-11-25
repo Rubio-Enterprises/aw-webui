@@ -1,7 +1,7 @@
-import { execFileSync } from 'child_process';
-import path from 'path';
+import { execFileSync } from 'node:child_process';
+import path from 'node:path';
 import moment from 'moment';
-import { TimePeriod, hourlyLabels, timeperiodsHoursOfPeriod } from '~/util/timeperiod';
+import { hourlyLabels, type TimePeriod, timeperiodsHoursOfPeriod } from '~/util/timeperiod';
 
 // Node reads TZ once at startup, and CI runs `npm test` with no TZ (UTC), where
 // no DST transition exists. Replay this file under each relevant zone, in a
@@ -12,7 +12,7 @@ const ZONES = ['Europe/Stockholm', 'Australia/Lord_Howe'];
 if (!process.env.AW_DST_ZONE) {
   test.each(ZONES)(
     'DST regressions replay under TZ=%s',
-    zone => {
+    (zone) => {
       execFileSync(
         process.execPath,
         [
@@ -29,10 +29,10 @@ if (!process.env.AW_DST_ZONE) {
           env: { ...process.env, TZ: zone, AW_DST_ZONE: zone },
           stdio: 'pipe',
           timeout: 90000,
-        }
+        },
       );
     },
-    95000
+    95000,
   );
 }
 
@@ -50,14 +50,14 @@ function expectExactCoverage(periods: TimePeriod[], start: string, realHours: nu
   periods.forEach((period, index) => {
     const periodEnd = moment(period.start).add(
       period.length[0],
-      period.length[1] as moment.unitOfTime.DurationConstructor
+      period.length[1] as moment.unitOfTime.DurationConstructor,
     );
     total += periodEnd.diff(moment(period.start), 'hours', true);
     if (index > 0) {
       const previous = periods[index - 1];
       const previousEnd = moment(previous.start).add(
         previous.length[0],
-        previous.length[1] as moment.unitOfTime.DurationConstructor
+        previous.length[1] as moment.unitOfTime.DurationConstructor,
       );
       expect(previousEnd.format()).toBe(moment(period.start).format());
     }
@@ -66,7 +66,7 @@ function expectExactCoverage(periods: TimePeriod[], start: string, realHours: nu
   const last = periods[periods.length - 1];
   const lastEnd = moment(last.start).add(
     last.length[0],
-    last.length[1] as moment.unitOfTime.DurationConstructor
+    last.length[1] as moment.unitOfTime.DurationConstructor,
   );
   expect(lastEnd.format()).toBe(endM.format());
   expect(total).toBeCloseTo(realHours, 6);
@@ -91,7 +91,7 @@ describeZone('Europe/Stockholm')('hourly periods across a Stockholm DST day', ()
     const start = moment('2026-10-24T04:00:00').format();
     const labels = hourlyLabels({ start, length: [1, 'day'] });
     expect(labels).toHaveLength(25);
-    expect(labels.filter(l => l.startsWith('2 '))).toEqual(['2 (+02:00)', '2 (+01:00)']);
+    expect(labels.filter((l) => l.startsWith('2 '))).toEqual(['2 (+02:00)', '2 (+01:00)']);
     expect(labels).toContain('4');
   });
 });

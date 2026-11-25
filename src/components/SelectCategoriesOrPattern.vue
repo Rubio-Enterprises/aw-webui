@@ -16,16 +16,18 @@ div
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
+import { defineComponent, type PropType } from 'vue';
 import { useCategoryStore } from '~/stores/categories';
+import type { Category } from '~/util/classes';
+import type { QueryCategory } from '~/queries';
 
 const SEP = ' > ';
 
-export default Vue.extend({
+export default defineComponent({
   name: 'SelectCategoriesOrPattern',
   props: {
     filterCategories: {
-      type: Array,
+      type: Array as PropType<string[][]>,
       default: () => [],
     },
   },
@@ -33,15 +35,15 @@ export default Vue.extend({
     return {
       mode: 'categories',
       pattern: '',
-      filterCategoriesData: [],
+      filterCategoriesData: [] as string[][],
     };
   },
   computed: {
-    categories: function () {
+    categories: function (): Category[] {
       return useCategoryStore().classes;
     },
 
-    categoriesWithRules() {
+    categoriesWithRules(): QueryCategory[] {
       if (this.mode === 'categories') {
         // Get the category and all subcategories
         return this.categories
@@ -55,7 +57,7 @@ export default Vue.extend({
             return false;
           })
           .filter(cat => cat.rule.type === 'regex')
-          .map(cat => [cat.name, cat.rule]);
+          .map((cat): QueryCategory => [cat.name, cat.rule]);
       } else if (this.mode === 'custom') {
         return [[['searched'], { type: 'regex', regex: this.pattern }]];
       } else {

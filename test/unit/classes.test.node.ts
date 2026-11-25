@@ -1,6 +1,6 @@
+import type { Category } from '~/util/classes';
 import * as classes from '~/util/classes';
-import { IEvent } from '~/util/interfaces';
-import { Category } from '~/util/classes';
+import type { IEvent } from '~/util/interfaces';
 
 const testClasses: Category[] = [
   { name: ['Test', 'Subtest'], rule: { type: 'regex', regex: 'subtest' } },
@@ -146,9 +146,9 @@ test('blank regex category never matches, children still do', () => {
       { timestamp: '', duration: 1, data: { app: 'firefox', title: 'x' } },
       { timestamp: '', duration: 1, data: { app: 'vim', title: 'x' } },
     ] as IEvent[],
-    cats
+    cats,
   );
-  expect(events.map(e => e.data.$category)).toEqual([['Uncategorized'], ['Work', 'Programming']]);
+  expect(events.map((e) => e.data.$category)).toEqual([['Uncategorized'], ['Work', 'Programming']]);
 });
 
 // The ambiguous 'kate' alternative must match a whole app/title field,
@@ -223,13 +223,13 @@ describe('default category carry for common apps (#495)', () => {
     ['Texts', ['Comms', 'IM']],
   ])('matches the complete %s app line beside a window title', (app, expected) => {
     expect(classes.matchString(`${app}\nUntitled`, classes.defaultCategories)?.name).toEqual(
-      expected
+      expected,
     );
   });
 
   test.each(['Yellow Pages', 'Sacred Texts', 'Pages of history', 'Texts about history'])(
     'does not categorize the unrelated browser title %s as an app',
-    title => {
+    (title) => {
       expect(classes.matchString(`Firefox\n${title}`, classes.defaultCategories)).toBeNull();
       const event: IEvent = {
         timestamp: new Date().toISOString(),
@@ -239,7 +239,7 @@ describe('default category carry for common apps (#495)', () => {
       expect(classes.classifyEvents([event], classes.defaultCategories)[0].data.$category).toEqual([
         'Uncategorized',
       ]);
-    }
+    },
   );
 
   test('saved custom rules still win and matching does not mutate them', () => {
@@ -250,7 +250,7 @@ describe('default category carry for common apps (#495)', () => {
     const defaultsBefore = JSON.stringify(classes.defaultCategories);
 
     expect(
-      classes.matchString('Obsidian', [...classes.defaultCategories, ...custom])?.name
+      classes.matchString('Obsidian', [...classes.defaultCategories, ...custom])?.name,
     ).toEqual(['Custom', 'Notes']);
     expect(classes.matchString('Google Docs', classes.defaultCategories)?.name).toEqual(['Work']);
 

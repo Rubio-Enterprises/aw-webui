@@ -1,9 +1,9 @@
-import _ from 'lodash';
-import { Category, matchString, loadClasses } from './classes';
 import Color from 'color';
 import * as d3 from 'd3';
-import { IEvent, IBucket } from './interfaces';
+import _ from 'lodash';
 import { useSettingsStore } from '~/stores/settings';
+import { type Category, loadClasses, matchString } from './classes';
+import type { IBucket, IEvent } from './interfaces';
 
 // See here for examples:
 //   https://bl.ocks.org/pstuffa/3393ff2711a53975040077b7453781a9
@@ -15,10 +15,10 @@ const scale = d3.scaleOrdinal(['#90CAF9', '#FFE082', '#EF9A9A', '#A5D6A7']);
 
 // Needed to prewarm the color table
 scale.domain(
-  '0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20'.split(/, /)
+  '0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20'.split(/, /),
 );
 
-const customColors = {
+const customColors: Record<string, string> = {
   afk: '#EEE',
   'not-afk': '#7F6',
   hibernating: '#DD6',
@@ -36,14 +36,14 @@ const customColors = {
   // Developer domains
   localhost: '#CCC',
   'github.com': '#EBF',
-  'stackoverflow.com': Color('#F48024').lighten(0.3),
+  'stackoverflow.com': Color('#F48024').lighten(0.3).string(),
 
   'google.com': '#0AF',
   'google.se': '#0AF',
 
   // Social media sites
-  'messenger.com': Color('#3b5998').lighten(0.5),
-  'facebook.com': Color('#3b5998').lighten(0.5),
+  'messenger.com': Color('#3b5998').lighten(0.5).string(),
+  'facebook.com': Color('#3b5998').lighten(0.5).string(),
 
   // Categories
   uncategorized: COLOR_UNCAT,
@@ -62,28 +62,28 @@ function hashcode(str: string): number {
   return hash;
 }
 
-export function getColorFromString(appname: string): string {
+export function getColorFromString(appname: string | undefined): string {
   appname = appname || '';
   appname = appname.toLowerCase();
   return customColors[appname] || scale(Math.abs(hashcode(appname) % 20).toString());
 }
 
 // TODO: Move into vuex?
-export function getColorFromCategory(c: Category, allCats: Category[]): string {
+export function getColorFromCategory(c: Category | undefined, allCats: Category[]): string {
   // Returns the color for a certain category, falling back to parents if none set
-  if (c && c.data && c.data.color) {
+  if (c?.data?.color) {
     return c.data.color;
-  } else if (c && c.name.slice(0, -1).length > 0) {
+  }
+  if (c && c.name.slice(0, -1).length > 0) {
     // If no color is set on category, traverse parents until one is found
     const parent = c.name.slice(0, -1);
-    const parentCat = allCats.find(cc => _.isEqual(cc.name, parent));
+    const parentCat = allCats.find((cc) => _.isEqual(cc.name, parent));
     if (parentCat === undefined) {
       console.error("Couldn't find parent!", parent);
     }
     return getColorFromCategory(parentCat, allCats);
-  } else {
-    return COLOR_UNCAT;
   }
+  return COLOR_UNCAT;
 }
 
 // TODO: Move into vuex?
@@ -93,9 +93,8 @@ export function getCategoryColorFromString(str: string): string {
   const c = matchString(str, allCats);
   if (c !== null) {
     return getColorFromCategory(c, allCats);
-  } else {
-    return fallbackColor(str);
   }
+  return fallbackColor(str);
 }
 
 function useColorFallbackEnabled(): boolean {
@@ -113,56 +112,63 @@ function fallbackColor(str: string): string {
   // Get fallback color
   if (useColorFallbackEnabled()) {
     return getColorFromString(str);
-  } else {
-    return COLOR_UNCAT;
   }
+  return COLOR_UNCAT;
 }
 
 export function getTitleAttr(bucket: { type?: string }, e: IEvent) {
-  if (bucket.type == 'currentwindow') {
+  if (bucket.type === 'currentwindow') {
     return e.data.app;
-  } else if (bucket.type == 'web.tab.current') {
-    const domainRegex = /^.+:\/\/(?:www.)?([^/]+)/;
-    const match = e.data.url.match(domainRegex);
-    return match ? match[1] : e.data.url;
-  } else if (bucket.type == 'afkstatus') {
-    return e.data.status;
-  } else if (bucket.type?.startsWith('app.editor')) {
-    return _.last(e.data.file.split('/'));
-  } else if (bucket.type?.startsWith('general.stopwatch')) {
-    return e.data.label;
-  } else {
-    const title = e.data.title;
-    if (title && typeof title === 'string') {
-      return title;
-    }
-
-    const keys = Object.keys(e.data);
-    if (keys.length === 1) {
-      const val = e.data[keys[0]];
-      if (typeof val === 'string') {
-        return val.length > 50 ? val.slice(0, 50) : val;
-      }
-    }
-
-    return '';
   }
+  if (bucket.type === 'web.tab.current') {
+    const domainRegex = /^.+:\/\/(?:www.)?([^/]+)/;
+    const url = e.data.url ?? '';
+    const match = url.match(domainRegex);
+    return match?.[1] ?? url;
+  }
+  if (bucket.type === 'afkstatus') {
+    return e.data.status;
+  }
+  if (bucket.type?.startsWith('app.editor')) {
+    return _.last((e.data.file ?? '').split('/'));
+  }
+  if (bucket.type?.startsWith('general.stopwatch')) {
+    return e.data.label;
+  }
+  const title = e.data.title;
+  if (title && typeof title === 'string') {
+    return title;
+  }
+
+  const keys = Object.keys(e.data);
+  const [onlyKey] = keys;
+  if (keys.length === 1 && onlyKey !== undefined) {
+    const val = e.data[onlyKey];
+    if (typeof val === 'string') {
+      return val.length > 50 ? val.slice(0, 50) : val;
+    }
+  }
+
+  return '';
 }
 
 export function getCategorizationStringFromEvent(
   bucket: Pick<IBucket, 'type'>,
-  e: IEvent
+  e: IEvent,
 ): string | null {
-  if (bucket.type == 'currentwindow') {
+  if (bucket.type === 'currentwindow') {
     // using linebreak and "m" regex flag to make `$` and `^` work
-    return e.data.app + '\n' + e.data.title;
-  } else if (bucket.type == 'web.tab.current') {
+    return `${e.data.app}\n${e.data.title}`;
+  }
+  if (bucket.type === 'web.tab.current') {
     // same as above
-    return e.data.title + '\n' + e.data.url;
-  } else if (bucket.type?.startsWith('app.editor')) {
-    return e.data.file;
-  } else if (bucket.type?.startsWith('general.stopwatch')) {
-    return e.data.label;
+    return `${e.data.title}\n${e.data.url}`;
+  }
+  if (bucket.type?.startsWith('app.editor')) {
+    return e.data.file ?? null;
+  }
+  if (bucket.type?.startsWith('general.stopwatch')) {
+    return e.data.label ?? null;
   }
 
   return null;
@@ -179,7 +185,7 @@ export function getCategoryColorFromEvent(bucket: Pick<IBucket, 'type'>, e: IEve
     return fallbackColor(categorizationString);
   }
 
-  if (bucket.type == 'afkstatus') {
+  if (bucket.type === 'afkstatus') {
     return getColorFromString(e.data.status);
   }
 

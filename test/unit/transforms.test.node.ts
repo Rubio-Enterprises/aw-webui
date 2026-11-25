@@ -99,13 +99,13 @@ describe('overlappingEvents', () => {
       ev('2026-10-19T00:00:10Z', 10, 'early'),
     ];
     const events2 = [ev('2026-10-19T00:00:00Z', 100, 'outer')];
-    const events1_order = events1.map(e => e.id);
-    const events2_order = events2.map(e => e.id);
+    const events1_order = events1.map((e) => e.id);
+    const events2_order = events2.map((e) => e.id);
 
     overlappingEvents(events1, events2);
 
-    expect(events1.map(e => e.id)).toEqual(events1_order);
-    expect(events2.map(e => e.id)).toEqual(events2_order);
+    expect(events1.map((e) => e.id)).toEqual(events1_order);
+    expect(events2.map((e) => e.id)).toEqual(events2_order);
   });
 
   test('self-comparison skips each event against itself', () => {

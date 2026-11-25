@@ -11,25 +11,11 @@ pre-commit:
     - name: standards installed
       tags: [standards]
       run: test -f /opt/standards/lefthook/standards.yml
-      fail_text: 'run this inside the dev image: just check'
-    # Upstream's ESLint configuration, run on the files this fork changes: a Fixer in the shared
-    # sequential group, then a Checker that allows no warnings.
-    - name: fixers
-      group:
-        jobs:
-          - name: eslint fix
-            tags: [fixer, eslint]
-            glob: '{src,test}/**/*.{js,ts,vue}'
-            stage_fixed: true
-            run: mise exec -- node_modules/.bin/eslint --fix {staged_files}
-    - name: eslint
-      tags: [eslint]
-      glob: '{src,test}/**/*.{js,ts,vue}'
-      run: mise exec -- node_modules/.bin/eslint --max-warnings=0 {staged_files}
+      fail_text: "run this inside the dev image: just check"
 
 commit-msg:
   jobs:
     - name: standards installed
       tags: [standards]
       run: test -f /opt/standards/lefthook/standards.yml
-      fail_text: 'run this inside the dev image: just check'
+      fail_text: "run this inside the dev image: just check"

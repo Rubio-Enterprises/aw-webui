@@ -1,6 +1,6 @@
 import _ from 'lodash';
-import { canonicalEvents, querystr_to_array, BaseQueryParams } from '~/queries';
-import { IEvent } from './interfaces';
+import { type BaseQueryParams, canonicalEvents, querystr_to_array } from '~/queries';
+import type { IEvent } from './interfaces';
 
 interface TimelineBucket {
   id: string;
@@ -17,10 +17,11 @@ interface TimelineBucket {
 export function categoryTimelineQuery(
   visible: TimelineBucket[],
   all: TimelineBucket[],
-  params: BaseQueryParams & { always_active_pattern?: string }
+  params: BaseQueryParams & { always_active_pattern?: string },
 ): string[] | null {
   const sources = visible.filter(
-    b => b.type === 'currentwindow' || (b.type === 'app' && b.id.startsWith('aw-import-screentime'))
+    (b) =>
+      b.type === 'currentwindow' || (b.type === 'app' && b.id.startsWith('aw-import-screentime')),
   );
   if (!sources.length) return null;
   const queries = sources.map((bucket, i) => {
@@ -36,7 +37,7 @@ export function categoryTimelineQuery(
         keep_event_timestamps: true,
       });
     }
-    const afk = all.find(b => b.type === 'afkstatus' && b.hostname === bucket.hostname);
+    const afk = all.find((b) => b.type === 'afkstatus' && b.hostname === bucket.hostname);
     return canonicalEvents({
       ...common,
       bid_window: bucket.id,
@@ -49,17 +50,18 @@ export function categoryTimelineQuery(
     queries.push(`events = union_no_overlap(events, events_timeline_${i});`);
   });
   // Filter after resolving overlap so a hidden category cannot reveal a lower-priority device.
-  if (params.filter_categories?.length) {
+  const filterCategories = params.filter_categories;
+  if (filterCategories?.length) {
     const selected = _.uniqWith(
       [
-        ...params.filter_categories,
-        ...params.categories
+        ...filterCategories,
+        ...(params.categories ?? [])
           .map(([name]) => name)
-          .filter(name =>
-            params.filter_categories.some(parent => _.isEqual(name.slice(0, parent.length), parent))
+          .filter((name) =>
+            filterCategories.some((parent) => _.isEqual(name.slice(0, parent.length), parent)),
           ),
       ],
-      _.isEqual
+      _.isEqual,
     );
     queries.push(`events = filter_keyvals(events, "$category", ${JSON.stringify(selected)});`);
   }
@@ -79,8 +81,8 @@ export function mergeCategoryIntervals(events: IEvent[]): IEvent[] {
     const previous = merged[merged.length - 1];
     const start = +new Date(event.timestamp);
     const end = start + event.duration * 1000;
-    const previousStart = previous && +new Date(previous.timestamp);
-    const previousEnd = previous && previousStart + previous.duration * 1000;
+    const previousStart = previous ? +new Date(previous.timestamp) : 0;
+    const previousEnd = previousStart + (previous?.duration ?? 0) * 1000;
     if (previous && start <= previousEnd && _.isEqual(previous.data.$category, category)) {
       previous.duration = (Math.max(previousEnd, end) - previousStart) / 1000;
     } else {

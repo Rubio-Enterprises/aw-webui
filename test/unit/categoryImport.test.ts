@@ -1,9 +1,9 @@
 import { createPinia, setActivePinia } from 'pinia';
-import CategorizationSettingsComponent from '~/views/settings/CategorizationSettings.vue';
 import { useCategoryStore } from '~/stores/categories';
+import CategorizationSettingsComponent from '~/views/settings/CategorizationSettings.vue';
+import { optionsApi } from '../helpers/vue';
 
-// Tests call Options API members directly, which the Vue constructor type doesn't expose.
-const CategorizationSettings: any = CategorizationSettingsComponent;
+const CategorizationSettings = optionsApi(CategorizationSettingsComponent);
 
 function importOnTop(store, id, categories) {
   const context = {
@@ -16,9 +16,9 @@ function importOnTop(store, id, categories) {
   return context;
 }
 
-const category = (name, regex) => ({ name: [name], rule: { type: 'regex', regex } });
+const category = (name, regex) => ({ name: [name], rule: { type: 'regex' as const, regex } });
 
-let store;
+let store: ReturnType<typeof useCategoryStore>;
 beforeEach(() => {
   setActivePinia(createPinia());
   store = useCategoryStore();
@@ -36,11 +36,11 @@ test('re-importing an active secondary set uses its new rules without copying st
   importOnTop(store, 'shared', [category('Dev', 'new')]);
   expect(store.get_category(['Dev']).rule.regex).toBe('new');
   await store.save();
-  expect(store.category_sets.find(s => s.id === 'mine').categories.map(c => c.name)).toEqual([
+  expect(store.category_sets.find((s) => s.id === 'mine').categories.map((c) => c.name)).toEqual([
     ['Work'],
   ]);
   store.setActiveSets(['mine']);
-  expect(store.classes.map(c => c.name)).not.toContainEqual(['Dev']);
+  expect(store.classes.map((c) => c.name)).not.toContainEqual(['Dev']);
 });
 
 test('a primary-ID collision creates a separate set without replacing mine or another set', async () => {
@@ -50,10 +50,10 @@ test('a primary-ID collision creates a separate set without replacing mine or an
   expect(store.get_category(['Work']).rule.regex).toBe('code');
   expect(store.get_category(['Imported']).rule.regex).toBe('new');
   await store.save();
-  expect(store.category_sets.find(s => s.id === 'mine').categories.map(c => c.name)).toEqual([
+  expect(store.category_sets.find((s) => s.id === 'mine').categories.map((c) => c.name)).toEqual([
     ['Work'],
   ]);
-  expect(store.category_sets.find(s => s.id === 'mine-imported').categories[0].name).toEqual([
+  expect(store.category_sets.find((s) => s.id === 'mine-imported').categories[0].name).toEqual([
     'Other',
   ]);
 });
@@ -67,7 +67,7 @@ test('import preserves unsaved local edits and appends to existing active sets',
   expect(context.showImportModal).toBe(false);
   expect(context.pendingImportCategories).toBeNull();
   await store.save();
-  expect(store.category_sets.find(s => s.id === 'mine').categories.map(c => c.name)).toEqual([
+  expect(store.category_sets.find((s) => s.id === 'mine').categories.map((c) => c.name)).toEqual([
     ['Work'],
     ['Local'],
   ]);

@@ -2,17 +2,17 @@
  * Creates a colored timeline where you can hover for more info.
  */
 
-import * as d3 from 'd3';
 import Color from 'color';
+import * as d3 from 'd3';
 import _ from 'lodash';
 import moment from 'moment';
 
 import { getColorFromString } from '../util/color';
-import { seconds_to_duration, format_time_of_day } from '../util/time';
-import { IEvent } from '../util/interfaces';
+import type { IEvent } from '../util/interfaces';
+import { format_time_of_day, seconds_to_duration } from '../util/time';
 
 function show_info(container: HTMLElement, elem_id: string): void {
-  const title_event_box = container.querySelector('#' + elem_id) as HTMLElement;
+  const title_event_box = container.querySelector(`#${elem_id}`) as HTMLElement;
   const titleinfo = container.querySelector('.titleinfo-container') as HTMLElement;
   titleinfo.innerHTML = title_event_box.innerHTML;
   titleinfo.style.height = title_event_box.getAttribute('height') || '';
@@ -72,7 +72,7 @@ function update(
   showAFK: boolean,
   chunkfunc: (event: IEvent) => string,
   eventfunc: (subevent: IEvent) => string,
-  noDataLabel = 'No data'
+  noDataLabel = 'No data',
 ): HTMLElement {
   const timeline = d3.select(container.querySelector('.apptimeline')).html(null);
   const titleinfo_list = d3.select(container.querySelector('.titleinfo-list')).html(null);
@@ -85,6 +85,11 @@ function update(
 
   const firstEvent = events[0];
   const lastEvent = events[events.length - 1];
+  if (!(firstEvent && lastEvent)) {
+    // Unreachable: empty lists returned above
+    set_status(container, noDataLabel);
+    return container;
+  }
 
   const timeStart = moment(firstEvent.timestamp);
   const timeEnd = moment(lastEvent.timestamp).add(lastEvent.duration, 'seconds');
@@ -94,14 +99,14 @@ function update(
 
   // Iterate over each app timeperiod
   let curr_x = 0;
-  _.each(events, function (e, i) {
+  _.each(events, (e, i) => {
     // Timeline rect
 
     let eventX: string | number, eventWidth: number;
     if (showAFK) {
       const eventBegin = moment(e.timestamp);
       eventX = eventBegin.diff(timeStart, 'seconds', true) / secSinceStart;
-      eventX = eventX * 100 + '%';
+      eventX = `${eventX * 100}%`;
       eventWidth = (e.duration / secSinceStart) * 100;
     } else {
       eventX = curr_x;
@@ -111,18 +116,18 @@ function update(
     const appcolor = getColorFromString(chunkfunc(e));
     const hovercolor = Color(appcolor).darken(0.4).hex();
 
-    const eg = timeline.append('g').attr('id', 'timeline_event_' + i);
+    const eg = timeline.append('g').attr('id', `timeline_event_${i}`);
 
     const rect = eg
       .append('rect')
       .attr('x', eventX)
       .attr('y', 0)
-      .attr('width', eventWidth + '%')
+      .attr('width', `${eventWidth}%`)
       .attr('height', 10)
       .style('fill', appcolor)
       .on('mouseover', () => {
         rect.style('fill', hovercolor);
-        show_info(container, 'titleinfo_event_' + i);
+        show_info(container, `titleinfo_event_${i}`);
       })
       .on('mouseout', () => {
         rect.style('fill', appcolor);
@@ -131,7 +136,7 @@ function update(
     // Titleinfo box
     const infobox = titleinfo_list
       .append('div')
-      .attr('id', 'titleinfo_event_' + i)
+      .attr('id', `titleinfo_event_${i}`)
       .style('display', 'none');
 
     // Appname and duration text
@@ -139,14 +144,14 @@ function update(
       .append('h5')
       .attr('x', '10px')
       .attr('y', '20px')
-      .text(chunkfunc(e) + ' (' + seconds_to_duration(e.duration) + ')')
+      .text(`${chunkfunc(e)} (${seconds_to_duration(e.duration)})`)
       .attr('font-family', 'sans-serif')
       .attr('font-size', '20px')
       .attr('fill', 'black');
 
     // Titleinfo
     const infolist = infobox.append('table');
-    _.each(e.data.subevents, function (t: IEvent) {
+    _.each(e.data.subevents, (t: IEvent) => {
       const inforow = infolist.append('tr');
       // Clocktime
       const clocktime = format_time_of_day(new Date(t.timestamp));

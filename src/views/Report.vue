@@ -76,6 +76,7 @@ div
 <style scoped lang="scss"></style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import _ from 'lodash';
 import moment from 'moment';
 
@@ -84,7 +85,7 @@ import 'vue-awesome/icons/spinner';
 import 'vue-awesome/icons/angle-double-down';
 import 'vue-awesome/icons/angle-double-up';
 
-import { canonicalEvents, querystr_to_array } from '~/queries';
+import { canonicalEvents, querystr_to_array, type QueryCategory } from '~/queries';
 import { buildBarchartDataset } from '~/util/datasets';
 
 import { useActivityStore } from '~/stores/activity';
@@ -93,8 +94,20 @@ import { useBucketsStore } from '~/stores/buckets';
 
 import { getClient } from '~/util/awclient';
 import { downloadFile, reportEventsCsv } from '~/util/export';
+import type { IEvent } from '~/util/interfaces';
 
-export default {
+// Set by the query options component once it has mounted
+type ReportQueryOptions = {
+  hostname?: string;
+  filter_afk?: boolean;
+  start?: string;
+  stop?: string;
+};
+
+// The error shape of a failed aw-client request
+type RequestError = { message?: string; response?: { data?: { message?: string } } };
+
+export default defineComponent({
   name: 'Report',
   data() {
     return {
@@ -102,16 +115,16 @@ export default {
       categoryStore: useCategoryStore(),
       bucketsStore: useBucketsStore(),
 
-      events: null,
+      events: null as IEvent[] | null,
 
-      status: null,
-      queryTime: null,
+      status: null as 'searching' | null,
+      queryTime: null as number | null,
       error: '',
 
       // Options
       show_options: false,
-      queryOptions: {},
-      filterCategories: [],
+      queryOptions: {} as ReportQueryOptions,
+      filterCategories: [] as QueryCategory[],
     };
   },
   computed: {
@@ -120,7 +133,7 @@ export default {
     },
     datasets: function () {
       return buildBarchartDataset(
-        this.activityStore.category.by_period,
+        this.activityStore.category.by_period ?? null,
         this.categoryStore.classes
       );
     },
@@ -132,7 +145,7 @@ export default {
     generate: async function () {
       // TODO: use full query (one per day/timeperiod) instead of canonicalEvents
       let query = canonicalEvents({
-        ...this.bucketsStore.desktopBucketIds(this.queryOptions.hostname),
+        ...this.bucketsStore.desktopBucketIds(this.queryOptions.hostname ?? ''),
         filter_afk: this.queryOptions.filter_afk,
         categories: this.filterCategories,
         filter_categories: this.filterCategories.map(c => c[0]),
@@ -147,7 +160,7 @@ export default {
         this.status = 'searching';
         const time = moment();
         const data = await getClient().query(timeperiods, query_array);
-        this.events = _.orderBy(data[0], ['timestamp'], ['desc']);
+        this.events = _.orderBy(data[0] as IEvent[], ['timestamp'], ['desc']);
         this.error = '';
         this.queryTime = moment().diff(time);
         // The chart reads the store's category history, which Activity views
@@ -155,7 +168,9 @@ export default {
         await this.activityStore.ensure_category_history();
       } catch (e) {
         console.error(e);
-        this.error = e?.response?.data?.message || e?.message || this.$t('common.requestFailed');
+        const err = e as RequestError | undefined;
+        this.error =
+          err?.response?.data?.message || err?.message || (this.$t('common.requestFailed') as string);
       } finally {
         this.status = null;
       }
@@ -167,6 +182,7 @@ export default {
     },
 
     async export_csv() {
+      if (!this.events) return;
       await downloadFile('events.csv', reportEventsCsv(this.events), 'text/csv');
     },
 
@@ -177,5 +193,5 @@ export default {
       this.generate();
     },
   },
-};
+});
 </script>

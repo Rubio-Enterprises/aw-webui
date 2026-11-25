@@ -1,22 +1,41 @@
 import { createLocalVue, shallowMount } from '@vue/test-utils';
-import { createPinia, setActivePinia } from 'pinia';
 import BootstrapVue from 'bootstrap-vue';
 import moment from 'moment';
-
-import Alerts from '~/views/Alerts.vue';
-import { useSettingsStore } from '~/stores/settings';
-import { useCategoryStore } from '~/stores/categories';
+import { createPinia, setActivePinia } from 'pinia';
 import { useBucketsStore } from '~/stores/buckets';
-import { getDefaultAlertGoals } from '~/util/alerts';
+import { useCategoryStore } from '~/stores/categories';
+import { useSettingsStore } from '~/stores/settings';
+import { type AlertGoal, getDefaultAlertGoals } from '~/util/alerts';
+import Alerts from '~/views/Alerts.vue';
+import { withVm } from '../helpers/vue';
 
 const localVue = createLocalVue();
 localVue.use(BootstrapVue);
-localVue.filter('friendlyduration', v => String(v));
-localVue.filter('friendlytime', v => String(v));
+localVue.filter('friendlyduration', (v) => String(v));
+localVue.filter('friendlytime', (v) => String(v));
 
 // Mounts the view with a stubbed $aw client. Buckets are pre-seeded so
 // mounted() resolves a hostname without reaching for the global AWClient.
-function mountAlerts({ startOfDay = '04:00', storedAlerts = undefined }: any = {}) {
+interface AlertsVm {
+  alerts: AlertGoal[];
+  editing_alert: Record<string, unknown>;
+  alert_times: Record<string, number>;
+  last_updated: unknown;
+  error: string;
+  $aw: { query: jest.Mock };
+  check: () => Promise<void>;
+  addAlert: () => Promise<void>;
+  deleteAlert: (name: string) => Promise<void>;
+}
+
+function mountAlerts({
+  startOfDay = '04:00',
+  storedAlerts,
+}: {
+  startOfDay?: string;
+  // May hold malformed entries: the view has to cope with whatever was stored.
+  storedAlerts?: unknown[];
+} = {}) {
   const query = jest.fn().mockResolvedValue([[]]);
 
   const settingsStore = useSettingsStore();
@@ -24,31 +43,33 @@ function mountAlerts({ startOfDay = '04:00', storedAlerts = undefined }: any = {
   // `_storedKeys` is what tells the view a saved list exists, so seeding
   // `alerts` alone must not be mistaken for a first run.
   if (storedAlerts !== undefined) {
-    settingsStore.$patch({ alerts: storedAlerts, _storedKeys: ['alerts'] });
+    settingsStore.$patch({ alerts: storedAlerts as AlertGoal[], _storedKeys: ['alerts'] });
   }
   // `update` would otherwise hit the network; record what would be persisted.
   const update = jest
     .spyOn(settingsStore, 'update')
-    .mockImplementation(async patch => settingsStore.$patch(patch));
+    .mockImplementation(async (patch) => settingsStore.$patch(patch));
 
   useCategoryStore().load([]);
-  useBucketsStore().update_buckets(<any[]>[
+  useBucketsStore().update_buckets([
     { id: 'aw-watcher-window_testhost', type: 'currentwindow', hostname: 'testhost', data: {} },
     { id: 'aw-watcher-afk_testhost', type: 'afkstatus', hostname: 'testhost', data: {} },
   ]);
 
-  const wrapper: any = shallowMount(Alerts, {
-    localVue,
-    mocks: { $aw: { query } },
-    stubs: { icon: true },
-  });
+  const wrapper = withVm<AlertsVm>(
+    shallowMount(Alerts, {
+      localVue,
+      mocks: { $aw: { query } },
+      stubs: { icon: true },
+    }),
+  );
   wrapper.setData({ hostname: 'testhost' });
 
   return { wrapper, query, update, settingsStore };
 }
 
 // Mounts and runs one check(), returning the mocked client call.
-async function runCheck(opts) {
+async function runCheck(opts: Parameters<typeof mountAlerts>[0]) {
   const { wrapper, query } = mountAlerts(opts);
   await wrapper.vm.check();
   return { wrapper, query };
@@ -298,7 +319,7 @@ describe('Alerts goal persistence', () => {
 
   test.each(['add', 'delete'])(
     'failed %s rolls back the settings store as well as the visible list',
-    async action => {
+    async (action) => {
       const stored = [{ name: 'Work', category: ['Work'], goal: 100 }];
       const { wrapper, update, settingsStore } = mountAlerts({ storedAlerts: stored });
       await settle();
@@ -320,15 +341,15 @@ describe('Alerts goal persistence', () => {
       remounted.wrapper.destroy();
       save.mockRestore();
       errors.mockRestore();
-    }
+    },
   );
 
   test('a second click while a save is pending does not write twice', async () => {
     const { wrapper, update } = mountAlerts({ storedAlerts: [] });
     await settle();
 
-    let release;
-    update.mockImplementationOnce(() => new Promise(resolve => (release = resolve)));
+    let release: () => void;
+    update.mockImplementationOnce(() => new Promise<void>((resolve) => (release = resolve)));
 
     wrapper.vm.editing_alert = { name: 'Code', category: ['Work', 'Code'], goal: 90 };
     const first = wrapper.vm.addAlert();

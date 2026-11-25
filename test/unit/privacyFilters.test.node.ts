@@ -26,7 +26,7 @@ test('accepts regex strings that rely on server-side syntax validation', () => {
         pattern: '(?i)private browsing',
         action: 'drop',
       },
-    ])
+    ]),
   );
   expect(result.errors).toEqual([]);
   expect(result.rules).toEqual([
@@ -50,7 +50,7 @@ test('rejects redact rules without a replacement', () => {
         pattern: '(?i)banking',
         action: 'redact',
       },
-    ])
+    ]),
   );
   expect(result.rules).toBeNull();
   expect(result.errors).toContain('Rule 1: redact rules need a non-empty `replacement` string.');
@@ -65,11 +65,11 @@ test('rejects rules without a field', () => {
         pattern: '(?i)private browsing',
         action: 'drop',
       },
-    ])
+    ]),
   );
   expect(result.rules).toBeNull();
   expect(result.errors).toContain(
-    'Rule 1: `field` is required so the rule only matches the intended event data.'
+    'Rule 1: `field` is required so the rule only matches the intended event data.',
   );
 });
 
@@ -83,7 +83,7 @@ test('rejects blank fields without also reporting them as missing', () => {
         pattern: '(?i)private browsing',
         action: 'drop',
       },
-    ])
+    ]),
   );
   expect(result.rules).toBeNull();
   expect(result.errors).toEqual(['Rule 1: `field` cannot be an empty string.']);
@@ -99,7 +99,7 @@ test('rejects non-string fields without also reporting them as missing', () => {
         pattern: '(?i)private browsing',
         action: 'drop',
       },
-    ])
+    ]),
   );
   expect(result.rules).toBeNull();
   expect(result.errors).toEqual(['Rule 1: `field` must be a string.']);
@@ -115,7 +115,7 @@ test('rejects empty pattern strings', () => {
         pattern: '   ',
         action: 'drop',
       },
-    ])
+    ]),
   );
   expect(result.rules).toBeNull();
   expect(result.errors).toContain('Rule 1: `pattern` cannot be an empty string.');
@@ -129,7 +129,7 @@ test('reports invalid action and missing field together', () => {
         pattern: '(?i)private browsing',
         action: 'remove',
       },
-    ])
+    ]),
   );
   expect(result.rules).toBeNull();
   expect(result.errors).toEqual([

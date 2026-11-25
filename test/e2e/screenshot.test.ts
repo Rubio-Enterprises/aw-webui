@@ -1,9 +1,6 @@
 /* global fixture */
-/* eslint jest/no-test-callback: "off" */
-/* eslint jest/expect-expect: "off" */
 
-import { Selector } from 'testcafe';
-import { RequestLogger } from 'testcafe';
+import { RequestLogger, Selector } from 'testcafe';
 
 const MAX_REFRESH = 2; // the max number of times to refresh if "Loading..." dosent go away
 const REFRESH_TIMEPERIOD = 5000; //ms - refresh page after waiting for this amount of ms for "Loading..." to disappear
@@ -30,8 +27,8 @@ async function hide_devonly(t) {
 async function waitForLoading(t) {
   // Waits for all "Loading..." texts to disappear from page.
   // If it takes longer than 10s, it will fail.
-  let $loading,
-    refresh_count = 0;
+  let $loading: { textContent: string | null } | null | undefined;
+  let refresh_count = 0;
 
   console.log('Waiting for loading to disappear...');
   let start = Date.now();
@@ -68,7 +65,7 @@ async function checkNoError(t) {
   try {
     await t.expect(await $error.count).eql(0);
   } catch (e) {
-    console.log('Errors found: ' + (await $error.textContent));
+    console.log(`Errors found: ${await $error.textContent}`);
     throw e;
   }
 }
@@ -93,22 +90,22 @@ async function applyTheme(t, theme) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(theme),
-      }).then(response => {
+      }).then((response) => {
         if (!response.ok) {
           throw new Error(`Saving screenshot theme failed: HTTP ${response.status}`);
         }
       });
     },
-    { dependencies: { theme } }
+    { dependencies: { theme } },
   );
   await t.eval(() => location.reload());
   // App.vue only renders the wrapper after settings have loaded and the theme
   // link has been applied. Wait for that, not a fixed delay that can race startup.
   await t.expect(Selector('#wrapper').visible).ok();
   // TestCafe's types don't carry custom DOM properties over to the returned selector.
-  const darkStylesheet: any = Selector('head link[href="/dark.css"]').addCustomDOMProperties({
-    loaded: link => !!(link as HTMLLinkElement).sheet,
-  });
+  const darkStylesheet = Selector('head link[href="/dark.css"]').addCustomDOMProperties({
+    loaded: (link) => !!(link as HTMLLinkElement).sheet,
+  }) as unknown as { exists: Promise<boolean>; loaded: Promise<boolean> };
   await t.expect(darkStylesheet.exists).eql(theme === 'dark');
   if (theme === 'dark') {
     await t.expect(darkStylesheet.loaded).ok();
@@ -129,11 +126,11 @@ fixture(`Home view`).page(baseURL);
 // From: https://stackoverflow.com/a/59856422/965332
 test.clientScripts({
   content: logJsErrorCode,
-})(`Skip error but log it`, async t => {
+})(`Skip error but log it`, async (t) => {
   console.log(await t.getBrowserConsoleMessages());
 });
 
-test('Screenshot home: light desktop', async t => {
+test('Screenshot home: light desktop', async (t) => {
   await applyTheme(t, 'light');
   await hide_devonly(t);
   await t.takeScreenshot({
@@ -142,7 +139,7 @@ test('Screenshot home: light desktop', async t => {
   });
 });
 
-test('Screenshot home: dark desktop', async t => {
+test('Screenshot home: dark desktop', async (t) => {
   await applyTheme(t, 'dark');
   await hide_devonly(t);
   await t.takeScreenshot({
@@ -151,7 +148,7 @@ test('Screenshot home: dark desktop', async t => {
   });
 });
 
-test('Screenshot home: light mobile', async t => {
+test('Screenshot home: light mobile', async (t) => {
   await applyTheme(t, 'light');
   await t.resizeWindow(360, 800);
   await hide_devonly(t);
@@ -161,7 +158,7 @@ test('Screenshot home: light mobile', async t => {
   });
 });
 
-test('Screenshot home: dark mobile', async t => {
+test('Screenshot home: dark mobile', async (t) => {
   await applyTheme(t, 'dark');
   await t.resizeWindow(360, 800);
   await hide_devonly(t);
@@ -174,7 +171,7 @@ test('Screenshot home: dark mobile', async t => {
 // Dark drawer: click the toggle so the side-drawer appears in the dark screenshot.
 // This is the regression the matrix exists to catch — a dark-mode drawer styling
 // defect is invisible in any capture that never opens the drawer.
-test('Screenshot home: dark mobile drawer open', async t => {
+test('Screenshot home: dark mobile drawer open', async (t) => {
   await applyTheme(t, 'dark');
   await t.resizeWindow(360, 800);
   await hide_devonly(t);
@@ -193,7 +190,7 @@ fixture(`Activity view`).page(`${baseURL}/#/activity/fakedata`).requestHooks(HTT
 
 test.clientScripts({
   content: logJsErrorCode,
-})('Screenshot activity: light desktop', async t => {
+})('Screenshot activity: light desktop', async (t) => {
   await applyTheme(t, 'light');
   await hide_devonly(t);
   await waitForLoading(t);
@@ -206,7 +203,7 @@ test.clientScripts({
 
 test.clientScripts({
   content: logJsErrorCode,
-})('Screenshot activity: dark desktop', async t => {
+})('Screenshot activity: dark desktop', async (t) => {
   await applyTheme(t, 'dark');
   await hide_devonly(t);
   await waitForLoading(t);
@@ -219,7 +216,7 @@ test.clientScripts({
 
 test.clientScripts({
   content: logJsErrorCode,
-})('Screenshot activity: light mobile', async t => {
+})('Screenshot activity: light mobile', async (t) => {
   await applyTheme(t, 'light');
   await t.resizeWindow(360, 800);
   await hide_devonly(t);
@@ -233,7 +230,7 @@ test.clientScripts({
 
 test.clientScripts({
   content: logJsErrorCode,
-})('Screenshot activity: dark mobile', async t => {
+})('Screenshot activity: dark mobile', async (t) => {
   await applyTheme(t, 'dark');
   await t.resizeWindow(360, 800);
   await hide_devonly(t);
@@ -254,7 +251,7 @@ const timelineBucketURL = `http://127.0.0.1:5666/api/0/buckets/aw-watcher-window
 fixture(`Timeline view`)
   .page(`${baseURL}/#/timeline`)
   .requestHooks(HTTPLogger)
-  .beforeEach(async t => {
+  .beforeEach(async (t) => {
     // Generated fake data only covers daytime. Seed a recent, wide-enough event
     // so the 12h tooltip assertion also works overnight or with old fake data.
     const bucket = await t.request.post(timelineBucketURL, {
@@ -279,14 +276,14 @@ fixture(`Timeline view`)
     // Reload after seeding so the bucket store discovers the new bucket.
     await applyTheme(t, 'light');
   })
-  .afterEach(async t => {
+  .afterEach(async (t) => {
     const response = await t.request.delete(timelineBucketURL);
     await t.expect(response.status).eql(200);
   });
 
 test.clientScripts({
   content: logJsErrorCode,
-})('Screenshot the timeline view', async t => {
+})('Screenshot the timeline view', async (t) => {
   // The preceding activity capture leaves the shared browser at mobile width.
   await t.resizeWindow(1280, 800);
   await hide_devonly(t);
@@ -302,7 +299,7 @@ test.clientScripts({
   // Tooltips are built on hover. Items just outside the window are also in
   // the DOM, so pick one that is fully on screen, and hover again if the 12h
   // reload replaced it under the cursor.
-  const visibleItem = Selector('.vis-item.vis-range').filter(node => {
+  const visibleItem = Selector('.vis-item.vis-range').filter((node) => {
     const rect = node.getBoundingClientRect();
     return rect.left >= 0 && rect.right <= window.innerWidth && rect.width >= 10;
   });
@@ -320,7 +317,7 @@ test.clientScripts({
   await checkNoError(t);
 });
 
-test('Timeline has no horizontal page overflow on mobile', async t => {
+test('Timeline has no horizontal page overflow on mobile', async (t) => {
   await t.resizeWindow(360, 800);
   await hide_devonly(t);
   await waitForLoading(t);
@@ -338,7 +335,7 @@ fixture(`Buckets view`).page(`${baseURL}/#/buckets/`).requestHooks(HTTPLogger);
 
 test.clientScripts({
   content: logJsErrorCode,
-})('Screenshot buckets: light desktop', async t => {
+})('Screenshot buckets: light desktop', async (t) => {
   await applyTheme(t, 'light');
   await hide_devonly(t);
   await t.wait(1000);
@@ -351,7 +348,7 @@ test.clientScripts({
 
 test.clientScripts({
   content: logJsErrorCode,
-})('Screenshot buckets: dark desktop', async t => {
+})('Screenshot buckets: dark desktop', async (t) => {
   await applyTheme(t, 'dark');
   await hide_devonly(t);
   await t.wait(1000);
@@ -362,7 +359,7 @@ test.clientScripts({
   await checkNoError(t);
 });
 
-test('Buckets have no horizontal page overflow on mobile', async t => {
+test('Buckets have no horizontal page overflow on mobile', async (t) => {
   await t.resizeWindow(360, 800);
   await hide_devonly(t);
   // Wait for the async bucket list (Buckets.vue mounted -> loadBuckets()) to
@@ -376,7 +373,7 @@ test('Buckets have no horizontal page overflow on mobile', async t => {
 
 test.clientScripts({
   content: logJsErrorCode,
-})('Screenshot buckets: light mobile', async t => {
+})('Screenshot buckets: light mobile', async (t) => {
   await applyTheme(t, 'light');
   await t.resizeWindow(360, 800);
   await hide_devonly(t);
@@ -390,7 +387,7 @@ test.clientScripts({
 
 test.clientScripts({
   content: logJsErrorCode,
-})('Screenshot buckets: dark mobile', async t => {
+})('Screenshot buckets: dark mobile', async (t) => {
   await applyTheme(t, 'dark');
   await t.resizeWindow(360, 800);
   await hide_devonly(t);
@@ -409,7 +406,7 @@ fixture(`Settings view`).page(`${baseURL}/#/settings/`).requestHooks(HTTPLogger)
 
 test.clientScripts({
   content: logJsErrorCode,
-})('Screenshot settings: light desktop', async t => {
+})('Screenshot settings: light desktop', async (t) => {
   await applyTheme(t, 'light');
   await hide_devonly(t);
   await t.takeScreenshot({
@@ -421,7 +418,7 @@ test.clientScripts({
 
 test.clientScripts({
   content: logJsErrorCode,
-})('Screenshot settings: dark desktop', async t => {
+})('Screenshot settings: dark desktop', async (t) => {
   await applyTheme(t, 'dark');
   await hide_devonly(t);
   await t.takeScreenshot({
@@ -433,7 +430,7 @@ test.clientScripts({
 
 test.clientScripts({
   content: logJsErrorCode,
-})('Screenshot settings: light mobile', async t => {
+})('Screenshot settings: light mobile', async (t) => {
   await applyTheme(t, 'light');
   await t.resizeWindow(360, 800);
   await hide_devonly(t);
@@ -446,7 +443,7 @@ test.clientScripts({
 
 test.clientScripts({
   content: logJsErrorCode,
-})('Screenshot settings: dark mobile', async t => {
+})('Screenshot settings: dark mobile', async (t) => {
   await applyTheme(t, 'dark');
   await t.resizeWindow(360, 800);
   await hide_devonly(t);
@@ -464,7 +461,7 @@ fixture(`Stopwatch view`).page(`${baseURL}/#/stopwatch/`).requestHooks(HTTPLogge
 
 test.clientScripts({
   content: logJsErrorCode,
-})('Screenshot stopwatch: light desktop', async t => {
+})('Screenshot stopwatch: light desktop', async (t) => {
   await applyTheme(t, 'light');
   await hide_devonly(t);
   await waitForLoading(t);
@@ -477,7 +474,7 @@ test.clientScripts({
 
 test.clientScripts({
   content: logJsErrorCode,
-})('Screenshot stopwatch: dark desktop', async t => {
+})('Screenshot stopwatch: dark desktop', async (t) => {
   await applyTheme(t, 'dark');
   await hide_devonly(t);
   await waitForLoading(t);
@@ -490,7 +487,7 @@ test.clientScripts({
 
 test.clientScripts({
   content: logJsErrorCode,
-})('Screenshot stopwatch: light mobile', async t => {
+})('Screenshot stopwatch: light mobile', async (t) => {
   await applyTheme(t, 'light');
   await t.resizeWindow(360, 800);
   await hide_devonly(t);
@@ -504,7 +501,7 @@ test.clientScripts({
 
 test.clientScripts({
   content: logJsErrorCode,
-})('Screenshot stopwatch: dark mobile', async t => {
+})('Screenshot stopwatch: dark mobile', async (t) => {
   await applyTheme(t, 'dark');
   await t.resizeWindow(360, 800);
   await hide_devonly(t);

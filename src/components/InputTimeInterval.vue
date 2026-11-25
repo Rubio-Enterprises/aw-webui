@@ -124,9 +124,10 @@ div
 </style>
 
 <script lang="ts">
-import moment from 'moment';
+import { defineComponent } from 'vue';
+import moment, { type Moment } from 'moment';
 import 'vue-awesome/icons/sync';
-export default {
+export default defineComponent({
   name: 'input-timeinterval',
   props: {
     defaultDuration: {
@@ -144,11 +145,12 @@ export default {
   },
   data() {
     return {
-      duration: null,
+      duration: null as number | null,
       mode: 'last_duration',
-      start: null,
-      end: null,
-      lastUpdate: null,
+      start: null as string | null,
+      end: null as string | null,
+      lastUpdate: null as Moment | null,
+      lastUpdateTimer: undefined as ReturnType<typeof setInterval> | undefined,
       durations: [
         { seconds: 0.25 * 60 * 60, label: '&frac14;h' },
         { seconds: 0.5 * 60 * 60, label: '&frac12;h' },
@@ -164,34 +166,32 @@ export default {
     };
   },
   computed: {
-    modeOptions() {
+    modeOptions(): { text: string; value: string }[] {
       return [
-        { text: this.$t('ui.timeInterval.lastDuration'), value: 'last_duration' },
-        { text: this.$t('ui.timeInterval.dateRange'), value: 'range' },
+        { text: this.$t('ui.timeInterval.lastDuration') as string, value: 'last_duration' },
+        { text: this.$t('ui.timeInterval.dateRange') as string, value: 'range' },
       ];
     },
-    value: {
-      get() {
-        if (this.mode == 'range' && this.start) {
-          const startDate = moment(this.start);
-          // If only start date is set, show that single day
-          const endDate = this.end
-            ? moment(this.end).add(1, 'day')
-            : startDate.clone().add(1, 'day');
-          return [startDate, endDate];
-        } else {
-          return [moment().subtract(this.duration, 'seconds'), moment()];
-        }
-      },
+    value(): Moment[] {
+      if (this.mode == 'range' && this.start) {
+        const startDate = moment(this.start);
+        // If only start date is set, show that single day
+        const endDate = this.end
+          ? moment(this.end).add(1, 'day')
+          : startDate.clone().add(1, 'day');
+        return [startDate, endDate];
+      } else {
+        return [moment().subtract(this.duration, 'seconds'), moment()];
+      }
     },
-    emptyDaterange() {
+    emptyDaterange(): boolean {
       return !this.start;
     },
-    invalidDaterange() {
+    invalidDaterange(): boolean {
       if (!this.end) return false;
       return moment(this.start) > moment(this.end);
     },
-    daterangeTooLong() {
+    daterangeTooLong(): boolean {
       if (!this.end) return false;
       return moment(this.start).add(this.maxDuration, 'seconds').isBefore(moment(this.end));
     },
@@ -255,5 +255,5 @@ export default {
       this.valueChanged();
     },
   },
-};
+});
 </script>

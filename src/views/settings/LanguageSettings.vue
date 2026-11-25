@@ -17,11 +17,12 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { mapState } from 'pinia';
 import { useSettingsStore } from '~/stores/settings';
 import { LANGUAGE_NAMES, SUPPORTED, isAppLocale, setAppLocale } from '~/i18n';
 
-export default {
+export default defineComponent({
   name: 'LanguageSettings',
   data() {
     return { locales: SUPPORTED, languageNames: LANGUAGE_NAMES };
@@ -42,5 +43,5 @@ export default {
       },
     },
   },
-};
+});
 </script>

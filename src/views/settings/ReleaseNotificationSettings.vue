@@ -10,16 +10,17 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { useSettingsStore } from '~/stores/settings';
 
-export default {
+export default defineComponent({
   computed: {
     isEnabled: {
       get() {
         const settingsStore = useSettingsStore();
         return settingsStore.newReleaseCheckData.isEnabled;
       },
-      set(value) {
+      set(value: boolean) {
         const settingsStore = useSettingsStore();
         const data = settingsStore.newReleaseCheckData;
         settingsStore.update({
@@ -28,5 +29,5 @@ export default {
       },
     },
   },
-};
+});
 </script>

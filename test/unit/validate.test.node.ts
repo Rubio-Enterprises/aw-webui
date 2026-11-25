@@ -1,4 +1,4 @@
-import { validateRegex, isRegexBroad } from '~/util/validate';
+import { isRegexBroad, validateRegex } from '~/util/validate';
 
 describe('validateRegex', () => {
   test('accepts valid patterns', () => {
@@ -108,7 +108,6 @@ describe('validateRegex - browser environment (Unicode DB unavailable)', () => {
       jest.doMock('@unicode/unicode-13.0.0/Names/Control', throwExcluded);
       jest.doMock('@unicode/unicode-13.0.0/Names/Correction', throwExcluded);
       jest.doMock('@unicode/unicode-13.0.0/Names/Figment', throwExcluded);
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
       browserValidate = require('~/util/validate').validateRegex;
     });
   });

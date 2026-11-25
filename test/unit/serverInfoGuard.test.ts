@@ -4,8 +4,8 @@
 // child render. Any template that dereferences `info` without a null check
 // therefore throws on cold load — and permanently when the server is
 // unreachable, since getInfo() swallows the error and leaves `info` null.
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const SRC = path.resolve(__dirname, '../../src');
 
@@ -36,7 +36,7 @@ function unguardedInfoDerefs(pug) {
 
     while (stack.length && stack[stack.length - 1].indent >= indent) stack.pop();
 
-    const inheritedGuard = stack.some(frame => frame.guarded);
+    const inheritedGuard = stack.some((frame) => frame.guarded);
     const guarded = inheritedGuard || GUARDS_INFO.test(line);
 
     if (DEREFS_INFO.test(line) && !guarded) offenders.push(line.trim());
@@ -49,9 +49,9 @@ function unguardedInfoDerefs(pug) {
 describe('server store info is never dereferenced unguarded in templates', () => {
   test.each([['views/Home.vue'], ['views/Buckets.vue'], ['components/Footer.vue']])(
     '%s guards info before dereferencing',
-    relPath => {
+    (relPath) => {
       expect(unguardedInfoDerefs(template(relPath))).toEqual([]);
-    }
+    },
   );
 
   test('detects the original crashing expression', () => {
@@ -65,7 +65,7 @@ describe('server store info is never dereferenced unguarded in templates', () =>
 
   test('does not let a closed guard block cover a later sibling', () => {
     const pug = ['span(v-if="info")', '  | {{info.version}}', 'span', '  | {{info.hostname}}'].join(
-      '\n'
+      '\n',
     );
     expect(unguardedInfoDerefs(pug)).toHaveLength(1);
   });

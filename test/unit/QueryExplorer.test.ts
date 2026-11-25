@@ -1,7 +1,7 @@
 import QueryExplorerComponent from '~/views/QueryExplorer.vue';
+import { optionsApi } from '../helpers/vue';
 
-// Tests call Options API members directly, which the Vue constructor type doesn't expose.
-const QueryExplorer: any = QueryExplorerComponent;
+const QueryExplorer = optionsApi(QueryExplorerComponent);
 
 describe('QueryExplorer saveCurrentQuery', () => {
   test('canceling an overwrite confirm aborts without opening the save-as-new prompt', async () => {
@@ -39,7 +39,7 @@ describe('QueryExplorer saveCurrentQuery', () => {
 
     expect(msgBoxConfirm).toHaveBeenCalledWith(
       'Update saved query "Daily Coding Time"?',
-      expect.objectContaining({ title: 'Update Query' })
+      expect.objectContaining({ title: 'Update Query' }),
     );
     expect(persistSavedQueries).not.toHaveBeenCalled();
   });
@@ -59,8 +59,8 @@ describe('QueryExplorer saveCurrentQuery', () => {
 
   test('cancels save modal closure before awaiting persistence failure', async () => {
     const event = { preventDefault: jest.fn() };
-    let resolvePersistence;
-    const persistence = new Promise(resolve => {
+    let resolvePersistence: (saved: boolean) => void;
+    const persistence = new Promise<boolean>((resolve) => {
       resolvePersistence = resolve;
     });
     const vm = {
@@ -124,8 +124,8 @@ describe('QueryExplorer saveCurrentQuery', () => {
 
   test('cancels rename modal closure before awaiting persistence failure', async () => {
     const event = { preventDefault: jest.fn() };
-    let resolvePersistence;
-    const persistence = new Promise(resolve => {
+    let resolvePersistence: (saved: boolean) => void;
+    const persistence = new Promise<boolean>((resolve) => {
       resolvePersistence = resolve;
     });
     const selectedSavedQuery = { id: 'daily-coding-time', name: 'Daily Coding Time' };
@@ -163,5 +163,31 @@ describe('QueryExplorer saveCurrentQuery', () => {
 
     expect(event.preventDefault).toHaveBeenCalledTimes(1);
     expect(vm.showRenameQueryModal).toBe(false);
+  });
+});
+
+describe('QueryExplorer query errors (strict-typing regression)', () => {
+  function queryVm(reject: unknown) {
+    return {
+      query_code: 'RETURN = [];',
+      startdate: '2026-05-20',
+      enddate: '2026-05-21',
+      error: '',
+      events: [],
+      $aw: { query: jest.fn().mockRejectedValue(reject) },
+    };
+  }
+
+  test('shows the server message of a failed query', async () => {
+    const vm = queryVm({ response: { data: { message: 'bad query' } } });
+    await QueryExplorer.methods.query.call(vm);
+    expect(vm.error).toBe('bad query');
+  });
+
+  test('shows the message of a network failure, which has no server response', async () => {
+    const vm = queryVm(new Error('Network Error'));
+    // The handler used to read e.response.data and throw a TypeError here
+    await expect(QueryExplorer.methods.query.call(vm)).resolves.toBeUndefined();
+    expect(vm.error).toBe('Network Error');
   });
 });

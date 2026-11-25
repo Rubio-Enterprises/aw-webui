@@ -41,6 +41,7 @@ div.container(style="color: #555; font-size: 0.9em")
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import 'vue-awesome/icons/brands/twitter';
 import 'vue-awesome/icons/brands/github';
 import 'vue-awesome/icons/brands/reddit';
@@ -53,10 +54,10 @@ import 'vue-awesome/icons/heart';
 import { mapState } from 'pinia';
 import { useServerStore } from '~/stores/server';
 
-export default {
+export default defineComponent({
   name: 'Footer',
   computed: {
     ...mapState(useServerStore, ['info']),
   },
-};
+});
 </script>

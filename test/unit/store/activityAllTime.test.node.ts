@@ -1,4 +1,4 @@
-import { setActivePinia, createPinia } from 'pinia';
+import { createPinia, setActivePinia } from 'pinia';
 
 import { useActivityStore } from '~/stores/activity';
 import { useBucketsStore } from '~/stores/buckets';
@@ -26,7 +26,7 @@ describe('get_earliest_date', () => {
   test('is recomputed when the buckets change (e.g. an import)', async () => {
     bucketsStore.buckets = [
       bucket('aw-watcher-window_host', 'currentwindow', '2024-05-01T12:00:00Z'),
-    ] as any;
+    ];
     expect(await activityStore.get_earliest_date('host')).toEqual({
       date: '2024-05-01',
       approximate: false,
@@ -35,7 +35,7 @@ describe('get_earliest_date', () => {
     bucketsStore.buckets = [
       ...bucketsStore.buckets,
       bucket('aw-watcher-window_host-imported', 'currentwindow', '2019-02-03T12:00:00Z'),
-    ] as any;
+    ];
     expect(await activityStore.get_earliest_date('host')).toEqual({
       date: '2019-02-03',
       approximate: false,
@@ -43,15 +43,13 @@ describe('get_earliest_date', () => {
   });
 
   test('force skips the cache', async () => {
-    bucketsStore.buckets = [
-      bucket('aw-watcher-afk_host', 'afkstatus', '2023-03-03T12:00:00Z'),
-    ] as any;
+    bucketsStore.buckets = [bucket('aw-watcher-afk_host', 'afkstatus', '2023-03-03T12:00:00Z')];
     expect(await activityStore.get_earliest_date('host')).toEqual({
       date: '2023-03-03',
       approximate: false,
     });
     // Same bucket id, but its data changed (e.g. older events synced in)
-    (bucketsStore.buckets[0] as any).metadata.start = '2021-01-01T12:00:00Z';
+    bucketsStore.buckets[0].metadata.start = '2021-01-01T12:00:00Z';
     expect(await activityStore.get_earliest_date('host')).toEqual({
       date: '2023-03-03',
       approximate: false,
@@ -77,7 +75,7 @@ describe('get_earliest_date fallback', () => {
         metadata: {},
         first_seen: '2025-01-02T12:00:00Z',
       },
-    ] as any;
+    ];
     const getEvents = jest.spyOn(getClient(), 'getEvents').mockRejectedValue(new Error('timeout'));
     expect(await activityStore.get_earliest_date('host', { force: true })).toEqual({
       date: '2025-01-02',
@@ -92,29 +90,27 @@ describe('ensure_loaded progress', () => {
   const activityStore = useActivityStore();
 
   test('is cleared when a query fails', async () => {
-    const load = jest.spyOn(activityStore, 'load').mockImplementation(async opts => {
+    const load = jest.spyOn(activityStore, 'load').mockImplementation(async (opts) => {
       activityStore.query_options = opts; // as start_loading does
       activityStore.progress = { done: 1, total: 3 };
       throw new Error('timeout');
     });
-    await expect(
-      activityStore.ensure_loaded({ host: 'host', timeperiod: {} } as any)
-    ).rejects.toThrow('timeout');
+    await expect(activityStore.ensure_loaded({ host: 'host' })).rejects.toThrow('timeout');
     expect(activityStore.progress).toBeNull();
     load.mockRestore();
   });
 
   test('is kept when a newer load has taken over', async () => {
-    const newer = { host: 'host', timeperiod: {} } as any;
+    const newer = { host: 'host' };
     const load = jest.spyOn(activityStore, 'load').mockImplementation(async () => {
       // A newer ensure_loaded call started meanwhile
       activityStore.query_options = newer;
       activityStore.progress = { done: 0, total: 5 };
       throw new Error('canceled');
     });
-    await expect(
-      activityStore.ensure_loaded({ host: 'host', timeperiod: {}, force: true } as any)
-    ).rejects.toThrow('canceled');
+    await expect(activityStore.ensure_loaded({ host: 'host', force: true })).rejects.toThrow(
+      'canceled',
+    );
     expect(activityStore.progress).toEqual({ done: 0, total: 5 });
     load.mockRestore();
   });

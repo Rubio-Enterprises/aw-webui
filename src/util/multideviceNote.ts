@@ -5,7 +5,7 @@ const DISMISSED_KEY = 'aw-multidevice-note-dismissed';
 export function isMultideviceNoteDismissed(): boolean {
   try {
     return localStorage.getItem(DISMISSED_KEY) === 'true';
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -13,7 +13,7 @@ export function isMultideviceNoteDismissed(): boolean {
 export function persistMultideviceNoteDismissed(): void {
   try {
     localStorage.setItem(DISMISSED_KEY, 'true');
-  } catch (e) {
+  } catch {
     // Storage unavailable: the note stays hidden for this page view only.
   }
 }

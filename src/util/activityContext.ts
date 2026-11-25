@@ -190,15 +190,15 @@ export function isUnderCategory(category: string[], parent: string[]): boolean {
  * survives renames and works for categories we have never heard of.
  */
 export function privateCategoriesFrom(
-  classes: { name: string[]; data?: Record<string, any> }[]
+  classes: { name: string[]; data?: Record<string, unknown> }[],
 ): CategoryName[] {
-  return classes.filter(c => c.data?.private === true).map(c => c.name);
+  return classes.filter((c) => c.data?.private === true).map((c) => c.name);
 }
 
 function shouldExclude(category: string[] | undefined, privacy: PrivacyOptions): boolean {
   if (privacy.excludeUncategorized && isUncategorized(category)) return true;
   if (!category) return false;
-  return privacy.privateCategories.some(p => isUnderCategory(category, p));
+  return privacy.privateCategories.some((p) => isUnderCategory(category, p));
 }
 
 function share(duration: number, total: number): number {
@@ -208,7 +208,7 @@ function share(duration: number, total: number): number {
 /** Take the top `limit` entries and describe what the cut dropped. */
 function truncate<T extends { duration: number }>(
   entries: T[],
-  limit: number
+  limit: number,
 ): [T[], TruncationNote] {
   const shown = entries.slice(0, limit);
   const dropped = entries.slice(limit);
@@ -245,9 +245,9 @@ function localDateStr(date: Date, formatter: Intl.DateTimeFormat | null): string
   try {
     if (!formatter) return date.toISOString().slice(0, 10);
     const parts = formatter.formatToParts(date);
-    const y = parts.find(p => p.type === 'year')?.value ?? '0000';
-    const m = parts.find(p => p.type === 'month')?.value ?? '01';
-    const d = parts.find(p => p.type === 'day')?.value ?? '01';
+    const y = parts.find((p) => p.type === 'year')?.value ?? '0000';
+    const m = parts.find((p) => p.type === 'month')?.value ?? '01';
+    const d = parts.find((p) => p.type === 'day')?.value ?? '01';
     return `${y}-${m}-${d}`;
   } catch {
     return date.toISOString().slice(0, 10);
@@ -286,7 +286,7 @@ function nextMidnightAfter(fromMs: number, formatter: Intl.DateTimeFormat | null
 function accumulateByDay(
   event: ContextEvent,
   formatter: Intl.DateTimeFormat | null,
-  dayDurations: Record<string, number>
+  dayDurations: Record<string, number>,
 ): void {
   const duration = event.duration || 0;
   if (duration <= 0) return;
@@ -346,8 +346,8 @@ export function computeFocusStats(events: ContextEvent[]): FocusStats {
   const sorted = [...blocks].sort((a, b) => a - b);
   const median = sorted.length
     ? sorted.length % 2 === 1
-      ? sorted[(sorted.length - 1) / 2]
-      : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
+      ? (sorted[(sorted.length - 1) / 2] ?? 0)
+      : ((sorted[sorted.length / 2 - 1] ?? 0) + (sorted[sorted.length / 2] ?? 0)) / 2
     : 0;
 
   return {
@@ -445,7 +445,7 @@ export function buildActivityContext(input: BuildContextInput): ActivityContext 
 
   const days = Math.max(
     1,
-    Math.round((input.end.getTime() - input.start.getTime()) / (24 * 60 * 60 * 1000))
+    Math.round((input.end.getTime() - input.start.getTime()) / (24 * 60 * 60 * 1000)),
   );
 
   return {
@@ -469,7 +469,7 @@ export function buildActivityContext(input: BuildContextInput): ActivityContext 
     focus: computeFocusStats(kept),
     privacy: {
       excludeUncategorized: input.privacy.excludeUncategorized,
-      excludedCategories: Array.from(excludedCategoryKeys).map(k => JSON.parse(k) as string[]),
+      excludedCategories: Array.from(excludedCategoryKeys).map((k) => JSON.parse(k) as string[]),
       excludedSeconds,
       coverage: activeSeconds > 0 ? exportedSeconds / activeSeconds : 1,
     },
@@ -499,14 +499,14 @@ export function formatActivityContext(ctx: ActivityContext): string {
 
   lines.push(
     `Activity context — ${ctx.range.start.slice(0, 10)} to ${ctx.range.end.slice(0, 10)} ` +
-      `(${ctx.range.days} day(s), ${ctx.range.timezone})`
+      `(${ctx.range.days} day(s), ${ctx.range.timezone})`,
   );
   lines.push(`Host(s): ${ctx.hosts.join(', ') || 'unknown'}`);
   const activeShare =
     ctx.coverage.activeShare === null ? 'n/a' : formatShare(ctx.coverage.activeShare);
   lines.push(
     `Tracked: ${formatDuration(ctx.coverage.trackedSeconds)} — ` +
-      `active after AFK filtering: ${formatDuration(ctx.coverage.activeSeconds)} (${activeShare})`
+      `active after AFK filtering: ${formatDuration(ctx.coverage.activeSeconds)} (${activeShare})`,
   );
   lines.push(`Summarized below: ${formatDuration(ctx.coverage.exportedSeconds)}`);
 
@@ -518,7 +518,7 @@ export function formatActivityContext(ctx: ActivityContext): string {
     lines.push(
       `Privacy filter: withheld ${formatDuration(ctx.privacy.excludedSeconds)} ` +
         `(${formatShare(1 - ctx.privacy.coverage)} of active time) from ` +
-        `${n} excluded ${n === 1 ? 'category' : 'categories'}`
+        `${n} excluded ${n === 1 ? 'category' : 'categories'}`,
     );
   }
 
@@ -527,13 +527,13 @@ export function formatActivityContext(ctx: ActivityContext): string {
     lines.push('Categories:');
     for (const c of ctx.categories) {
       lines.push(
-        `  ${c.category.join(' > ')}: ${formatDuration(c.duration)} (${formatShare(c.share)})`
+        `  ${c.category.join(' > ')}: ${formatDuration(c.duration)} (${formatShare(c.share)})`,
       );
     }
     if (ctx.truncation.categories.otherSeconds > 0) {
       lines.push(
         `  (+${ctx.truncation.categories.total - ctx.truncation.categories.shown} more, ` +
-          `${formatDuration(ctx.truncation.categories.otherSeconds)})`
+          `${formatDuration(ctx.truncation.categories.otherSeconds)})`,
       );
     }
   }
@@ -545,13 +545,13 @@ export function formatActivityContext(ctx: ActivityContext): string {
       lines.push(
         `  ${a.app}: ${formatDuration(a.duration)} (${formatShare(a.share)}, ${
           a.titleCount
-        } titles)`
+        } titles)`,
       );
     }
     if (ctx.truncation.apps.otherSeconds > 0) {
       lines.push(
         `  (+${ctx.truncation.apps.total - ctx.truncation.apps.shown} more, ` +
-          `${formatDuration(ctx.truncation.apps.otherSeconds)})`
+          `${formatDuration(ctx.truncation.apps.otherSeconds)})`,
       );
     }
   }
@@ -565,7 +565,7 @@ export function formatActivityContext(ctx: ActivityContext): string {
     if (ctx.truncation.domains.otherSeconds > 0) {
       lines.push(
         `  (+${ctx.truncation.domains.total - ctx.truncation.domains.shown} more, ` +
-          `${formatDuration(ctx.truncation.domains.otherSeconds)})`
+          `${formatDuration(ctx.truncation.domains.otherSeconds)})`,
       );
     }
   }

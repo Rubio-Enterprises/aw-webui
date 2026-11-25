@@ -15,29 +15,44 @@ div.mx-3
 </template>
 
 <script lang="ts">
+import { defineComponent, type PropType } from 'vue';
 import { getTitleAttr, getColorFromString } from '../util/color';
 import moment from 'moment';
 import _ from 'lodash';
 import FullCalendar from '@fullcalendar/vue';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import { calendarTimeBounds } from '~/util/calendar';
+import type { IBucket } from '~/util/interfaces';
+
+// An event as FullCalendar takes it (not an ActivityWatch event)
+interface CalendarEvent {
+  title: string | undefined;
+  start: string;
+  end: string;
+  backgroundColor: string;
+}
+
+// The part of the FullCalendar component this view calls
+interface FullCalendarRef {
+  getApi(): { changeView(view: string): void };
+}
 
 // TODO: Use canonical timeline query, with flooding and categorization
 // TODO: Checkbox for toggling category-view, where adjacent events with same category are merged and the events are labeled by category
 // TODO: Use the recommended way of dynamically getting events: https://fullcalendar.io/docs/events-function
-export default {
+export default defineComponent({
   components: {
     FullCalendar, // make the <FullCalendar> tag available
   },
   props: {
-    buckets: { type: Array },
+    buckets: { type: Array as PropType<IBucket[]> },
   },
   data() {
-    return { fitToActive: false, selectedBucket: null, view: 'timeGridDay' };
+    return { fitToActive: false, selectedBucket: null as string | null, view: 'timeGridDay' };
   },
   computed: {
     calendarOptions: function () {
-      const events: any[] = Array.isArray(this.events) ? this.events.filter(Boolean) : [];
+      const events: CalendarEvent[] = Array.isArray(this.events) ? this.events.filter(Boolean) : [];
       return {
         plugins: [timeGridPlugin],
         initialView: this.view,
@@ -55,7 +70,7 @@ export default {
         },
       };
     },
-    events: function () {
+    events: function (): CalendarEvent[] {
       // NOTE: This returns FullCalendar events, not ActivityWatch events.
       if (this.buckets == null) return [];
 
@@ -63,9 +78,9 @@ export default {
       if (bucket == null) {
         return [];
       }
-      let events = Array.isArray(bucket.events) ? bucket.events : [];
-      events = _.filter(events, e => e && e.timestamp && Number(e.duration) > 10);
-      events = _.map(events, e => {
+      const bucketEvents = Array.isArray(bucket.events) ? bucket.events : [];
+      const longEvents = bucketEvents.filter(e => e && e.timestamp && Number(e.duration) > 10);
+      return longEvents.map((e): CalendarEvent => {
         return {
           title: getTitleAttr(bucket, e),
           start: moment(e.timestamp).format(),
@@ -73,20 +88,20 @@ export default {
           backgroundColor: getColorFromString(getTitleAttr(bucket, e)),
         };
       });
-      return events;
     },
   },
   watch: {
-    view: function (to) {
-      const calendar = this.$refs.fullCalendar.getApi();
+    view: function (to: string) {
+      // The FullCalendar component instance, which has no types for its refs
+      const calendar = (this.$refs.fullCalendar as unknown as FullCalendarRef).getApi();
       calendar.changeView(to);
     },
   },
   methods: {
-    onEventClick: function (arg) {
+    onEventClick: function (arg: { event: unknown }) {
       // TODO: Open event inspector/editor here
       console.info('Calendar event selected:', arg.event);
     },
   },
-};
+});
 </script>
