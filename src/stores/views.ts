@@ -119,10 +119,10 @@ const LEGACY_DESKTOP_WITH_BROWSER_TITLES: View[] = [
   },
 ];
 const LEGACY_DESKTOP_DEFAULTS: View[][] = [
-  LEGACY_DESKTOP_WITH_BROWSER_TITLES.map(view =>
+  LEGACY_DESKTOP_WITH_BROWSER_TITLES.map((view) =>
     view.id === 'browser'
-      ? { ...view, elements: view.elements.filter(el => el.type !== 'top_browser_titles') }
-      : view
+      ? { ...view, elements: view.elements.filter((el) => el.type !== 'top_browser_titles') }
+      : view,
   ),
   LEGACY_DESKTOP_WITH_BROWSER_TITLES,
 ];
@@ -141,7 +141,7 @@ function sameLayout(a: View[], b: View[]): boolean {
           (el, j) =>
             el.type === other.elements[j].type &&
             el.size === other.elements[j].size &&
-            el.props === undefined
+            el.props === undefined,
         )
       );
     })
@@ -153,10 +153,10 @@ function sameLayout(a: View[], b: View[]): boolean {
  * the Android defaults (aw-android#321). Views the user edited are kept.
  */
 export function migrateStoredViews(stored: View[], isAndroid: boolean = onAndroid): View[] {
-  if (!isAndroid || !Array.isArray(stored)) {
+  if (!(isAndroid && Array.isArray(stored))) {
     return stored;
   }
-  if (!LEGACY_DESKTOP_DEFAULTS.some(legacy => sameLayout(stored, legacy))) {
+  if (!LEGACY_DESKTOP_DEFAULTS.some((legacy) => sameLayout(stored, legacy))) {
     return stored;
   }
   // A copy, so later view edits don't mutate the shared default.
@@ -172,7 +172,7 @@ export const useViewsStore = defineStore('views', {
     views: [],
   }),
   getters: {
-    getViewById: state => (id: string) => state.views.find(view => view.id === id),
+    getViewById: (state) => (id: string) => state.views.find((view) => view.id === id),
   },
   actions: {
     async load() {
@@ -194,7 +194,7 @@ export const useViewsStore = defineStore('views', {
       this.views = [];
     },
     setElements(this: State, { view_id, elements }: { view_id: string; elements: IElement[] }) {
-      this.views.find(v => v.id == view_id).elements = elements;
+      this.views.find((v) => v.id === view_id).elements = elements;
     },
     restoreDefaults(this: State) {
       this.views = defaultViews;
@@ -206,7 +206,7 @@ export const useViewsStore = defineStore('views', {
       this.views.push({ ...view, elements: [] });
     },
     removeView(this: State, { view_id }) {
-      const idx = this.views.map(v => v.id).indexOf(view_id);
+      const idx = this.views.map((v) => v.id).indexOf(view_id);
       this.views.splice(idx, 1);
     },
     editView(
@@ -216,19 +216,19 @@ export const useViewsStore = defineStore('views', {
         el_id,
         type,
         props,
-      }: { view_id: string; el_id: string; type: string; props: Record<string, unknown> }
+      }: { view_id: string; el_id: string; type: string; props: Record<string, unknown> },
     ) {
       console.log(view_id, el_id, type, props);
       console.log(this.views);
-      const element = this.views.find(v => v.id == view_id).elements[el_id];
+      const element = this.views.find((v) => v.id === view_id).elements[el_id];
       element.type = type;
       element.props = props;
     },
     addVisualization(this: State, { view_id, type }) {
-      this.views.find(v => v.id == view_id).elements.push({ type: type });
+      this.views.find((v) => v.id === view_id).elements.push({ type: type });
     },
     removeVisualization(this: State, { view_id, el_id }) {
-      this.views.find(v => v.id == view_id).elements.splice(el_id, 1);
+      this.views.find((v) => v.id === view_id).elements.splice(el_id, 1);
     },
   },
 });

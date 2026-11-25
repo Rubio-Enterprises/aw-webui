@@ -1,20 +1,20 @@
 import _ from 'lodash';
+import { defineStore } from 'pinia';
 import {
-  saveCategories,
-  loadCategories,
-  cleanCategory,
-  getDefaultClasses,
-  build_category_hierarchy,
-  createMissingParents,
-  mergeCategorySets,
   annotate,
-  Category,
-  CategorySet,
-  Rule,
+  build_category_hierarchy,
+  type Category,
+  type CategorySet,
+  cleanCategory,
+  createMissingParents,
+  getDefaultClasses,
   hasMatchableRegex,
+  loadCategories,
+  mergeCategorySets,
+  type Rule,
+  saveCategories,
 } from '~/util/classes';
 import { getColorFromCategory } from '~/util/color';
-import { defineStore } from 'pinia';
 
 interface State {
   classes: Category[];
@@ -30,20 +30,20 @@ function getScoreFromCategory(c: Category, allCats: Category[]): number {
   // Very similar to getColorFromCategory
   if (c && c.data && c.data.score !== null && c.data.score !== undefined) {
     return c.data.score;
-  } else if (c && c.name.slice(0, -1).length > 0) {
+  }
+  if (c && c.name.slice(0, -1).length > 0) {
     // If no color is set on category, traverse parents until one is found
     const parent = c.name.slice(0, -1);
-    const parentCat = allCats.find(cc => _.isEqual(cc.name, parent));
+    const parentCat = allCats.find((cc) => _.isEqual(cc.name, parent));
     return getScoreFromCategory(parentCat, allCats);
-  } else {
-    return 0;
   }
+  return 0;
 }
 
 // Normalize URL-encoded category segments (e.g. "Work%20Project" → "Work Project").
 // Route query params can arrive encoded while category names are stored decoded.
 function normalizeSegments(cat: string[]): string[] {
-  return (cat || []).map(segment => {
+  return (cat || []).map((segment) => {
     try {
       return decodeURIComponent(segment);
     } catch {
@@ -54,7 +54,7 @@ function normalizeSegments(cat: string[]): string[] {
 
 function assignIds(classes: Category[]): Category[] {
   let i = 0;
-  return classes.map(c => Object.assign(c, { id: i++ }));
+  return classes.map((c) => Object.assign(c, { id: i++ }));
 }
 
 /**
@@ -64,7 +64,7 @@ function assignIds(classes: Category[]): Category[] {
  */
 function orderedActiveSets(categorySets: CategorySet[], activeSetIds: string[]): CategorySet[] {
   return activeSetIds
-    .map(id => categorySets.find(s => s.id === id))
+    .map((id) => categorySets.find((s) => s.id === id))
     .filter((s): s is CategorySet => !!s);
 }
 
@@ -84,7 +84,7 @@ function computeEffectiveClasses(categorySets: CategorySet[], activeSetIds: stri
 function comparableCategory(c: Category): Category {
   const clean = cleanCategory(c);
   if (clean.data) {
-    const data = _.pickBy(clean.data, v => v !== undefined);
+    const data = _.pickBy(clean.data, (v) => v !== undefined);
     if (Object.keys(data).length === 0) delete clean.data;
     else clean.data = data;
   }
@@ -108,7 +108,7 @@ function comparableCategory(c: Category): Category {
 function syncToPrimarySet(state: State) {
   if (state.active_set_ids.length === 0 || state.category_sets.length === 0) return;
   const primaryId = state.active_set_ids[0];
-  const primarySet = state.category_sets.find(s => s.id === primaryId);
+  const primarySet = state.category_sets.find((s) => s.id === primaryId);
   if (!primarySet) return;
   const current = state.classes.map(cleanCategory);
   if (state.active_set_ids.length === 1) {
@@ -120,7 +120,7 @@ function syncToPrimarySet(state: State) {
   const primaryNames = new Set(primarySet.categories.map(key));
   const secondary = new Map<string, Category>();
   for (const id of state.active_set_ids.slice(1)) {
-    const set = state.category_sets.find(s => s.id === id);
+    const set = state.category_sets.find((s) => s.id === id);
     for (const c of set ? set.categories : []) {
       if (!secondary.has(key(c))) secondary.set(key(c), cleanCategory(c));
     }
@@ -145,7 +145,7 @@ function syncToPrimarySet(state: State) {
     if (!mergedNames.has(key(c))) synthesized.set(key(c), cleanCategory(c));
   }
 
-  primarySet.categories = current.filter(c => {
+  primarySet.categories = current.filter((c) => {
     const k = key(c);
     if (primaryNames.has(k)) return true;
     const inherited = secondary.get(k) || synthesized.get(k);
@@ -174,12 +174,12 @@ export const useCategoryStore = defineStore('categories', {
     },
     classes_hierarchy() {
       const hier = build_category_hierarchy(_.cloneDeep(this.classes));
-      return _.sortBy(hier, [c => c.id || 0]);
+      return _.sortBy(hier, [(c) => c.id || 0]);
     },
     classes_for_query(): [string[], Rule][] {
       return this.classes
-        .filter(c => c.rule.type !== null)
-        .map(c => {
+        .filter((c) => c.rule.type !== null)
+        .map((c) => {
           // Blank regexes never match (see hasMatchableRegex). Send them as
           // 'none' so every server treats them the same way.
           const rule: Rule =
@@ -197,14 +197,14 @@ export const useCategoryStore = defineStore('categories', {
               l.push(c.name.slice(0, i));
             }
             return l;
-          })
+          }),
         ),
-        (v: string[]) => v.join('>>>>') // Can be any separator that doesn't appear in the category names themselves
+        (v: string[]) => v.join('>>>>'), // Can be any separator that doesn't appear in the category names themselves
       );
     },
     allCategoriesSelect(): { value: string[]; text: string }[] {
       const categories = this.all_categories;
-      const entries = categories.map(c => {
+      const entries = categories.map((c) => {
         return { text: c.join(' > '), value: c, id: c.id };
       });
       return _.sortBy(entries, 'text');
@@ -214,7 +214,7 @@ export const useCategoryStore = defineStore('categories', {
         if (typeof category_arr === 'string' || category_arr instanceof String)
           console.error('Passed category was string, expected array. Lookup will fail.');
 
-        const match = this.classes.find(c => _.isEqual(c.name, category_arr));
+        const match = this.classes.find((c) => _.isEqual(c.name, category_arr));
         if (!match) {
           if (!_.isEqual(category_arr, ['Uncategorized']))
             console.error("Couldn't find category: ", category_arr);
@@ -226,7 +226,7 @@ export const useCategoryStore = defineStore('categories', {
     },
     get_category_by_id(this: State) {
       return (id: number) => {
-        return annotate(_.cloneDeep(this.classes.find((c: Category) => c.id == id)));
+        return annotate(_.cloneDeep(this.classes.find((c: Category) => c.id === id)));
       };
     },
     get_category_color() {
@@ -242,7 +242,7 @@ export const useCategoryStore = defineStore('categories', {
     category_select() {
       return (
         insertMeta: boolean,
-        translate?: (key: string) => string
+        translate?: (key: string) => string,
       ): { text: string; value?: string[] }[] => {
         // Useful for <select> elements enumerating categories
         let cats = this.all_categories;
@@ -315,7 +315,7 @@ export const useCategoryStore = defineStore('categories', {
      * The new set is NOT activated automatically — call switchToSet() after if needed.
      */
     createSet(this: State, id: string) {
-      if (this.category_sets.find(s => s.id === id)) {
+      if (this.category_sets.find((s) => s.id === id)) {
         console.warn('Category set already exists:', id);
         return;
       }
@@ -331,8 +331,8 @@ export const useCategoryStore = defineStore('categories', {
         console.warn('Cannot delete the last category set');
         return;
       }
-      this.category_sets = this.category_sets.filter(s => s.id !== id);
-      this.active_set_ids = this.active_set_ids.filter(aid => aid !== id);
+      this.category_sets = this.category_sets.filter((s) => s.id !== id);
+      this.active_set_ids = this.active_set_ids.filter((aid) => aid !== id);
       if (this.active_set_ids.length === 0) {
         this.active_set_ids = [this.category_sets[0].id];
       }
@@ -345,7 +345,7 @@ export const useCategoryStore = defineStore('categories', {
      * Saves the current classes to the previously active set first.
      */
     switchToSet(this: State, id: string) {
-      if (!this.category_sets.find(s => s.id === id)) {
+      if (!this.category_sets.find((s) => s.id === id)) {
         console.warn('Category set not found:', id);
         return;
       }
@@ -392,9 +392,9 @@ export const useCategoryStore = defineStore('categories', {
       if (id === primaryId) {
         do {
           id += '-imported';
-        } while (this.category_sets.some(s => s.id === id));
+        } while (this.category_sets.some((s) => s.id === id));
       }
-      const existing = this.category_sets.find(s => s.id === id);
+      const existing = this.category_sets.find((s) => s.id === id);
       if (existing) existing.categories = categories;
       else this.category_sets.push({ id, categories });
       if (!this.active_set_ids.includes(id)) this.active_set_ids.push(id);
@@ -408,17 +408,17 @@ export const useCategoryStore = defineStore('categories', {
      */
     renameSet(this: State, oldId: string, newId: string) {
       if (newId === oldId) return;
-      if (this.category_sets.find(s => s.id === newId)) {
+      if (this.category_sets.find((s) => s.id === newId)) {
         console.warn('A set with that name already exists:', newId);
         return;
       }
-      const set = this.category_sets.find(s => s.id === oldId);
+      const set = this.category_sets.find((s) => s.id === oldId);
       if (!set) {
         console.warn('Category set not found:', oldId);
         return;
       }
       set.id = newId;
-      this.active_set_ids = this.active_set_ids.map(id => (id === oldId ? newId : id));
+      this.active_set_ids = this.active_set_ids.map((id) => (id === oldId ? newId : id));
       this.classes_unsaved_changes = true;
     },
 
@@ -452,7 +452,7 @@ export const useCategoryStore = defineStore('categories', {
       // When a parent category is renamed, we also need to rename the children.
       // Only match categories strictly longer than old_name (actual children),
       // not siblings with the same name (fixes #702).
-      _.map(this.classes, c => {
+      _.map(this.classes, (c) => {
         if (
           c.id !== new_class.id &&
           c.name.length > parent_depth &&
@@ -481,7 +481,7 @@ export const useCategoryStore = defineStore('categories', {
         cat.rule.type = 'regex';
         cat.rule.regex = pattern;
       } else if (cat.rule.type === 'regex') {
-        cat.rule.regex += '|' + pattern;
+        cat.rule.regex += `|${pattern}`;
       }
       this.classes_unsaved_changes = true;
     },

@@ -1,6 +1,6 @@
 import moment from 'moment';
-import { get_day_start_with_offset } from './time';
 import { useSettingsStore } from '~/stores/settings';
+import { get_day_start_with_offset } from './time';
 
 export interface TimePeriod {
   start: string;
@@ -10,7 +10,7 @@ export interface TimePeriod {
 export function dateToTimeperiod(
   date: string,
   offset: string,
-  duration?: [number, string]
+  duration?: [number, string],
 ): TimePeriod {
   return { start: get_day_start_with_offset(date, offset), length: duration || [1, 'day'] };
 }
@@ -26,15 +26,17 @@ export function timeperiodToStr(tp: TimePeriod): string {
 export function dateformat(periodLength: string) {
   if (periodLength === 'day') {
     return 'YYYY-MM-DD';
-  } else if (periodLength === 'week') {
-    return 'YYYY[ W]WW';
-  } else if (periodLength === 'month') {
-    return 'YYYY-MM';
-  } else if (periodLength === 'year') {
-    return 'YYYY';
-  } else {
-    return 'YYYY-MM-DD';
   }
+  if (periodLength === 'week') {
+    return 'YYYY[ W]WW';
+  }
+  if (periodLength === 'month') {
+    return 'YYYY-MM';
+  }
+  if (periodLength === 'year') {
+    return 'YYYY';
+  }
+  return 'YYYY-MM-DD';
 }
 
 export function periodReadable(timeperiod: TimePeriod) {
@@ -43,32 +45,33 @@ export function periodReadable(timeperiod: TimePeriod) {
   }
   if (timeperiod.length[0] === 1) {
     return moment(timeperiod.start).format(dateformat(timeperiod.length[1]));
-  } else {
-    return (
-      moment(timeperiod.start).format(dateformat(timeperiod.length[1])) +
-      ' to ' +
-      moment(timeperiod.start)
-        .add(timeperiod.length[0], timeperiod.length[1] as moment.unitOfTime.DurationConstructor)
-        .format(dateformat(timeperiod.length[1]))
-    );
   }
+  return (
+    moment(timeperiod.start).format(dateformat(timeperiod.length[1])) +
+    ' to ' +
+    moment(timeperiod.start)
+      .add(timeperiod.length[0], timeperiod.length[1] as moment.unitOfTime.DurationConstructor)
+      .format(dateformat(timeperiod.length[1]))
+  );
 }
 
 export function periodLengthConvertMoment(periodLength: string) {
   const settingsStore = useSettingsStore();
   if (periodLength === 'day') {
     return 'day';
-  } else if (periodLength === 'week') {
-    /* This is necessary so the week starts on Monday instead of Sunday */
-    return settingsStore.startOfWeek == 'Monday' ? 'isoWeek' : 'week';
-  } else if (periodLength === 'month') {
-    return 'month';
-  } else if (periodLength === 'year') {
-    return 'year';
-  } else {
-    console.error(`Invalid periodLength ${periodLength}, defaulting to "day"`);
-    return 'day';
   }
+  if (periodLength === 'week') {
+    /* This is necessary so the week starts on Monday instead of Sunday */
+    return settingsStore.startOfWeek === 'Monday' ? 'isoWeek' : 'week';
+  }
+  if (periodLength === 'month') {
+    return 'month';
+  }
+  if (periodLength === 'year') {
+    return 'year';
+  }
+  console.error(`Invalid periodLength ${periodLength}, defaulting to "day"`);
+  return 'day';
 }
 
 const WEEKDAY_INDEX = { Sunday: 0, Monday: 1, Saturday: 6 };
@@ -133,7 +136,7 @@ export function timeperiodsHoursOfPeriod(timeperiod: TimePeriod): TimePeriod[] {
  */
 export function hourlyLabels(timeperiod: TimePeriod): string[] {
   const periods = timeperiodsHoursOfPeriod(timeperiod);
-  const labels = periods.map(p => {
+  const labels = periods.map((p) => {
     const m = moment(p.start);
     return m.minute() === 0 ? m.format('H') : m.format('H:mm');
   });
@@ -142,7 +145,7 @@ export function hourlyLabels(timeperiod: TimePeriod): string[] {
     return acc;
   }, {});
   return periods.map((p, i) =>
-    counts[labels[i]] > 1 ? `${labels[i]} (${moment(p.start).format('Z')})` : labels[i]
+    counts[labels[i]] > 1 ? `${labels[i]} (${moment(p.start).format('Z')})` : labels[i],
   );
 }
 
@@ -202,10 +205,10 @@ export function parseDateRange(str: string | undefined | null): DateRange | null
   const parts = str.split(DATE_RANGE_SEP);
   if (parts.length !== 2) return null;
   const [start, end] = parts;
-  if (!DATE_RE.test(start) || !DATE_RE.test(end)) return null;
+  if (!(DATE_RE.test(start) && DATE_RE.test(end))) return null;
   const mStart = moment(start, 'YYYY-MM-DD', true);
   const mEnd = moment(end, 'YYYY-MM-DD', true);
-  if (!mStart.isValid() || !mEnd.isValid() || mEnd.isBefore(mStart)) return null;
+  if (!(mStart.isValid() && mEnd.isValid()) || mEnd.isBefore(mStart)) return null;
   return { start, end };
 }
 
@@ -282,15 +285,18 @@ export function timeperiodsForBarchart(timeperiod: TimePeriod): TimePeriod[] {
   }
   if (res.startsWith('day') && count === 1) {
     return timeperiodsHoursOfPeriod(timeperiod);
-  } else if (res.startsWith('day') && count > MAX_DAILY_BUCKETS) {
+  }
+  if (res.startsWith('day') && count > MAX_DAILY_BUCKETS) {
     return timeperiodsCalendarMonthsOfPeriod(timeperiod);
-  } else if (
+  }
+  if (
     res.startsWith('day') ||
     (res.startsWith('week') && count === 1) ||
     (res.startsWith('month') && count === 1)
   ) {
     return timeperiodsDaysOfPeriod(timeperiod);
-  } else if (res.startsWith('year') && count === 1) {
+  }
+  if (res.startsWith('year') && count === 1) {
     // Calendar months, the same keys categoryByPeriodFromChunks produces.
     return timeperiodsCalendarMonthsOfPeriod(timeperiod);
   }
@@ -374,7 +380,7 @@ export function parseExactInterval(str: string | undefined | null): ExactInterva
   if (parts.length !== 2) return null;
   const start = parseInstant(parts[0]);
   const end = parseInstant(parts[1]);
-  if (!start || !end) return null;
+  if (!(start && end)) return null;
   const span = end.valueOf() - start.valueOf();
   if (span <= 0 || span > MAX_INTERVAL_MS) return null;
   return { start: formatInstant(start), end: formatInstant(end) };
@@ -422,7 +428,7 @@ export function wallTimeInstants(wall: string): string[] {
   const offsets = new Set<number>();
   for (let h = -3; h <= 3; h++) offsets.add(local.clone().add(h, 'hours').utcOffset());
   const found: string[] = [];
-  offsets.forEach(offset => {
+  offsets.forEach((offset) => {
     const instant = naive.clone().subtract(offset, 'minutes');
     // Only offsets that really apply at that instant produce this wall time
     if (moment(instant.valueOf()).format(WALL_FORMAT) === naive.format(WALL_FORMAT)) {
@@ -480,7 +486,7 @@ export function timeperiodsExactDaysOfPeriod(timeperiod: TimePeriod): TimePeriod
  */
 export function exactBucketLabels(timeperiod: TimePeriod): string[] {
   if (timeperiod.length[0] <= EXACT_HOURLY_MAX_MS) return hourlyLabels(timeperiod);
-  return timeperiodsExactDaysOfPeriod(timeperiod).map(p => {
+  return timeperiodsExactDaysOfPeriod(timeperiod).map((p) => {
     const m = moment(p.start);
     return m.format(m.hours() === 0 && m.minutes() === 0 ? 'YYYY-MM-DD' : 'YYYY-MM-DD HH:mm');
   });
