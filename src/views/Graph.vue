@@ -74,6 +74,22 @@ import { useBucketsStore } from '~/stores/buckets';
 import { useCategoryStore } from '~/stores/categories';
 
 import { getClient } from '~/util/awclient';
+import type { IEvent } from '~/util/interfaces';
+
+type GraphNode = { id: string; group: number; color: string; value: number };
+type GraphLink = { source: string; target: string; value: number };
+type GraphData = { nodes: GraphNode[]; links: GraphLink[] };
+
+// Set by the query options component once it has mounted
+type GraphQueryOptions = {
+  hostname?: string;
+  filter_afk?: boolean;
+  start?: string;
+  stop?: string;
+};
+
+// The error shape of a failed aw-client request
+type RequestError = { message?: string; response?: { data?: { message?: string } } };
 
 export default defineComponent({
   name: 'Graph',
@@ -84,11 +100,11 @@ export default defineComponent({
     return {
       categoryStore: useCategoryStore(),
 
-      events: null,
-      graphdata: {},
+      events: null as IEvent[] | null,
+      graphdata: { nodes: [], links: [] } as GraphData,
 
-      status: null,
-      queryTime: null,
+      status: null as 'searching' | null,
+      queryTime: null as number | null,
       error: '',
 
       // Parameters
@@ -97,7 +113,7 @@ export default defineComponent({
 
       // Options
       show_options: false,
-      queryOptions: {},
+      queryOptions: {} as GraphQueryOptions,
     };
   },
   mounted: async function () {
@@ -106,12 +122,12 @@ export default defineComponent({
   methods: {
     generate: async function () {
       this.events = await this.fetchEvents();
-      this.graphdata = this.generateGraphData(this.events);
+      this.graphdata = this.generateGraphData(this.events ?? []);
     },
-    fetchEvents: async function () {
+    fetchEvents: async function (): Promise<IEvent[] | null> {
       // TODO: use full query (one per day/timeperiod) instead of canonicalEvents
       let query = canonicalEvents({
-        ...useBucketsStore().desktopBucketIds(this.queryOptions.hostname),
+        ...useBucketsStore().desktopBucketIds(this.queryOptions.hostname ?? ''),
         filter_afk: this.queryOptions.filter_afk,
         categories: this.categoryStore.classes_for_query,
         filter_categories: this.excludeUncategorized
@@ -131,16 +147,18 @@ export default defineComponent({
         this.error = '';
         this.queryTime = moment().diff(time);
         console.log('done fetching events!');
-        this.events = _.orderBy(data[0], ['timestamp'], ['desc']);
+        this.events = _.orderBy(data[0] as IEvent[], ['timestamp'], ['desc']);
       } catch (e) {
         console.error(e);
-        this.error = e?.response?.data?.message || e?.message || this.$t('common.requestFailed');
+        const err = e as RequestError | undefined;
+        this.error =
+          err?.response?.data?.message || err?.message || (this.$t('common.requestFailed') as string);
       } finally {
         this.status = null;
       }
       return this.events;
     },
-    generateGraphData: function (events) {
+    generateGraphData: function (input: IEvent[]): GraphData {
       // generate graph data from events
       // iterate through events, and count the number of category transitions
       // for each category, add a node to the graphdata with the group of its parent category
@@ -148,28 +166,28 @@ export default defineComponent({
       const SEP = '>';
 
       // copy all events, slice off category depth deeper than maxDepth
-      events = events.map(e => {
-        const $category = e.data.$category.slice(0, this.maxDepth);
+      const events = input.map(e => {
+        const $category = (e.data.$category ?? ['Uncategorized']).slice(0, this.maxDepth);
         return { ...e, data: { ...e.data, $category } };
       });
 
       const allCategories: Set<string> = new Set(
         events.map(e => e.data.$category).map(c => c.join(SEP))
       );
-      const groups = { Uncategorized: 0 };
+      const groups: Record<string, number> = { Uncategorized: 0 };
 
       // Generate groups
       for (const category of allCategories) {
-        const rootcat = category.split(SEP)[0];
+        const rootcat = category.split(SEP)[0] ?? '';
         if (!Object.prototype.hasOwnProperty.call(groups, rootcat)) {
           groups[rootcat] = Object.keys(groups).length;
         }
       }
 
       // Generate nodes
-      const nodes = [];
+      const nodes: GraphNode[] = [];
       for (const category of allCategories) {
-        const rootcat = category.split(SEP)[0];
+        const rootcat = category.split(SEP)[0] ?? '';
         // Size nodes depending on time spent
         const catTime = events
           .filter(e => e.data.$category.join(SEP) == category)
@@ -177,17 +195,19 @@ export default defineComponent({
           .reduce((a, b) => a + b, 0);
         nodes.push({
           id: category,
-          group: groups[rootcat],
+          // Every root category was added to groups above
+          group: groups[rootcat] ?? 0,
           color: this.categoryStore.get_category_color(category.split(SEP)),
           value: catTime,
         });
       }
 
       // Generate links
-      const links = [];
+      const links: GraphLink[] = [];
       for (let i = 0; i < events.length - 1; i++) {
         const e1 = events[i];
         const e2 = events[i + 1];
+        if (!e1 || !e2) continue;
         const e1cat = e1.data.$category;
         const e2cat = e2.data.$category;
         if (_.isEqual(e1cat, e2cat)) continue;
