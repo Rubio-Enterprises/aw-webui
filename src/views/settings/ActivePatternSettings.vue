@@ -24,10 +24,11 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { isRegexBroad, validateRegex } from '~/util/validate';
 import { useSettingsStore } from '~/stores/settings';
 
-export default {
+export default defineComponent({
   name: 'ActivePatternSettings',
   data() {
     return {
@@ -78,5 +79,5 @@ export default {
   mounted() {
     this.always_active_pattern_editing = this.settingsStore.always_active_pattern;
   },
-};
+});
 </script>

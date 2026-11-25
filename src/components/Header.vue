@@ -175,6 +175,7 @@ div(:class="{'fixed-top-padding': fixedTopMenu}")
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 // only import the icons you use to reduce bundle size
 import 'vue-awesome/icons/calendar-day';
 import 'vue-awesome/icons/briefcase';
@@ -211,7 +212,7 @@ import { IBucket } from '~/util/interfaces';
 import { ALL_DEVICES, formatHostParam } from '~/util/multidevice';
 import { connectNativeBridge, NATIVE_MENU_ACTIONS, NativeBridge } from '~/util/nativeBridge';
 
-export default {
+export default defineComponent({
   name: 'Header',
   data() {
     return {
@@ -320,7 +321,7 @@ export default {
       }
     },
   },
-};
+});
 </script>
 
 <style lang="scss" scoped>

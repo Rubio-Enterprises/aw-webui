@@ -33,12 +33,13 @@ div
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 // Based on https://codepen.io/Brownsugar/pen/NaGPKy
 import 'vue-awesome/icons/sync';
 
 import { Compact } from 'vue-color';
 
-export default {
+export default defineComponent({
   components: {
     picker: Compact,
   },
@@ -119,5 +120,5 @@ export default {
       }
     },
   },
-};
+});
 </script>

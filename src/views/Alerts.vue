@@ -56,6 +56,7 @@ div
 <style scoped lang="scss"></style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import _ from 'lodash';
 import moment from 'moment';
 import { canonicalEvents, querystr_to_array } from '~/queries';
@@ -71,7 +72,7 @@ import { useSettingsStore } from '~/stores/settings';
 import { get_day_start_with_offset } from '~/util/time';
 import { cleanAlertGoal, cleanAlertGoals, getDefaultAlertGoals } from '~/util/alerts';
 
-export default {
+export default defineComponent({
   name: 'Alerts',
   data() {
     return {
@@ -245,5 +246,5 @@ export default {
       this.last_updated = new Date();
     },
   },
-};
+});
 </script>

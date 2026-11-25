@@ -23,6 +23,7 @@ sunburst.sunburst-categories(:data="data", :colorScale="colorfunc", :getCategory
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import {
   breadcrumbTrail,
   highlightOnHover,
@@ -64,7 +65,7 @@ const example_data = {
 
 const SEP = '>';
 
-export default {
+export default defineComponent({
   components: {
     breadcrumbTrail,
     highlightOnHover,
@@ -114,7 +115,7 @@ export default {
       return color;
     },
   },
-};
+});
 </script>
 
 <style lang="scss" scoped>

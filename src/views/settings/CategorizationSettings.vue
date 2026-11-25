@@ -128,6 +128,7 @@ div
       b-btn(variant="primary" @click="onImportAddOnTop") {{ $t('settings.categorization.importAddOnTop') }}
 </template>
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { mapState, mapGetters } from 'pinia';
 import CategoryEditTree from '~/components/CategoryEditTree.vue';
 import CategoryEditModal from '~/components/CategoryEditModal.vue';
@@ -140,7 +141,7 @@ import { useCategoryStore } from '~/stores/categories';
 import { downloadFile } from '~/util/export';
 import { parseCategoryImport, shouldAttemptJsonImport } from '~/util/importFile';
 
-export default {
+export default defineComponent({
   name: 'CategorizationSettings',
   components: {
     CategoryEditTree,
@@ -367,5 +368,5 @@ export default {
       }
     },
   },
-};
+});
 </script>

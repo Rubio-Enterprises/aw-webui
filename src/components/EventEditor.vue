@@ -56,6 +56,7 @@ b-modal(v-if="event && event.id", :id="'edit-modal-' + event.id", ref="eventEdit
 <style lang="scss"></style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 // This EventEditor can be used to edit events in a specific bucket.
 //
 // It is used in:
@@ -71,7 +72,7 @@ import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/save';
 import 'vue-awesome/icons/trash';
 
-export default {
+export default defineComponent({
   name: 'EventEditor',
   props: {
     event: { type: Object },
@@ -193,5 +194,5 @@ export default {
       this.$emit('close', this.event);
     },
   },
-};
+});
 </script>

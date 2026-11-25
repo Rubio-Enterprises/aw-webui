@@ -81,6 +81,7 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { useBucketsStore } from '~/stores/buckets';
 import { useCategoryStore } from '~/stores/categories';
 import { getClient } from '~/util/awclient';
@@ -98,7 +99,7 @@ const DEFAULT_PROMPT =
   'Based on the following activity data, provide a concise summary of how I spent my time. ' +
   'Highlight the main activities, identify focus areas, and suggest any observations about productivity patterns.';
 
-export default {
+export default defineComponent({
   name: 'AISummaryView',
   data() {
     const saved = loadLLMConfig();
@@ -307,5 +308,5 @@ export default {
       }
     },
   },
-};
+});
 </script>

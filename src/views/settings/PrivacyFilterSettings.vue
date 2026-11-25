@@ -42,6 +42,7 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { useSettingsStore } from '~/stores/settings';
 import {
   DEFAULT_PRIVACY_FILTERS,
@@ -49,7 +50,7 @@ import {
   validatePrivacyFiltersInput,
 } from '~/util/privacyFilters';
 
-export default {
+export default defineComponent({
   name: 'PrivacyFilterSettings',
   data() {
     return {
@@ -125,5 +126,5 @@ export default {
       }
     },
   },
-};
+});
 </script>

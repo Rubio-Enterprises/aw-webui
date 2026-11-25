@@ -10,12 +10,13 @@ svg {
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 // NOTE: This is just a Vue.js component wrapper for timeline-simple.js
 //       Code should generally go in the framework-independent file.
 
 import timeline_simple from './timeline-simple';
 
-export default {
+export default defineComponent({
   name: 'aw-timeline',
   props: {
     type: String,
@@ -35,5 +36,5 @@ export default {
   mounted: function () {
     timeline_simple.create(this.$el);
   },
-};
+});
 </script>

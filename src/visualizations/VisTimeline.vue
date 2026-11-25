@@ -87,6 +87,7 @@ div#visualization {
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import _ from 'lodash';
 import { markRaw } from 'vue';
 import Color from 'color';
@@ -113,7 +114,7 @@ const PIXELS_PER_WHEEL_LINE = 40;
 const CATEGORIZED_ROW = '__categorized__';
 const PIXELS_PER_WHEEL_PAGE = 800;
 
-export default {
+export default defineComponent({
   components: {
     EventEditor,
   },
@@ -607,5 +608,5 @@ export default {
       this.groups = groups;
     },
   },
-};
+});
 </script>

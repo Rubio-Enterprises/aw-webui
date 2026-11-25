@@ -135,6 +135,7 @@ $border-color: #ddd;
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import 'vue-awesome/icons/edit';
 import 'vue-awesome/icons/tags';
 import 'vue-awesome/icons/clock';
@@ -142,7 +143,7 @@ import 'vue-awesome/icons/calendar';
 
 import EventEditor from '~/components/EventEditor.vue';
 
-export default {
+export default defineComponent({
   name: 'EventList',
   components: {
     'event-editor': EventEditor,
@@ -183,5 +184,5 @@ export default {
       //this.events = this.events.filter(e => e.id != event.id);
     },
   },
-};
+});
 </script>

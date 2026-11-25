@@ -70,6 +70,7 @@ div
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import _ from 'lodash';
 import 'vue-awesome/icons/question-circle';
 import { useActivityStore } from '~/stores/activity';
@@ -78,7 +79,7 @@ import { periodReadable } from '~/util/timeperiod';
 
 // TODO: Maybe add a "Category Tree"-style visualization?
 
-export default {
+export default defineComponent({
   name: 'aw-score',
   computed: {
     categories_with_score: function (): IEvent[] {
@@ -118,5 +119,5 @@ export default {
       );
     },
   },
-};
+});
 </script>

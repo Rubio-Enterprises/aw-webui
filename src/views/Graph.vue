@@ -59,6 +59,7 @@ div
 <style scoped lang="scss"></style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import _ from 'lodash';
 import moment from 'moment';
 
@@ -74,7 +75,7 @@ import { useCategoryStore } from '~/stores/categories';
 
 import { getClient } from '~/util/awclient';
 
-export default {
+export default defineComponent({
   name: 'Graph',
   components: {
     'aw-force-graph': () => import('~/visualizations/ForceGraph.vue'),
@@ -213,5 +214,5 @@ export default {
       this.generate();
     },
   },
-};
+});
 </script>

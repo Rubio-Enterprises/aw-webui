@@ -35,6 +35,7 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import 'vue-awesome/icons/regular/plus-square';
 import 'vue-awesome/icons/regular/minus-square';
 import 'vue-awesome/icons/circle';
@@ -48,7 +49,7 @@ import { useCategoryStore } from '~/stores/categories';
 
 import _ from 'lodash';
 
-export default {
+export default defineComponent({
   name: 'CategoryEditTree',
   components: {
     CategoryEditModal,
@@ -102,7 +103,7 @@ export default {
       this.editingId = null;
     },
   },
-};
+});
 </script>
 
 <style scoped lang="scss">

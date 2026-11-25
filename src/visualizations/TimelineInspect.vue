@@ -10,12 +10,13 @@ svg {
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 // NOTE: This is just a Vue.js component wrapper for timeline.ts
 //       Code should generally go in the framework-independent file.
 
 import timeline from './timeline';
 
-export default {
+export default defineComponent({
   name: 'aw-timeline',
   props: {
     chunks: { type: Object },
@@ -51,5 +52,5 @@ export default {
       }
     },
   },
-};
+});
 </script>

@@ -85,6 +85,7 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import moment from 'moment';
 import { getClient } from '~/util/awclient';
 import { useCategoryStore } from '~/stores/categories';
@@ -112,7 +113,7 @@ interface DailyData {
   events: any[];
 }
 
-export default {
+export default defineComponent({
   name: 'WorkReport',
   data() {
     return {
@@ -414,7 +415,7 @@ export default {
       URL.revokeObjectURL(url);
     },
   },
-};
+});
 </script>
 
 <style scoped>

@@ -14,6 +14,7 @@
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import axios from 'axios';
 import moment from 'moment';
 import semver from 'semver';
@@ -25,7 +26,7 @@ import { getClient } from '~/util/awclient';
 // After reminding the user every SHORT_BACKOFF_PERIOD days for BACKOFF_THRESHOLD times, switch to LONG_BACKOFF_PERIOD
 const BACKOFF_THRESHOLD = 5;
 
-export default {
+export default defineComponent({
   name: 'new-release-notification',
   data() {
     return {
@@ -119,5 +120,5 @@ export default {
       this.saveData();
     },
   },
-};
+});
 </script>

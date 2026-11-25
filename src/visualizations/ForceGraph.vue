@@ -10,9 +10,10 @@ div#forcegraph
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import * as d3 from 'd3';
 
-export default {
+export default defineComponent({
   name: 'ForceGraph',
   props: {
     data: {
@@ -74,7 +75,7 @@ export default {
       console.log('drawn!');
     },
   },
-};
+});
 
 type GNode = {
   id: string;

@@ -120,6 +120,7 @@ div(v-if="editable || !activityStore.buckets.loaded || has_prerequisites || !set
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import _ from 'lodash';
 import 'vue-awesome/icons/cog';
 import 'vue-awesome/icons/times';
@@ -146,7 +147,7 @@ function pick_subname_as_name(c) {
   return c;
 }
 
-export default {
+export default defineComponent({
   name: 'aw-selectable-vis',
   props: {
     id: Number,
@@ -387,5 +388,5 @@ export default {
       );
     },
   },
-};
+});
 </script>

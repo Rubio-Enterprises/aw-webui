@@ -93,6 +93,7 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import moment from 'moment';
 import { mapState } from 'pinia';
 import { useServerStore } from '~/stores/server';
@@ -143,7 +144,7 @@ function localDateStr(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-export default {
+export default defineComponent({
   name: 'Home',
   data() {
     return {
@@ -407,5 +408,5 @@ export default {
       }
     },
   },
-};
+});
 </script>

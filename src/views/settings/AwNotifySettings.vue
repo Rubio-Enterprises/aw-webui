@@ -64,6 +64,7 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import 'vue-awesome/icons/plus';
 import 'vue-awesome/icons/trash';
 
@@ -106,7 +107,7 @@ function rowToDto(row: AlertRow): AwNotifyAlert {
   };
 }
 
-export default {
+export default defineComponent({
   name: 'AwNotifySettings',
   data() {
     return {
@@ -223,5 +224,5 @@ export default {
       ];
     },
   },
-};
+});
 </script>

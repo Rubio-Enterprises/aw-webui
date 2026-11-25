@@ -124,9 +124,10 @@ div
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import moment from 'moment';
 import 'vue-awesome/icons/sync';
-export default {
+export default defineComponent({
   name: 'input-timeinterval',
   props: {
     defaultDuration: {
@@ -255,5 +256,5 @@ export default {
       this.valueChanged();
     },
   },
-};
+});
 </script>

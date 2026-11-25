@@ -61,6 +61,7 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import _ from 'lodash';
 import moment from 'moment';
 import { canonicalEvents, browserSearchQuery, querystr_to_array } from '~/queries';
@@ -71,7 +72,7 @@ import 'vue-awesome/icons/spinner';
 import 'vue-awesome/icons/angle-double-down';
 import 'vue-awesome/icons/angle-double-up';
 
-export default {
+export default defineComponent({
   name: 'Search',
   data() {
     return {
@@ -169,5 +170,5 @@ export default {
       this.search();
     },
   },
-};
+});
 </script>

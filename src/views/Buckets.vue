@@ -247,6 +247,7 @@ div
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import 'vue-awesome/icons/trash';
 import 'vue-awesome/icons/download';
 import 'vue-awesome/icons/folder-open';
@@ -278,7 +279,7 @@ async function importBuckets(aw, importFile) {
   return aw.req.post('/0/import', formData, { headers });
 }
 
-export default {
+export default defineComponent({
   name: 'Buckets',
   components: {
     'aw-bucket-merge': () => import('~/components/BucketMerge.vue'),
@@ -483,5 +484,5 @@ export default {
       }
     },
   },
-};
+});
 </script>

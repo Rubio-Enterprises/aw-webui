@@ -49,6 +49,7 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import _ from 'lodash';
 import moment from 'moment';
 import { earliestEventInBucket, rangeCoveringEarliest } from '~/util/earliestEvent';
@@ -65,7 +66,7 @@ function formatValue(value: unknown): string {
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
 }
-export default {
+export default defineComponent({
   name: 'aw-top-bucket-data',
   props: {
     initialBucketId: { type: String, default: '' },
@@ -272,7 +273,7 @@ export default {
       });
     },
   },
-};
+});
 </script>
 
 <style scoped>

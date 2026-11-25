@@ -4,10 +4,11 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import moment from 'moment';
 import { useActivityStore } from '~/stores/activity';
 
-export default {
+export default defineComponent({
   name: 'aw-custom-watcher',
   props: {
     visname: String,
@@ -35,5 +36,5 @@ export default {
       return _origin + '/pages/' + this.visname + '/?' + urlParams.toString();
     },
   },
-};
+});
 </script>

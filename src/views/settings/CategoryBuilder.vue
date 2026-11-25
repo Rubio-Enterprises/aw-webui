@@ -121,6 +121,7 @@ div
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import _ from 'lodash';
 import moment from 'moment';
 import { mapState } from 'pinia';
@@ -136,7 +137,7 @@ import { isRegexBroad, validateRegex } from '~/util/validate';
 import { findCommonPhrases } from '~/util/categorization';
 import { categoryBuilderHostnameEmptyKind, selectSoleKnownHostname } from '~/util/hostnames';
 
-export default {
+export default defineComponent({
   name: 'CategoryBuilder',
   components: { CategoryEditModal },
   async beforeRouteLeave(to, from, next) {
@@ -468,5 +469,5 @@ export default {
       this.appendRuleOk();
     },
   },
-};
+});
 </script>

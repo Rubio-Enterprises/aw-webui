@@ -105,6 +105,7 @@ div
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import moment from 'moment';
 import {
   get_today_with_offset,
@@ -131,7 +132,7 @@ interface CategoryTrend {
   absDelta: number;
 }
 
-export default {
+export default defineComponent({
   name: 'Trends',
   data() {
     return {
@@ -513,5 +514,5 @@ export default {
       return querystr_to_array(code);
     },
   },
-};
+});
 </script>

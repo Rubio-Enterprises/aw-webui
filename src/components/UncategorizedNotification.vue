@@ -16,13 +16,14 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import 'vue-awesome/icons/cog';
 import { mapState } from 'pinia';
 import { useActivityStore } from '~/stores/activity';
 import { useSettingsStore } from '~/stores/settings';
 import { seconds_to_duration } from '~/util/time';
 
-export default {
+export default defineComponent({
   name: 'aw-uncategorized-notification',
   props: {
     periodLength: {
@@ -93,7 +94,7 @@ export default {
       });
     },
   },
-};
+});
 </script>
 
 <style scoped>

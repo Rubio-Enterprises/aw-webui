@@ -101,11 +101,12 @@ div.sunburst
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import sunburst from './sunburst-clock';
 import moment from 'moment';
 import _ from 'lodash';
 
-export default {
+export default defineComponent({
   name: 'aw-sunburst-clock',
   props: {
     date: { type: String },
@@ -225,5 +226,5 @@ export default {
       });
     },
   },
-};
+});
 </script>

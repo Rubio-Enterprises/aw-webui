@@ -72,6 +72,7 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import 'vue-awesome/icons/check';
 import 'vue-awesome/icons/exclamation-triangle';
 import 'vue-awesome/icons/info-circle';
@@ -80,7 +81,7 @@ import { overlappingEvents } from '~/util/transforms';
 import { seconds_to_duration } from '~/util/time';
 import _ from 'lodash';
 
-export default {
+export default defineComponent({
   name: 'aw-bucket-merge',
   data() {
     return {
@@ -174,5 +175,5 @@ export default {
       return await client.getEvents(bucket_id);
     },
   },
-};
+});
 </script>

@@ -111,6 +111,7 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import 'vue-awesome/icons/filter';
 import 'vue-awesome/icons/ellipsis-v';
 import _ from 'lodash';
@@ -125,7 +126,7 @@ import { getCategorizationStringFromEvent } from '~/util/color';
 import { seconds_to_duration } from '~/util/time';
 import { categoryTimelineQuery, mergeCategoryIntervals } from '~/util/timelineCategories';
 
-export default {
+export default defineComponent({
   name: 'Timeline',
   data() {
     return {
@@ -468,7 +469,7 @@ export default {
       return data[0] || [];
     },
   },
-};
+});
 </script>
 
 <style scoped>

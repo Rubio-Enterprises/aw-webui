@@ -39,10 +39,11 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { getClient } from '~/util/awclient';
 import { overlappingEvents } from '~/util/transforms';
 
-export default {
+export default defineComponent({
   name: 'aw-bucket-merge',
   data() {
     return {
@@ -99,5 +100,5 @@ export default {
       return await client.getEvents(bucket_id);
     },
   },
-};
+});
 </script>

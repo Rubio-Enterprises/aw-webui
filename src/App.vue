@@ -13,6 +13,7 @@ div#wrapper(v-if="loaded")
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { useSettingsStore } from '~/stores/settings';
 import { useServerStore } from '~/stores/server';
 import { DARK_THEME_HREF, detectPreferredTheme } from '~/util/theme';
@@ -20,7 +21,7 @@ import { DARK_THEME_HREF, detectPreferredTheme } from '~/util/theme';
 //import darkCssUrl from '../static/dark.css?url';
 //import darkCssContent from '../static/dark.css?inline';
 
-export default {
+export default defineComponent({
   data: function () {
     return {
       activityViews: [],
@@ -69,5 +70,5 @@ export default {
     const serverStore = useServerStore();
     await serverStore.getInfo();
   },
-};
+});
 </script>

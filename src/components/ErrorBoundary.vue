@@ -6,8 +6,9 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 // Based on: https://medium.com/@dillonchanis/handling-errors-in-vue-with-error-boundaries-91f6ead0093b
-export default {
+export default defineComponent({
   name: 'ErrorBoundary',
   data() {
     return {
@@ -39,5 +40,5 @@ export default {
       dismissed: false,
     });
   },
-};
+});
 </script>

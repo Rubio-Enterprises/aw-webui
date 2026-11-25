@@ -426,6 +426,7 @@ div
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { mapState } from 'pinia';
 import moment from 'moment';
 import { get_day_start_with_offset, get_today_with_offset, seconds_to_duration } from '~/util/time';
@@ -494,7 +495,7 @@ import {
   activityDiagnostic as diagnoseActivity,
 } from '~/util/activityDiagnostics';
 
-export default {
+export default defineComponent({
   name: 'Activity',
   components: {
     'aw-uncategorized-notification': () => import('~/components/UncategorizedNotification.vue'),
@@ -1293,5 +1294,5 @@ export default {
       };
     },
   },
-};
+});
 </script>

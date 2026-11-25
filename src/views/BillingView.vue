@@ -79,6 +79,7 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import moment from 'moment';
 import { getClient } from '~/util/awclient';
 import { useCategoryStore } from '~/stores/categories';
@@ -129,7 +130,7 @@ RETURN = {"events": events, "duration": duration};`;
     .join('\n');
 }
 
-export default {
+export default defineComponent({
   name: 'BillingView',
   data() {
     return {
@@ -344,7 +345,7 @@ export default {
       URL.revokeObjectURL(url);
     },
   },
-};
+});
 </script>
 
 <style scoped>

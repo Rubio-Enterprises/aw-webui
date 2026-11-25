@@ -23,6 +23,7 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { useSettingsStore } from '~/stores/settings';
 import { useCategoryStore } from '~/stores/categories';
 
@@ -47,7 +48,7 @@ interface Group {
   components: { name: string }[];
 }
 
-export default {
+export default defineComponent({
   name: 'Settings',
   components: {
     LanguageSettings,
@@ -150,7 +151,7 @@ export default {
       return settingsStore.load();
     },
   },
-};
+});
 </script>
 
 <style scoped lang="scss">

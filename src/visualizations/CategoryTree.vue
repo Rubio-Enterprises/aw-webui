@@ -57,6 +57,7 @@ div(style="font-size: 0.9em")
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import 'vue-awesome/icons/circle';
 import 'vue-awesome/icons/regular/plus-square';
 import 'vue-awesome/icons/regular/minus-square';
@@ -81,7 +82,7 @@ function _flatten_hierarchy(c) {
   return _.flattenDeep([c, _.map(c.children, cc => _flatten_hierarchy(cc))]);
 }
 
-export default {
+export default defineComponent({
   name: 'aw-categorytree',
   props: {
     events: { type: Array },
@@ -157,5 +158,5 @@ export default {
       );
     },
   },
-};
+});
 </script>

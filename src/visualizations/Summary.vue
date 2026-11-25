@@ -18,6 +18,7 @@ div
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 // NOTE: This is just a Vue.js component wrapper for summary.ts
 //       Code should generally go in the framework-independent file.
 
@@ -25,7 +26,7 @@ import summary from './summary';
 import 'vue-awesome/icons/angle-double-down';
 import 'vue-awesome/icons/angle-double-up';
 
-export default {
+export default defineComponent({
   name: 'aw-summary',
   props: {
     fields: Array,
@@ -87,5 +88,5 @@ export default {
       }
     },
   },
-};
+});
 </script>

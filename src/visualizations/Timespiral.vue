@@ -4,6 +4,7 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 // This component renders an interactive "timespiral" where each turn of the "loop" is a 24h day.
 // The spiral can be zoomed in/out, to display different days.
 // Somewhat inspired by Apple's Time Machine UI.
@@ -89,7 +90,7 @@ function split_events_on_hours(events: IEvent[]): IEvent[] {
   );
 }
 
-export default {
+export default defineComponent({
   name: 'Timespiral',
   props: { events: { type: Array, default: () => [] } },
   data() {
@@ -429,5 +430,5 @@ export default {
       makeSpiral(g, nbSpirals * 4 - 1);
     },
   },
-};
+});
 </script>

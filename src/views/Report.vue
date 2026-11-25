@@ -76,6 +76,7 @@ div
 <style scoped lang="scss"></style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import _ from 'lodash';
 import moment from 'moment';
 
@@ -94,7 +95,7 @@ import { useBucketsStore } from '~/stores/buckets';
 import { getClient } from '~/util/awclient';
 import { downloadFile, reportEventsCsv } from '~/util/export';
 
-export default {
+export default defineComponent({
   name: 'Report',
   data() {
     return {
@@ -177,5 +178,5 @@ export default {
       this.generate();
     },
   },
-};
+});
 </script>

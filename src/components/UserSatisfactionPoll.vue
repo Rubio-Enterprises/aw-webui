@@ -64,6 +64,7 @@ ul {
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { range } from 'lodash/fp';
 import moment from 'moment';
 
@@ -76,7 +77,7 @@ const BACKOFF_PERIOD = 7 * 24 * 60 * 60;
 // const INITIAL_WAIT_PERIOD = 1;
 // const BACKOFF_PERIOD = 1;
 
-export default {
+export default defineComponent({
   name: 'user-satisfaction-poll',
   data() {
     return {
@@ -136,5 +137,5 @@ export default {
       this.data = { ...this.data, isEnabled: false };
     },
   },
-};
+});
 </script>

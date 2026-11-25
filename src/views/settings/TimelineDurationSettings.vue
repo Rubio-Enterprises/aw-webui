@@ -22,9 +22,10 @@ div
     | {{ $t('settings.timelineDuration.groupGranularityHelp') }}
 </template>
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { useSettingsStore } from '~/stores/settings';
 
-export default {
+export default defineComponent({
   name: 'TimelineDurationSettings',
   data() {
     return {
@@ -53,5 +54,5 @@ export default {
       },
     },
   },
-};
+});
 </script>

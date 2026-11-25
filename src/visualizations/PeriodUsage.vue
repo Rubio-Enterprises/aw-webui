@@ -14,12 +14,13 @@ svg {
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 // NOTE: This is just a Vue.js component wrapper for periodusage.ts
 //       Code should generally go in the framework-independent file.
 
 import periodusage from './periodusage';
 
-export default {
+export default defineComponent({
   name: 'aw-periodusage',
   props: {
     periodusage_arr: {
@@ -44,5 +45,5 @@ export default {
       this.$emit('update', period);
     },
   },
-};
+});
 </script>

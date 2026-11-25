@@ -9,6 +9,7 @@ div.small(v-else, style="font-size: 16pt; color: #aaa;")
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import _ from 'lodash';
 import { ChartOptions } from 'chart.js';
 import 'chart.js/auto';
@@ -44,7 +45,7 @@ function hourToTick(hours: number): string {
   }
 }
 
-export default {
+export default defineComponent({
   name: 'TimelineBarChart',
   components: { Bar },
   props: {
@@ -206,7 +207,7 @@ export default {
       };
     },
   },
-};
+});
 </script>
 
 <style></style>

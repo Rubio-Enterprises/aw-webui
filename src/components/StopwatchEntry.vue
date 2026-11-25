@@ -39,6 +39,7 @@ div
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import moment from 'moment';
 import 'vue-awesome/icons/edit';
 import 'vue-awesome/icons/stop';
@@ -46,7 +47,7 @@ import 'vue-awesome/icons/play';
 
 import EventEditor from './EventEditor.vue';
 
-export default {
+export default defineComponent({
   name: 'StopwatchEntry',
   components: {
     'event-editor': EventEditor,
@@ -74,5 +75,5 @@ export default {
       this.$emit('delete', new_event);
     },
   },
-};
+});
 </script>

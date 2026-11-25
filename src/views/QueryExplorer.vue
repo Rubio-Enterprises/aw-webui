@@ -87,6 +87,7 @@ div
 </style>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import 'vue-awesome/icons/trash';
 import moment from 'moment';
 import _ from 'lodash';
@@ -105,7 +106,7 @@ import {
 const today = moment().startOf('day');
 const tomorrow = moment(today).add(24, 'hours');
 
-export default {
+export default defineComponent({
   name: 'QueryExplorer',
   data() {
     const settingsStore = useSettingsStore();
@@ -331,5 +332,5 @@ RETURN = sort_by_duration(merged_events);
       }
     },
   },
-};
+});
 </script>

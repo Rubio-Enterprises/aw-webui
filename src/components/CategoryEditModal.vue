@@ -71,6 +71,7 @@ b-modal(id="edit" ref="edit" :title="$t('ui.categoryEditor.editTitle')" @show="r
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import _ from 'lodash';
 import ColorPicker from '~/components/ColorPicker.vue';
 import { useCategoryStore } from '~/stores/categories';
@@ -79,7 +80,7 @@ import { CANONICAL_SELECT_KEYS, normalizeSelectKeys } from '~/util/classes';
 
 import 'vue-awesome/icons/trash';
 
-export default {
+export default defineComponent({
   name: 'CategoryEditModal',
   components: {
     'color-picker': ColorPicker,
@@ -308,5 +309,5 @@ export default {
       return typeof value === 'number' && Number.isInteger(value) ? value : null;
     },
   },
-};
+});
 </script>

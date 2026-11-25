@@ -74,6 +74,7 @@ div(v-else-if="view")
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import 'vue-awesome/icons/save';
 import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/trash';
@@ -83,7 +84,7 @@ import draggable from 'vuedraggable';
 
 import { useViewsStore } from '~/stores/views';
 
-export default {
+export default defineComponent({
   name: 'ActivityView',
   components: {
     draggable: draggable,
@@ -186,5 +187,5 @@ export default {
       return el.type == 'sunburst_clock' || el.type == 'vis_timeline';
     },
   },
-};
+});
 </script>

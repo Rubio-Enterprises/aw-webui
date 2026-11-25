@@ -15,6 +15,7 @@ div.mx-3
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { getTitleAttr, getColorFromString } from '../util/color';
 import moment from 'moment';
 import _ from 'lodash';
@@ -25,7 +26,7 @@ import { calendarTimeBounds } from '~/util/calendar';
 // TODO: Use canonical timeline query, with flooding and categorization
 // TODO: Checkbox for toggling category-view, where adjacent events with same category are merged and the events are labeled by category
 // TODO: Use the recommended way of dynamically getting events: https://fullcalendar.io/docs/events-function
-export default {
+export default defineComponent({
   components: {
     FullCalendar, // make the <FullCalendar> tag available
   },
@@ -88,5 +89,5 @@ export default {
       console.info('Calendar event selected:', arg.event);
     },
   },
-};
+});
 </script>

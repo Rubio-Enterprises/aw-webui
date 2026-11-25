@@ -19,7 +19,8 @@ div
 </template>
 
 <script lang="ts">
-export default {
+import { defineComponent } from 'vue';
+export default defineComponent({
   name: 'aw-selectable-eventview',
   props: {
     events: Array,
@@ -44,5 +45,5 @@ export default {
       return e.data[this.summaryKey];
     },
   },
-};
+});
 </script>

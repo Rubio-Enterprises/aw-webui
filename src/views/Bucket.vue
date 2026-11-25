@@ -42,10 +42,11 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { useBucketsStore } from '~/stores/buckets';
 import { getClient } from '~/util/awclient';
 
-export default {
+export default defineComponent({
   name: 'Bucket',
   props: {
     id: String,
@@ -167,5 +168,5 @@ export default {
       }
     },
   },
-};
+});
 </script>

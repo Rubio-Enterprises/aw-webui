@@ -15,10 +15,11 @@ div
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { useBucketsStore } from '~/stores/buckets';
 import Timespiral from '~/visualizations/Timespiral.vue';
 
-export default {
+export default defineComponent({
   name: 'TimespiralView',
   components: {
     Timespiral,
@@ -57,5 +58,5 @@ export default {
       this.$router.push({ name: 'EventView' });
     },
   },
-};
+});
 </script>
