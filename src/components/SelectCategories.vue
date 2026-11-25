@@ -26,16 +26,16 @@ b-form-tags#tags-component-select(
           | {{ tag }}
 </template>
 
-<script lang="typescript">
-import Vue from 'vue';
+<script lang="ts">
+import { defineComponent } from 'vue';
 import { useCategoryStore } from '~/stores/categories';
 
 const SEP = " > ";
 
-export default Vue.extend({
+export default defineComponent({
   data() {
     return {
-      value: [],
+      value: [] as string[],
     };
   },
 
@@ -47,7 +47,7 @@ export default Vue.extend({
   },
 
   watch: {
-    value(val) {
+    value(val: string[]) {
       const category_names = val.map(v => v.split(SEP))
       this.$emit('input', category_names);
     },
