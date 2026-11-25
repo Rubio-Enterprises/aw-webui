@@ -24,8 +24,8 @@ test('fits clock-time extents across the week independently of date order', () =
         event('2026-09-10T16:00:00', '2026-09-10T18:00:00'),
         event('2026-09-11T08:15:00', '2026-09-11T09:00:00'),
       ],
-      true
-    )
+      true,
+    ),
   ).toEqual({ slotMinTime: '08:00:00', slotMaxTime: '18:00:00' });
 });
 
@@ -39,6 +39,6 @@ test('falls back safely for empty, invalid, and nonpositive intervals or disable
     expect(calendarTimeBounds(events, true)).toEqual(fullDay);
   }
   expect(calendarTimeBounds([event('2026-09-10T10:00:00', '2026-09-10T11:00:00')], false)).toEqual(
-    fullDay
+    fullDay,
   );
 });

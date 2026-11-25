@@ -411,8 +411,7 @@ export default {
     intervalEndAfterStart: 'The end time must be after the start time.',
     diagnosticMissingWindow:
       'لا يوجد bucket للنوافذ لـ {host}. شغّل aw-watcher-window ثم حدّث هذه الصفحة.',
-    diagnosticMissingAfk:
-      'لا يوجد bucket لـ AFK لـ {host}. شغّل aw-watcher-afk ثم حدّث هذه الصفحة.',
+    diagnosticMissingAfk: 'لا يوجد bucket لـ AFK لـ {host}. شغّل aw-watcher-afk ثم حدّث هذه الصفحة.',
     diagnosticAmbiguousWindow:
       'قد تصف عدة buckets للنوافذ الجهاز {host}: {buckets}. اختر الجهاز الصحيح أعلاه أو افحص البيانات الخام.',
     diagnosticMismatchedHostnames:
@@ -705,8 +704,7 @@ export default {
       selectDevices: 'اختر الأجهزة المراد تضمينها',
       categories: 'الفئات',
       removeCategory: 'إزالة الفئة',
-      subcategories:
-        'تُضمَّن الفئات الفرعية تلقائيًا (مثلًا "Work" تشمل أيضًا "Work > Programming").',
+      subcategories: 'تُضمَّن الفئات الفرعية تلقائيًا (مثلًا "Work" تشمل أيضًا "Work > Programming").',
       breakTime: 'وقت الاستراحة',
       breakHelp: 'ستُحتسب الفجوات الأقصر من هذه المدة ضمن وقت العمل',
       dateRange: 'النطاق الزمني',

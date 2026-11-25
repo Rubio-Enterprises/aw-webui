@@ -10,7 +10,7 @@ describe('shouldAttemptJsonImport', () => {
       shouldAttemptJsonImport({
         name: 'aw-category-export-default.json',
         type: 'application/octet-stream',
-      })
+      }),
     ).toBe(true);
   });
 
@@ -28,7 +28,7 @@ describe('shouldAttemptJsonImport', () => {
 
   test('attempts octet-stream without a .json name (JSON.parse decides)', () => {
     expect(shouldAttemptJsonImport({ name: 'document', type: 'application/octet-stream' })).toBe(
-      true
+      true,
     );
   });
 });
@@ -36,7 +36,7 @@ describe('shouldAttemptJsonImport', () => {
 describe('parseCategoryImport', () => {
   test('parses named category-set export', () => {
     const parsed = parseCategoryImport(
-      JSON.stringify({ id: 'default', categories: [{ name: ['Work'], rule: { type: 'none' } }] })
+      JSON.stringify({ id: 'default', categories: [{ name: ['Work'], rule: { type: 'none' } }] }),
     );
     expect(parsed.id).toBe('default');
     expect(parsed.categories).toHaveLength(1);
@@ -44,7 +44,7 @@ describe('parseCategoryImport', () => {
 
   test('parses legacy flat {categories} export', () => {
     const parsed = parseCategoryImport(
-      JSON.stringify({ categories: [{ name: ['Work'], rule: { type: 'none' } }] })
+      JSON.stringify({ categories: [{ name: ['Work'], rule: { type: 'none' } }] }),
     );
     expect(parsed.id).toBeUndefined();
     expect(parsed.categories).toHaveLength(1);

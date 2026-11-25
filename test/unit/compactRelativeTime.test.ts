@@ -24,7 +24,10 @@ describe('compact relative timestamps', () => {
 
   test('localizes the desktop label', () => {
     expect(compact_relative_time('2026-10-10T11:59:00Z', 'sv', false, now)).toBe(
-      new Intl.RelativeTimeFormat('sv', { numeric: 'always', style: 'narrow' }).format(-1, 'minute')
+      new Intl.RelativeTimeFormat('sv', { numeric: 'always', style: 'narrow' }).format(
+        -1,
+        'minute',
+      ),
     );
   });
 });

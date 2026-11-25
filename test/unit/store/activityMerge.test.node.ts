@@ -28,7 +28,7 @@ describe('mergeEditorResults', () => {
       },
     ]);
     expect(merged.duration).toBe(35);
-    expect(merged.files.map(e => [e.data.file, e.duration])).toEqual([
+    expect(merged.files.map((e) => [e.data.file, e.duration])).toEqual([
       ['b.ts', 20],
       ['a.py', 15],
     ]);
@@ -69,7 +69,7 @@ describe('withDominantCategory', () => {
       ev({ app: 'Terminal', $category: ['Uncategorized'] }, 30),
     ];
     const result = withDominantCategory(apps, appCats);
-    expect(result.map(e => [e.data.app, e.data.$category, e.duration])).toEqual([
+    expect(result.map((e) => [e.data.app, e.data.$category, e.duration])).toEqual([
       ['Google Chrome', ['Work', 'Programming'], 60],
       ['Terminal', ['Uncategorized'], 30],
     ]);
@@ -82,7 +82,7 @@ describe('withDominantCategory', () => {
     expect(withDominantCategory(apps, undefined)).toBe(apps);
     expect(withDominantCategory(apps, [])).toBe(apps);
     expect(withDominantCategory(apps, [ev({ app: 'other', $category: ['Work'] }, 1)])[0]).toBe(
-      apps[0]
+      apps[0],
     );
   });
 
@@ -104,7 +104,7 @@ describe('withDominantCategory', () => {
         chunk([[['Work'], 15]]),
         chunk([[['Work'], 15]]),
       ],
-      false
+      false,
     );
     const [firefox] = withDominantCategory(merged.app_events, merged.app_cat_events);
     expect(firefox.data.$category).toEqual(['Work']);
@@ -120,7 +120,7 @@ describe('withDominantCategory', () => {
       ev({ app: 'Notes', classname: 'com.apple.notes', $category: ['Work'] }, 30),
       ev({ app: 'Notes', classname: 'com.example.notes', $category: ['Media'] }, 20),
     ];
-    expect(withDominantCategory(apps, appCats).map(e => e.data.$category)).toEqual([
+    expect(withDominantCategory(apps, appCats).map((e) => e.data.$category)).toEqual([
       ['Work'],
       ['Media'],
     ]);

@@ -25,7 +25,7 @@ const $t = (key, params) => {
   if (result === null) return key;
   if (!params) return result;
   return result.replace(/\{(\w+)\}/g, (_, k) =>
-    params[k] !== undefined ? String(params[k]) : `{${k}}`
+    params[k] !== undefined ? String(params[k]) : `{${k}}`,
   );
 };
 const $tc = (key, _count, params) => $t(key, params);

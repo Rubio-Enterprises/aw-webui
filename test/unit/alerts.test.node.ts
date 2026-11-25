@@ -23,7 +23,7 @@ describe('cleanAlertGoal', () => {
 
   test('keeps nested category paths', () => {
     expect(cleanAlertGoal({ name: 'Code', category: ['Work', 'Code'], goal: 30 }).category).toEqual(
-      ['Work', 'Code']
+      ['Work', 'Code'],
     );
   });
 
@@ -62,7 +62,7 @@ describe('cleanAlertGoals', () => {
         { name: '', category: ['Broken'], goal: 1 },
         null,
         { name: 'Media', category: ['Media'], goal: '10' },
-      ])
+      ]),
     ).toEqual([
       { name: 'Work', category: ['Work'], goal: 100 },
       { name: 'Media', category: ['Media'], goal: 10 },

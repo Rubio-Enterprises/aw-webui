@@ -40,7 +40,7 @@ function optionalString(
   value: unknown,
   fieldName: string,
   ruleNumber: number,
-  errors: string[]
+  errors: string[],
 ): string | undefined {
   if (value === undefined || value === null) {
     return undefined;
@@ -111,12 +111,12 @@ export function validatePrivacyFiltersInput(input: string): PrivacyFilterValidat
       candidate.bucket_prefix,
       'bucket_prefix',
       ruleNumber,
-      errors
+      errors,
     );
     let field: string | undefined;
     if (candidate.field === undefined || candidate.field === null) {
       errors.push(
-        `Rule ${ruleNumber}: \`field\` is required so the rule only matches the intended event data.`
+        `Rule ${ruleNumber}: \`field\` is required so the rule only matches the intended event data.`,
       );
     } else if (typeof candidate.field !== 'string') {
       errors.push(`Rule ${ruleNumber}: \`field\` must be a string.`);

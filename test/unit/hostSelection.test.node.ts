@@ -91,7 +91,7 @@ describe('formatHostParam', () => {
     expect(formatHostParam(['erb-m2.localdomain'])).toBe('erb-m2.localdomain');
     expect(formatHostParam(['poco_f8_ultra'])).toBe('poco_f8_ultra');
     expect(formatHostParam(['erb-m2.localdomain', 'poco_f8_ultra'])).toBe(
-      'erb-m2.localdomain,poco_f8_ultra'
+      'erb-m2.localdomain,poco_f8_ultra',
     );
   });
 
@@ -161,7 +161,7 @@ describe('toggleHostInSelection', () => {
 
   it('becomes all devices once every host is selected', () => {
     expect(
-      toggleHostInSelection({ all: false, hosts: ['self', 'phone'] }, 'laptop', eligible)
+      toggleHostInSelection({ all: false, hosts: ['self', 'phone'] }, 'laptop', eligible),
     ).toEqual({ all: true, hosts: [] });
   });
 
@@ -203,7 +203,7 @@ describe('eligibleMultideviceHosts', () => {
     expect(
       eligibleMultideviceHosts(hosts, f(windowBuckets), f(afk), f(android), {
         includeFakedata: true,
-      })
+      }),
     ).toContain('fakedata');
   });
 });

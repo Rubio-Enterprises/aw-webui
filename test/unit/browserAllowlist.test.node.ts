@@ -17,7 +17,7 @@ describe('isBrowserAllowlistMiss', () => {
 
   test('false when matched browser events exist', () => {
     expect(isBrowserAllowlistMiss({ available: true, duration: 12, top_domains: [{}] })).toBe(
-      false
+      false,
     );
   });
 });
