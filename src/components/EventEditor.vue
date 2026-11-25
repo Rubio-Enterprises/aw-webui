@@ -56,7 +56,10 @@ b-modal(v-if="event && event.id", :id="'edit-modal-' + event.id", ref="eventEdit
 <style lang="scss"></style>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
+import { defineComponent, type PropType } from 'vue';
+import type { BModal } from 'bootstrap-vue';
+import type { IEvent as AWEvent } from 'aw-client';
+import type { IEvent } from '~/util/interfaces';
 // This EventEditor can be used to edit events in a specific bucket.
 //
 // It is used in:
@@ -72,17 +75,22 @@ import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/save';
 import 'vue-awesome/icons/trash';
 
+type Mutation = 'save' | 'delete';
+
+// The error shape of a failed aw-client request
+type RequestError = { message?: string; response?: { data?: { message?: string } } };
+
 export default defineComponent({
   name: 'EventEditor',
   props: {
-    event: { type: Object },
+    event: { type: Object as PropType<IEvent> },
     bucket_id: { type: String, required: true },
   },
   data() {
     return {
-      editedEvent: null,
+      editedEvent: null as AWEvent | null,
       // Name of the mutation in flight ('save' / 'delete'), else null.
-      pending: null,
+      pending: null as Mutation | null,
       error: '',
     };
   },
@@ -90,23 +98,29 @@ export default defineComponent({
     busy() {
       return this.pending !== null;
     },
+    // The start and end inputs are only rendered once the event has loaded
+    loadedEvent(): AWEvent {
+      if (!this.editedEvent) throw new Error('The event has not loaded yet');
+      return this.editedEvent;
+    },
     start: {
-      get: function () {
-        return moment(this.editedEvent.timestamp).format();
+      get: function (): string {
+        return moment(this.loadedEvent.timestamp).format();
       },
-      set: function (dt) {
+      set: function (dt: string) {
         // Duration needs to be set first since otherwise the computed for end will use the new timestamp
-        this.editedEvent.duration = moment(this.end).diff(dt, 'seconds');
-        this.editedEvent.timestamp = new Date(dt);
+        this.loadedEvent.duration = moment(this.end).diff(dt, 'seconds');
+        this.loadedEvent.timestamp = new Date(dt);
       },
     },
     end: {
-      get: function () {
-        const end = moment(this.editedEvent.timestamp).add(this.editedEvent.duration, 'seconds');
+      get: function (): string {
+        const event = this.loadedEvent;
+        const end = moment(event.timestamp).add(event.duration, 'seconds');
         return end.format();
       },
-      set: function (dt) {
-        this.editedEvent.duration = moment(dt).diff(this.editedEvent.timestamp, 'seconds');
+      set: function (dt: string) {
+        this.loadedEvent.duration = moment(dt).diff(this.loadedEvent.timestamp, 'seconds');
       },
     },
   },
@@ -133,9 +147,10 @@ export default defineComponent({
     async delete_() {
       const event = this.event;
       const bucketId = this.bucket_id;
-      await this.runMutation('delete', event, bucketId, () =>
-        this.$aw.deleteEvent(bucketId, event.id)
-      );
+      await this.runMutation('delete', event, bucketId, () => {
+        if (event?.id === undefined) throw new Error('Cannot delete an event without an id');
+        return this.$aw.deleteEvent(bucketId, event.id);
+      });
     },
     // Runs one mutation against the server. Parents are told it succeeded only
     // once the request actually has, so a failure leaves the editor open with
@@ -144,7 +159,12 @@ export default defineComponent({
     // The modal is hidden before the success event is emitted: a parent
     // reacting to it may destroy this component (it is usually rendered behind
     // a v-if on the event being edited), and the ref would be gone by then.
-    async runMutation(name, payload, bucketId, request) {
+    async runMutation(
+      name: Mutation,
+      payload: unknown,
+      bucketId: string,
+      request: () => Promise<void>
+    ) {
       if (this.pending) return;
       const editingId = this.event && this.event.id;
       this.pending = name;
@@ -169,16 +189,16 @@ export default defineComponent({
       // on. It carries the bucket, for parents that patch their view in place.
       this.$emit(name === 'save' ? 'saved' : 'deleted', payload, bucketId);
     },
-    requestErrorMessage(e, name) {
-      const response = e && e.response;
-      const serverMessage = response && response.data && response.data.message;
+    requestErrorMessage(e: unknown, name: Mutation): string {
+      const err = e as RequestError | null | undefined;
+      const serverMessage = err?.response?.data?.message;
       const verb = name === 'delete' ? 'delete' : 'save';
-      return serverMessage || (e && e.message) || `Failed to ${verb} event.`;
+      return serverMessage || err?.message || `Failed to ${verb} event.`;
     },
     // Hiding is best-effort: the modal may already be gone if a parent
     // re-rendered or destroyed this component.
     hideModal() {
-      const modal = this.$refs.eventEditModal;
+      const modal = this.$refs.eventEditModal as BModal | undefined;
       if (modal) modal.hide();
     },
     async getEvent() {
