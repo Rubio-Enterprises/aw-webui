@@ -93,11 +93,11 @@ div
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
 import moment from 'moment';
 import { mapState } from 'pinia';
-import { useServerStore } from '~/stores/server';
+import { defineComponent } from 'vue';
 import { useBucketsStore } from '~/stores/buckets';
+import { useServerStore } from '~/stores/server';
 import { IBucket } from '~/util/interfaces';
 
 // "Support ActivityWatch" nudge — engagement-gated, dismissable, never modal.
@@ -160,7 +160,7 @@ export default defineComponent({
     },
     apiBrowserUrl(): string {
       const base = window.location.pathname.replace(/[^/]*$/, '');
-      return base + 'api/';
+      return `${base}api/`;
     },
     supporterNudgeHref(): string {
       return `https://activitywatch.net/go/?src=${this.supporterNudgeSrc}`;
@@ -222,7 +222,7 @@ export default defineComponent({
         const raw = localStorage.getItem(SUPPORTER_NUDGE_DISMISS_KEY);
         if (!raw) return false;
         const until = new Date(raw).getTime();
-        return !isNaN(until) && until > Date.now();
+        return !Number.isNaN(until) && until > Date.now();
       } catch {
         return false;
       }
@@ -263,7 +263,7 @@ export default defineComponent({
     syncEngagementTag(buckets: IBucket[]): string | null {
       // Signal 2: power-user setup — many buckets OR multi-host/multi-watcher.
       // Checked first: outranks tenure when both match.
-      const hostnames = new Set(buckets.map(b => b.hostname).filter(Boolean));
+      const hostnames = new Set(buckets.map((b) => b.hostname).filter(Boolean));
       if (buckets.length >= POWER_USER_MIN_BUCKETS || hostnames.size >= POWER_USER_MIN_HOSTS) {
         return SRC_SETUP;
       }
@@ -271,8 +271,8 @@ export default defineComponent({
       // Signal 1 (cheapest): install age >= 30 days, from the earliest
       // `created` timestamp across all buckets.
       const createds = buckets
-        .map(b => (b.created ? new Date(b.created as unknown as string).getTime() : NaN))
-        .filter(t => !isNaN(t));
+        .map((b) => (b.created ? new Date(b.created as unknown as string).getTime() : NaN))
+        .filter((t) => !Number.isNaN(t));
       if (createds.length > 0) {
         const earliest = Math.min(...createds);
         const ageDays = (Date.now() - earliest) / (1000 * 60 * 60 * 24);
@@ -300,7 +300,7 @@ export default defineComponent({
         const raw = localStorage.getItem(ENGAGED_DAYS_KEY);
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) days = parsed.filter(d => typeof d === 'string');
+          if (Array.isArray(parsed)) days = parsed.filter((d) => typeof d === 'string');
         }
       } catch {
         return [];
@@ -309,7 +309,7 @@ export default defineComponent({
       cutoff.setDate(cutoff.getDate() - ENGAGED_DAYS_LOOKBACK_DAYS);
       const cutoffStr = localDateStr(cutoff);
       // YYYY-MM-DD sorts lexicographically by date; keep unique in-window dates.
-      return [...new Set(days)].filter(d => d >= cutoffStr).sort();
+      return [...new Set(days)].filter((d) => d >= cutoffStr).sort();
     },
 
     // --- Client-side engagement tracking -------------------------------------

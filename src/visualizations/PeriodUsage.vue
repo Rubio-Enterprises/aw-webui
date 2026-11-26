@@ -15,12 +15,13 @@ svg {
 
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue';
+
 // NOTE: This is just a Vue.js component wrapper for periodusage.ts
 //       Code should generally go in the framework-independent file.
 
-import periodusage from './periodusage';
-import type { TimePeriod } from '~/util/timeperiod';
 import type { IEvent } from '~/util/interfaces';
+import type { TimePeriod } from '~/util/timeperiod';
+import periodusage from './periodusage';
 
 export default defineComponent({
   name: 'aw-periodusage',
@@ -36,7 +37,7 @@ export default defineComponent({
         this.$el as SVGElement,
         this.periodusage_arr,
         this.onPeriodClicked,
-        this.chartLabels()
+        this.chartLabels(),
       );
     },
   },
@@ -47,7 +48,7 @@ export default defineComponent({
       this.$el as SVGElement,
       this.periodusage_arr,
       this.onPeriodClicked,
-      this.chartLabels()
+      this.chartLabels(),
     );
   },
   methods: {

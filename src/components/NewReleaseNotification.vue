@@ -14,14 +14,14 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
 import axios from 'axios';
-import moment from 'moment';
-import semver from 'semver';
-import { mapWritableState } from 'pinia';
 import type { Moment } from 'moment';
+import moment from 'moment';
+import { mapWritableState } from 'pinia';
+import semver from 'semver';
+import { defineComponent } from 'vue';
 
-import { useSettingsStore, LONG_BACKOFF_PERIOD, SHORT_BACKOFF_PERIOD } from '~/stores/settings';
+import { LONG_BACKOFF_PERIOD, SHORT_BACKOFF_PERIOD, useSettingsStore } from '~/stores/settings';
 import { getClient } from '~/util/awclient';
 
 // After reminding the user every SHORT_BACKOFF_PERIOD days for BACKOFF_THRESHOLD times, switch to LONG_BACKOFF_PERIOD
@@ -83,7 +83,7 @@ export default defineComponent({
     async retrieveLatestVersion() {
       try {
         const response = await axios.get(
-          'https://api.github.com/repos/ActivityWatch/activitywatch/releases/latest'
+          'https://api.github.com/repos/ActivityWatch/activitywatch/releases/latest',
         );
         this.latestVersion = this.cleanVersionTag(response.data.tag_name);
         this.latestVersionDate = moment(response.data.published_at);
@@ -96,10 +96,10 @@ export default defineComponent({
 
       // Remove the build metadata if it exists, e.g. 'v0.8.dev+c6433ea'
       const plus_idx = tag.indexOf('+');
-      tag = tag.substring(0, plus_idx != -1 ? plus_idx : tag.length);
+      tag = tag.substring(0, plus_idx !== -1 ? plus_idx : tag.length);
       // Remove server type if it exists, e.g. 'v0.8.0 (rust)'
       const space_idx = tag.indexOf(' ');
-      tag = tag.substring(0, space_idx != -1 ? space_idx : tag.length);
+      tag = tag.substring(0, space_idx !== -1 ? space_idx : tag.length);
 
       return semver.valid(tag);
     },

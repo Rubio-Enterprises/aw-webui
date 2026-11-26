@@ -15,14 +15,17 @@ div.mx-3
 </template>
 
 <script lang="ts">
-import { defineComponent, type PropType } from 'vue';
-import { getTitleAttr, getColorFromString } from '../util/color';
-import moment from 'moment';
-import _ from 'lodash';
-import FullCalendar from '@fullcalendar/vue';
+// FullCalendar plugins throw unless its core library has loaded, so the Vue component loads
+// first. organizeImports leaves this bare import where it is.
+import '@fullcalendar/vue';
 import timeGridPlugin from '@fullcalendar/timegrid';
+import FullCalendar from '@fullcalendar/vue';
+import _ from 'lodash';
+import moment from 'moment';
+import { defineComponent, type PropType } from 'vue';
 import { calendarTimeBounds } from '~/util/calendar';
 import type { IBucket } from '~/util/interfaces';
+import { getColorFromString, getTitleAttr } from '../util/color';
 
 // An event as FullCalendar takes it (not an ActivityWatch event)
 interface CalendarEvent {
@@ -74,12 +77,12 @@ export default defineComponent({
       // NOTE: This returns FullCalendar events, not ActivityWatch events.
       if (this.buckets == null) return [];
 
-      const bucket = _.find(this.buckets, b => b.id == this.selectedBucket);
+      const bucket = _.find(this.buckets, (b) => b.id === this.selectedBucket);
       if (bucket == null) {
         return [];
       }
       const bucketEvents = Array.isArray(bucket.events) ? bucket.events : [];
-      const longEvents = bucketEvents.filter(e => e && e.timestamp && Number(e.duration) > 10);
+      const longEvents = bucketEvents.filter((e) => e?.timestamp && Number(e.duration) > 10);
       return longEvents.map((e): CalendarEvent => {
         return {
           title: getTitleAttr(bucket, e),
@@ -98,7 +101,7 @@ export default defineComponent({
     },
   },
   methods: {
-    onEventClick: function (arg: { event: unknown }) {
+    onEventClick: (arg: { event: unknown }) => {
       // TODO: Open event inspector/editor here
       console.info('Calendar event selected:', arg.event);
     },

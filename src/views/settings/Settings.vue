@@ -24,22 +24,21 @@ div
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { useSettingsStore } from '~/stores/settings';
 import { useCategoryStore } from '~/stores/categories';
-
-import LanguageSettings from '~/views/settings/LanguageSettings.vue';
-import DaystartSettings from '~/views/settings/DaystartSettings.vue';
-import TimelineDurationSettings from '~/views/settings/TimelineDurationSettings.vue';
-import ReleaseNotificationSettings from '~/views/settings/ReleaseNotificationSettings.vue';
-import UncategorizedHintSettings from '~/views/settings/UncategorizedHintSettings.vue';
-import CategorizationSettings from '~/views/settings/CategorizationSettings.vue';
-import LandingPageSettings from '~/views/settings/LandingPageSettings.vue';
-import DeveloperSettings from '~/views/settings/DeveloperSettings.vue';
-import Theme from '~/views/settings/Theme.vue';
-import ColorSettings from '~/views/settings/ColorSettings.vue';
+import { useSettingsStore } from '~/stores/settings';
 import ActivePatternSettings from '~/views/settings/ActivePatternSettings.vue';
-import PrivacyFilterSettings from '~/views/settings/PrivacyFilterSettings.vue';
 import AwNotifySettings from '~/views/settings/AwNotifySettings.vue';
+import CategorizationSettings from '~/views/settings/CategorizationSettings.vue';
+import ColorSettings from '~/views/settings/ColorSettings.vue';
+import DaystartSettings from '~/views/settings/DaystartSettings.vue';
+import DeveloperSettings from '~/views/settings/DeveloperSettings.vue';
+import LandingPageSettings from '~/views/settings/LandingPageSettings.vue';
+import LanguageSettings from '~/views/settings/LanguageSettings.vue';
+import PrivacyFilterSettings from '~/views/settings/PrivacyFilterSettings.vue';
+import ReleaseNotificationSettings from '~/views/settings/ReleaseNotificationSettings.vue';
+import Theme from '~/views/settings/Theme.vue';
+import TimelineDurationSettings from '~/views/settings/TimelineDurationSettings.vue';
+import UncategorizedHintSettings from '~/views/settings/UncategorizedHintSettings.vue';
 
 interface Group {
   id: string;
@@ -65,7 +64,7 @@ export default defineComponent({
     PrivacyFilterSettings,
     AwNotifySettings,
   },
-  async beforeRouteLeave(to, from, next) {
+  async beforeRouteLeave(_to, _from, next) {
     const categoryStore = useCategoryStore();
     if (categoryStore.classes_unsaved_changes) {
       const confirmed = await this.$bvModal.msgBoxConfirm(
@@ -75,7 +74,7 @@ export default defineComponent({
           okTitle: this.$t('settings.unsavedCategoriesLeaveOk') as string,
           cancelTitle: this.$t('settings.unsavedCategoriesLeaveCancel') as string,
           centered: true,
-        }
+        },
       );
       if (confirmed) {
         next();
@@ -92,7 +91,7 @@ export default defineComponent({
   computed: {
     activeGroup(): string {
       const requested = this.group || 'general';
-      return this.groups.some(g => g.id === requested) ? requested : 'general';
+      return this.groups.some((g) => g.id === requested) ? requested : 'general';
     },
     groups(): Group[] {
       const general: Group = {

@@ -15,8 +15,8 @@ div
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
 import { mapStores } from 'pinia';
+import Vue from 'vue';
 import { useBucketsStore } from '~/stores/buckets';
 
 // Minutes after which a bucket is considered stale
@@ -69,7 +69,7 @@ export default Vue.extend({
       const allCoreIds = [...windowPair.ids, ...afkPair.ids];
       if (allCoreIds.length === 0) return [];
 
-      const hasCurrentBucket = allCoreIds.some(id => {
+      const hasCurrentBucket = allCoreIds.some((id) => {
         const bucket = this.bucketsStore.getBucket(id);
         if (!bucket?.last_updated) return false;
         const age = now.getTime() - new Date(bucket.last_updated).getTime();
@@ -84,11 +84,11 @@ export default Vue.extend({
         if (pair.ids.length === 0) continue;
 
         const mostRecentMs = Math.max(
-          ...pair.ids.map(id => {
+          ...pair.ids.map((id) => {
             const bucket = this.bucketsStore.getBucket(id);
             if (!bucket?.last_updated) return 0;
             return new Date(bucket.last_updated).getTime();
-          })
+          }),
         );
 
         if (mostRecentMs === 0) continue;
@@ -118,7 +118,7 @@ export default Vue.extend({
   mounted() {
     try {
       const saved = JSON.parse(sessionStorage.getItem('aw-watcher-dismissals') || '[]');
-      if (Array.isArray(saved)) this.dismissed = saved.filter(key => typeof key === 'string');
+      if (Array.isArray(saved)) this.dismissed = saved.filter((key) => typeof key === 'string');
     } catch {
       // Storage may be unavailable; in-memory dismissal still works.
     }

@@ -25,8 +25,8 @@ div
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { isRegexBroad, validateRegex } from '~/util/validate';
 import { useSettingsStore } from '~/stores/settings';
+import { isRegexBroad, validateRegex } from '~/util/validate';
 
 export default defineComponent({
   name: 'ActivePatternSettings',
@@ -38,7 +38,7 @@ export default defineComponent({
   },
   computed: {
     enabled: function () {
-      return this.always_active_pattern_editing != '';
+      return this.always_active_pattern_editing !== '';
     },
     valid: function () {
       return validateRegex(this.always_active_pattern_editing);
@@ -47,7 +47,7 @@ export default defineComponent({
       // Check if the pattern matches random strings that we don't expect it to
       // like the alphabet
       const pattern = this.always_active_pattern_editing;
-      if (pattern == '') {
+      if (pattern === '') {
         return false;
       }
       return isRegexBroad(pattern);
@@ -57,20 +57,20 @@ export default defineComponent({
         return this.settingsStore.always_active_pattern;
       },
       set(value: string) {
-        console.log('Setting always_active_pattern to ' + value);
+        console.log(`Setting always_active_pattern to ${value}`);
         this.settingsStore.update({ always_active_pattern: value });
       },
     },
   },
   watch: {
     always_active_pattern_editing: function (value) {
-      if (value == this.always_active_pattern) {
+      if (value === this.always_active_pattern) {
         return;
       }
 
       if (
-        (value != '' && this.valid) ||
-        (value == '' && this.settingsStore.always_active_pattern.length != 0)
+        (value !== '' && this.valid) ||
+        (value === '' && this.settingsStore.always_active_pattern.length !== 0)
       ) {
         this.always_active_pattern = value;
       }

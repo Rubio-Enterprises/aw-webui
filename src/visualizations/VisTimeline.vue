@@ -87,27 +87,26 @@ div#visualization {
 </style>
 
 <script lang="ts">
-import { defineComponent, markRaw, type PropType } from 'vue';
+import Color from 'color';
 import _ from 'lodash';
 import type { Moment } from 'moment';
-import Color from 'color';
-import { buildTooltip } from '../util/tooltip';
-import { seconds_to_duration } from '../util/time';
-import { getCategoryColorFromEvent, getColorFromCategory, getTitleAttr } from '../util/color';
+import { DataSet } from 'vis-data';
+import type { DataGroup, DataItem, TimelineOptions } from 'vis-timeline';
+import { Timeline } from 'vis-timeline/esnext';
+import { defineComponent, markRaw, type PropType } from 'vue';
 import { useCategoryStore } from '~/stores/categories';
+import { getCategoryColorFromEvent, getColorFromCategory, getTitleAttr } from '../util/color';
+import type { IBucket, IEvent } from '../util/interfaces';
 import { getSwimlane } from '../util/swimlane';
+import { seconds_to_duration } from '../util/time';
 import {
   type IndexedEvent,
   indexTimelineEvents,
-  visibleTimelineEvents,
   syncTimelineData,
+  visibleTimelineEvents,
 } from '../util/timelineIndex';
-import { DataSet } from 'vis-data';
-import type { DataGroup, DataItem, TimelineOptions } from 'vis-timeline';
-import type { IBucket, IEvent } from '../util/interfaces';
 import { formatTimelineBucketLabelHtml, shortenBucketLabel } from '../util/timelineLabels';
-
-import { Timeline } from 'vis-timeline/esnext';
+import { buildTooltip } from '../util/tooltip';
 import 'vis-timeline/styles/vis-timeline-graph2d.css';
 import EventEditor from '~/components/EventEditor.vue';
 
@@ -141,21 +140,21 @@ export default defineComponent({
   },
   data() {
     const options: TimelineOptions = {
-        zoomMin: 1000 * 60, // 10min in milliseconds
-        zoomMax: 1000 * 60 * 60 * 24 * 31 * 3, // about three months in milliseconds
-        stack: false,
-        tooltip: {
-          followMouse: true,
-          overflowMethod: 'flip',
-          delay: 0,
-        },
-        // Keep vertical wheel input as zoom-only. Without preferZoom, vis-timeline
-        // zooms around the cursor and then pans the same wheel event when
-        // horizontalScroll is enabled, which makes the zoom anchor drift.
-        preferZoom: true,
-        // Horizontal scroll navigation (see #629). Dominant horizontal wheel
-        // events are handled by onHorizontalWheel.
-        horizontalScroll: true, // horizontal scroll/swipe pans the timeline
+      zoomMin: 1000 * 60, // 10min in milliseconds
+      zoomMax: 1000 * 60 * 60 * 24 * 31 * 3, // about three months in milliseconds
+      stack: false,
+      tooltip: {
+        followMouse: true,
+        overflowMethod: 'flip',
+        delay: 0,
+      },
+      // Keep vertical wheel input as zoom-only. Without preferZoom, vis-timeline
+      // zooms around the cursor and then pans the same wheel event when
+      // horizontalScroll is enabled, which makes the zoom anchor drift.
+      preferZoom: true,
+      // Horizontal scroll navigation (see #629). Dominant horizontal wheel
+      // events are handled by onHorizontalWheel.
+      horizontalScroll: true, // horizontal scroll/swipe pans the timeline
     };
     return {
       timeline: null as Timeline | null,
@@ -187,7 +186,8 @@ export default defineComponent({
     bucketsFromEither(): IBucket[] {
       if (this.buckets) {
         return this.buckets;
-      } else if (this.events) {
+      }
+      if (this.events) {
         // If buckets not passed, check if events have been passed and generate a bucket from those events
         return [
           {
@@ -197,10 +197,9 @@ export default defineComponent({
             events: this.events,
           },
         ];
-      } else {
-        console.error('No buckets or events passed to timeline');
-        return [];
       }
+      console.error('No buckets or events passed to timeline');
+      return [];
     },
     eventIndex(): TimelineIndex {
       const rows = [...this.bucketsFromEither];
@@ -224,7 +223,7 @@ export default defineComponent({
           this.filterShortEvents && bucket.id !== CATEGORIZED_ROW && !granularity(bucket),
         (bucketId, event) => this.displayEvent(bucketId, event),
         granularity,
-        this.expandedGroups
+        this.expandedGroups,
       );
     },
   },
@@ -283,14 +282,14 @@ export default defineComponent({
       });
       this.options.tooltip = {
         ...this.options.tooltip,
-        template: item => item.title || this.tooltipForItem(item.id),
+        template: (item) => item.title || this.tooltipForItem(item.id),
       };
       const timeline = markRaw(new Timeline(el, this.itemData, this.groupData, this.options));
       this.timeline = timeline;
       timeline.on('rangechange', this.scheduleViewportUpdate);
       timeline.on('select', (properties: SelectProperties) => {
         // Sends both 'press' and 'tap' events, only one should trigger
-        if (properties.event.type == 'tap') {
+        if (properties.event.type === 'tap') {
           this.onSelect(properties);
         }
       });
@@ -335,7 +334,7 @@ export default defineComponent({
             timestamp: intervalStart.format(),
             duration: intervalEnd.diff(intervalStart, 'seconds'),
             data: { title: 'query' },
-          }
+          },
         );
       }
       const item = this.itemEvents.get(String(id));
@@ -343,7 +342,7 @@ export default defineComponent({
         const totals = new Map<string, number>();
         for (const member of item.members) {
           const label = String(
-            getTitleAttr(item.bucket, member.event) || JSON.stringify(member.event.data)
+            getTitleAttr(item.bucket, member.event) || JSON.stringify(member.event.data),
           );
           totals.set(label, (totals.get(label) || 0) + member.event.duration);
         }
@@ -352,12 +351,12 @@ export default defineComponent({
           .map(
             ([label, duration]) =>
               `<tr><th class="timeline-composite-activity" scope="row">${_.escape(
-                label
-              )}</th><td>${_.escape(this.formatGroupDuration(duration))}</td></tr>`
+                label,
+              )}</th><td>${_.escape(this.formatGroupDuration(duration))}</td></tr>`,
           )
           .join('');
         return `<table><caption>${_.escape(
-          this.$t('ui.timeline.groupBreakdown') as string
+          this.$t('ui.timeline.groupBreakdown') as string,
         )}</caption>${rows}</table>`;
       }
       return item ? buildTooltip({ ...item.bucket, type: item.bucket.type || '' }, item.event) : '';
@@ -387,7 +386,7 @@ export default defineComponent({
     },
     openEditor: function () {
       if (!this.editingEvent) return;
-      this.$bvModal.show('edit-modal-' + this.editingEvent.id);
+      this.$bvModal.show(`edit-modal-${this.editingEvent.id}`);
     },
     displayEvent: function (bucketId: string, event: IEvent): IEvent {
       return this.eventOverrides[`${bucketId}\0${event.id}`] || event;
@@ -409,7 +408,8 @@ export default defineComponent({
       const [firstItem] = properties.items;
       if (firstItem === undefined) {
         return;
-      } else if (properties.items.length == 1) {
+      }
+      if (properties.items.length === 1) {
         const selected = this.itemEvents.get(firstItem);
         if (!selected) return;
         if (selected.members) {
@@ -421,11 +421,11 @@ export default defineComponent({
         const bucketId = selected.bucket.id;
 
         // Skip editing if event has no ID (e.g. merged query results) or bucket is a placeholder
-        if (!event.id || !bucketId || bucketId === 'events' || bucketId === 'search') {
+        if (!(event.id && bucketId) || bucketId === 'events' || bucketId === 'search') {
           console.log(
             'Event has no ID or bucket is a placeholder, skipping editor',
             event,
-            bucketId
+            bucketId,
           );
           return;
         }
@@ -441,7 +441,7 @@ export default defineComponent({
           this.openEditor();
         });
       } else {
-        alert('selected multiple items: ' + JSON.stringify(properties.items));
+        alert(`selected multiple items: ${JSON.stringify(properties.items)}`);
       }
     },
     abbreviateBucketName(bucketId: string): string {
@@ -544,17 +544,17 @@ export default defineComponent({
       // TODO: drop the hostnameless-exception branch once
       // stopwatch/browser buckets are migrated to per-host ids.
       const realHost = (b: IBucket): string | undefined => {
-        const h = b && (b.hostname || (b.data && b.data.hostname));
+        const h = b && (b.hostname || b.data?.hostname);
         return h && h !== 'unknown' ? h : undefined;
       };
       const labelCounts: Record<string, number> = {};
-      _.each(buckets, b => {
-        if (b && b.id && realHost(b)) {
+      _.each(buckets, (b) => {
+        if (b?.id && realHost(b)) {
           const short = shortenBucketLabel(b.id) || b.id;
           labelCounts[short] = (labelCounts[short] || 0) + 1;
         }
       });
-      const hasCollision = _.some(labelCounts, c => c > 1);
+      const hasCollision = _.some(labelCounts, (c) => c > 1);
 
       let groups: TimelineGroupRow[] = _.map(buckets, (bucket): TimelineGroupRow => {
         // If bucket id is not set, then if only one bucket is given, assume result of a search/query and set a constant placeholder one.
@@ -564,7 +564,7 @@ export default defineComponent({
             bucket.id = 'events';
           } else {
             console.warn(
-              'Bucket id is not set, but there are multiple buckets. This is not supported.'
+              'Bucket id is not set, but there are multiple buckets. This is not supported.',
             );
           }
         }
@@ -583,7 +583,7 @@ export default defineComponent({
       }
 
       const visible = visibleTimelineEvents(index, start - buffer, end + buffer);
-      this.itemEvents = new Map(visible.map(item => [item.id, item]));
+      this.itemEvents = new Map(visible.map((item) => [item.id, item]));
       const colors = new Map<string, string>();
       const allCats = this.categorizedEvents?.length ? useCategoryStore().classes : [];
       const items: TimelineRow[] = visible.map((item): TimelineRow => {
@@ -594,11 +594,11 @@ export default defineComponent({
         const color = item.members
           ? '#777'
           : categorized
-          ? getColorFromCategory(
-              allCats.find(c => _.isEqual(c.name, name)),
-              allCats
-            )
-          : getCategoryColorFromEvent(item.bucket, item.event);
+            ? getColorFromCategory(
+                allCats.find((c) => _.isEqual(c.name, name)),
+                allCats,
+              )
+            : getCategoryColorFromEvent(item.bucket, item.event);
         if (!colors.has(color)) colors.set(color, Color(color).darken(0.3).toString());
         return {
           id: item.id,
@@ -609,8 +609,8 @@ export default defineComponent({
                 duration: this.formatGroupDuration(item.event.duration),
               }) as string)
             : categorized
-            ? (name?.join(' > ') ?? '')
-            : (getTitleAttr(item.bucket, item.event) ?? ''),
+              ? (name?.join(' > ') ?? '')
+              : (getTitleAttr(item.bucket, item.event) ?? ''),
           start: item.start,
           end: item.end,
           style: `background-color: ${color}; border-color: ${colors.get(color)}`,
@@ -625,8 +625,8 @@ export default defineComponent({
       });
 
       // Keep group rows stable while panning through gaps in a bucket's data.
-      this.preparedItems = new Map(items.map(item => [item.id, item]));
-      groups = groups.filter(group => index.groups.has(group.id));
+      this.preparedItems = new Map(items.map((item) => [item.id, item]));
+      groups = groups.filter((group) => index.groups.has(group.id));
       const [intervalStart, intervalEnd] = this.queriedInterval ?? [];
       if (intervalStart && intervalEnd && this.showQueriedInterval) {
         groups.push({ id: 'queried-interval', content: 'queried interval' });

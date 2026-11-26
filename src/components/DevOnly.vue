@@ -26,7 +26,7 @@ export default defineComponent({
   },
   computed: {
     show() {
-      return !PRODUCTION && !this.hide;
+      return !(PRODUCTION || this.hide);
     },
   },
 });

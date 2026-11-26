@@ -76,23 +76,21 @@ div
 <style scoped lang="scss"></style>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
 import _ from 'lodash';
 import moment from 'moment';
+import { defineComponent } from 'vue';
 
 import 'vue-awesome/icons/search';
 import 'vue-awesome/icons/spinner';
 import 'vue-awesome/icons/angle-double-down';
 import 'vue-awesome/icons/angle-double-up';
 
-import { canonicalEvents, querystr_to_array, type QueryCategory } from '~/queries';
-import { buildBarchartDataset } from '~/util/datasets';
-
+import { canonicalEvents, type QueryCategory, querystr_to_array } from '~/queries';
 import { useActivityStore } from '~/stores/activity';
-import { useCategoryStore } from '~/stores/categories';
 import { useBucketsStore } from '~/stores/buckets';
-
+import { useCategoryStore } from '~/stores/categories';
 import { getClient } from '~/util/awclient';
+import { buildBarchartDataset } from '~/util/datasets';
 import { downloadFile, reportEventsCsv } from '~/util/export';
 import type { IEvent } from '~/util/interfaces';
 
@@ -134,7 +132,7 @@ export default defineComponent({
     datasets: function () {
       return buildBarchartDataset(
         this.activityStore.category.by_period ?? null,
-        this.categoryStore.classes
+        this.categoryStore.classes,
       );
     },
   },
@@ -148,14 +146,14 @@ export default defineComponent({
         ...this.bucketsStore.desktopBucketIds(this.queryOptions.hostname ?? ''),
         filter_afk: this.queryOptions.filter_afk,
         categories: this.filterCategories,
-        filter_categories: this.filterCategories.map(c => c[0]),
+        filter_categories: this.filterCategories.map((c) => c[0]),
       });
       query += '; RETURN = events;';
 
       const query_array = querystr_to_array(query);
       const start = moment(this.queryOptions.start).format();
       const end = moment(this.queryOptions.stop).format();
-      const timeperiods = [start + '/' + end];
+      const timeperiods = [`${start}/${end}`];
       try {
         this.status = 'searching';
         const time = moment();
@@ -170,7 +168,9 @@ export default defineComponent({
         console.error(e);
         const err = e as RequestError | undefined;
         this.error =
-          err?.response?.data?.message || err?.message || (this.$t('common.requestFailed') as string);
+          err?.response?.data?.message ||
+          err?.message ||
+          (this.$t('common.requestFailed') as string);
       } finally {
         this.status = null;
       }

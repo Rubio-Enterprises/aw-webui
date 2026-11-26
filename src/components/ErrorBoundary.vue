@@ -7,6 +7,7 @@ div
 
 <script lang="ts">
 import { defineComponent } from 'vue';
+
 // Based on: https://medium.com/@dillonchanis/handling-errors-in-vue-with-error-boundaries-91f6ead0093b
 // An error as aw-client (axios) raises it: request failures carry a code and the server response
 type CapturedError = Error & {
@@ -34,7 +35,7 @@ export default defineComponent({
     // fallback
     let msg: string | Error = err;
     // use server error response if available; err.isAxiosError doesn't help much here…
-    if (err.response && err.response.data && err.response.data.message) {
+    if (err.response?.data?.message) {
       msg = err.response.data.message;
     } else if (err.name && err.message) {
       msg = `${err.name}: ${err.message}.

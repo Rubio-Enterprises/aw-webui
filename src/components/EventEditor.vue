@@ -56,10 +56,11 @@ b-modal(v-if="event && event.id", :id="'edit-modal-' + event.id", ref="eventEdit
 <style lang="scss"></style>
 
 <script lang="ts">
-import { defineComponent, type PropType } from 'vue';
-import type { BModal } from 'bootstrap-vue';
 import type { IEvent as AWEvent } from 'aw-client';
+import type { BModal } from 'bootstrap-vue';
+import { defineComponent, type PropType } from 'vue';
 import type { IEvent } from '~/util/interfaces';
+
 // This EventEditor can be used to edit events in a specific bucket.
 //
 // It is used in:
@@ -68,8 +69,8 @@ import type { IEvent } from '~/util/interfaces';
 //  - Timeline (on event-click)
 //  - Search (soon)
 
-import moment from 'moment';
 import _ from 'lodash';
+import moment from 'moment';
 
 import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/save';
@@ -141,7 +142,7 @@ export default defineComponent({
       const savedEvent = _.cloneDeep(this.editedEvent);
       const bucketId = this.bucket_id;
       await this.runMutation('save', savedEvent, bucketId, () =>
-        this.$aw.replaceEvent(bucketId, savedEvent)
+        this.$aw.replaceEvent(bucketId, savedEvent),
       );
     },
     async delete_() {
@@ -163,10 +164,10 @@ export default defineComponent({
       name: Mutation,
       payload: unknown,
       bucketId: string,
-      request: () => Promise<void>
+      request: () => Promise<void>,
     ) {
       if (this.pending) return;
-      const editingId = this.event && this.event.id;
+      const editingId = this.event?.id;
       this.pending = name;
       this.error = '';
       try {
@@ -202,7 +203,7 @@ export default defineComponent({
       if (modal) modal.hide();
     },
     async getEvent() {
-      if (this.bucket_id && this.event && this.event.id) {
+      if (this.bucket_id && this.event?.id) {
         this.editedEvent = await this.$aw.getEvent(this.bucket_id, this.event.id);
       } else {
         this.editedEvent = null;

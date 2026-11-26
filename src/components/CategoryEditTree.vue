@@ -44,11 +44,10 @@ import 'vue-awesome/icons/trash';
 import 'vue-awesome/icons/plus';
 import 'vue-awesome/icons/edit';
 
-import CategoryEditModal from './CategoryEditModal.vue';
+import _ from 'lodash';
 import { useCategoryStore } from '~/stores/categories';
 import type { Category } from '~/util/classes';
-
-import _ from 'lodash';
+import CategoryEditModal from './CategoryEditModal.vue';
 
 export default defineComponent({
   name: 'CategoryEditTree',
@@ -85,7 +84,7 @@ export default defineComponent({
       const baseName = this.$t('ui.categoryEditor.newClass') as string;
       let name = baseName;
       let counter = 2;
-      const existingNames = this.categoryStore.classes.map(c => JSON.stringify(c.name));
+      const existingNames = this.categoryStore.classes.map((c) => JSON.stringify(c.name));
       while (existingNames.includes(JSON.stringify(parent.name.concat([name])))) {
         name = `${baseName} (${counter})`;
         counter++;

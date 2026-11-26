@@ -82,17 +82,17 @@ div
 
 <script lang="ts">
 import { defineComponent } from 'vue';
+import { analysisContextQuery } from '~/queries';
 import { useBucketsStore } from '~/stores/buckets';
 import { useCategoryStore } from '~/stores/categories';
-import { getClient } from '~/util/awclient';
-import { analysisContextQuery } from '~/queries';
-import { loadLLMConfig, saveLLMConfig, callLLM, type LLMProvider } from '~/util/aiSummary';
 import {
   buildActivityContext,
+  type CategoryName,
   formatActivityContext,
   privateCategoriesFrom,
-  type CategoryName,
 } from '~/util/activityContext';
+import { callLLM, type LLMProvider, loadLLMConfig, saveLLMConfig } from '~/util/aiSummary';
+import { getClient } from '~/util/awclient';
 import 'vue-awesome/icons/copy';
 
 const DEFAULT_PROMPT =
@@ -141,7 +141,7 @@ export default defineComponent({
           hosts.add(b.hostname);
         }
       }
-      return Array.from(hosts).map(h => ({ value: h, text: h }));
+      return Array.from(hosts).map((h) => ({ value: h, text: h }));
     },
     dateRangeOptions() {
       return [
@@ -224,7 +224,7 @@ export default defineComponent({
             apiKey: this.apiKey.trim(),
             model: effectiveModel,
           },
-          fullPrompt
+          fullPrompt,
         );
         this.llmResponse = response;
       } catch (err) {
@@ -243,7 +243,7 @@ export default defineComponent({
         throw new Error(`No window-watcher bucket found for host: ${this.selectedHost}`);
       }
       const afkBucket = buckets.find(
-        b => b.type === 'afkstatus' && b.hostname === this.selectedHost
+        (b) => b.type === 'afkstatus' && b.hostname === this.selectedHost,
       );
       // Only include browser buckets for the selected host; mixing buckets from
       // other hosts would send another device's domains to the LLM under the

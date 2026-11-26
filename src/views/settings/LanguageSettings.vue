@@ -17,10 +17,10 @@ div
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
 import { mapState } from 'pinia';
+import { defineComponent } from 'vue';
+import { isAppLocale, LANGUAGE_NAMES, SUPPORTED, setAppLocale } from '~/i18n';
 import { useSettingsStore } from '~/stores/settings';
-import { LANGUAGE_NAMES, SUPPORTED, isAppLocale, setAppLocale } from '~/i18n';
 
 export default defineComponent({
   name: 'LanguageSettings',

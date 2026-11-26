@@ -61,10 +61,10 @@ div
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
 import _ from 'lodash';
 import moment from 'moment';
-import { canonicalEvents, browserSearchQuery, querystr_to_array } from '~/queries';
+import { defineComponent } from 'vue';
+import { browserSearchQuery, canonicalEvents, querystr_to_array } from '~/queries';
 import { useBucketsStore } from '~/stores/buckets';
 import type { IEvent } from '~/util/interfaces';
 
@@ -106,7 +106,7 @@ export default defineComponent({
   methods: {
     search: async function () {
       const timeperiods = [
-        moment(this.queryOptions.start).format() + '/' + moment(this.queryOptions.stop).format(),
+        `${moment(this.queryOptions.start).format()}/${moment(this.queryOptions.stop).format()}`,
       ];
 
       // Window search query
@@ -158,16 +158,19 @@ export default defineComponent({
         // uses for filtering; it is not a real category, so drop it from results.
         // aw-client types event timestamps as Date, but the JSON response carries ISO strings.
         const windowResults = (results[0]?.[0] ?? []) as unknown as IEvent[];
-        const windowEvents = windowResults.map(e => ({ ...e, data: _.omit(e.data, '$category') }));
+        const windowEvents = windowResults.map((e) => ({
+          ...e,
+          data: _.omit(e.data, '$category'),
+        }));
         this.events = _.orderBy(windowEvents, ['timestamp'], ['desc']);
         const browserResults = (results[1]?.[0] ?? []) as unknown as IEvent[];
         // An event can match the pattern in both its url and title, which the
         // query concatenates into two entries; dedup by event ID so each
         // database record appears at most once.
         this.browserEvents = _.orderBy(
-          _.uniqBy(browserResults, e => e.id),
+          _.uniqBy(browserResults, (e) => e.id),
           ['timestamp'],
-          ['desc']
+          ['desc'],
         );
       } catch (e) {
         console.error(e);

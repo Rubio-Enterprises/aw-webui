@@ -121,24 +121,22 @@ div
 </style>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
 import _ from 'lodash';
 import moment from 'moment';
 import { mapState } from 'pinia';
-
-import { useCategoryStore } from '~/stores/categories';
-import { useBucketsStore } from '~/stores/buckets';
-import { useSettingsStore } from '~/stores/settings';
-
-import { canonicalEvents } from '~/queries';
-import type { AndroidQueryParams, DesktopQueryParams } from '~/queries';
-import type { IEvent } from '~/util/interfaces';
-import { getClient } from '~/util/awclient';
+import { defineComponent } from 'vue';
 import CategoryEditModal from '~/components/CategoryEditModal.vue';
-import { isRegexBroad, validateRegex } from '~/util/validate';
-import { findCommonPhrases } from '~/util/categorization';
+import type { AndroidQueryParams, DesktopQueryParams } from '~/queries';
+import { canonicalEvents } from '~/queries';
+import { useBucketsStore } from '~/stores/buckets';
+import { useCategoryStore } from '~/stores/categories';
+import { useSettingsStore } from '~/stores/settings';
+import { getClient } from '~/util/awclient';
 import type { WordEntry } from '~/util/categorization';
+import { findCommonPhrases } from '~/util/categorization';
 import { categoryBuilderHostnameEmptyKind, selectSoleKnownHostname } from '~/util/hostnames';
+import type { IEvent } from '~/util/interfaces';
+import { isRegexBroad, validateRegex } from '~/util/validate';
 
 // The word whose events are shown and the events (grouped by data); empty when hidden
 type ShownEvents = [word?: WordEntry, events?: IEvent[]];
@@ -150,7 +148,7 @@ type BucketParams =
 export default defineComponent({
   name: 'CategoryBuilder',
   components: { CategoryEditModal },
-  async beforeRouteLeave(to, from, next) {
+  async beforeRouteLeave(_to, _from, next) {
     const categoryStore = useCategoryStore();
     if (categoryStore.classes_unsaved_changes) {
       const confirmed = await this.$bvModal.msgBoxConfirm(
@@ -160,7 +158,7 @@ export default defineComponent({
           okTitle: this.$t('settings.unsavedCategoriesLeaveOk') as string,
           cancelTitle: this.$t('settings.unsavedCategoriesLeaveCancel') as string,
           centered: true,
-        }
+        },
       );
       if (confirmed) {
         next();
@@ -234,8 +232,8 @@ export default defineComponent({
       const words: { word: string; duration: number }[] = [...this.words.values()];
       return words
         .sort((a, b) => b.duration - a.duration)
-        .filter(word => word.duration > 60)
-        .filter(word => !this.ignored_words.includes(word.word));
+        .filter((word) => word.duration > 60)
+        .filter((word) => !this.ignored_words.includes(word.word));
     },
     words_visible: function () {
       return this.words_by_duration.slice(0, this.visible_count);
@@ -325,7 +323,9 @@ export default defineComponent({
             filter_afk: options.filter_afk,
           };
         } else if (androidBuckets[0] !== undefined) {
-          const screentimeBucket = androidBuckets.find(id => id.startsWith('aw-import-screentime'));
+          const screentimeBucket = androidBuckets.find((id) =>
+            id.startsWith('aw-import-screentime'),
+          );
           bucketParams = {
             bid_android: screentimeBucket || androidBuckets[0],
             // ScreenTime events have titles; Android events do not.
@@ -339,15 +339,14 @@ export default defineComponent({
         // Make sure we don't query with stale unsaved category changes.
         await this.categoryStore.load();
         if (requestId !== this.requestId) return;
-        const query =
-          canonicalEvents({
-            ...bucketParams,
-            categories: this.categoryStore.classes_for_query,
-            filter_categories: [this.category],
-          }) + 'RETURN = limit_events(sort_by_duration(events), 1000);';
+        const query = `${canonicalEvents({
+          ...bucketParams,
+          categories: this.categoryStore.classes_for_query,
+          filter_categories: [this.category],
+        })}RETURN = limit_events(sort_by_duration(events), 1000);`;
         const data = await getClient().query(
           [{ start: new Date(options.start), end: new Date(options.stop) }],
-          query.split('\n')
+          query.split('\n'),
         );
         if (requestId !== this.requestId) return;
         this.words = findCommonPhrases(data[0], this.ignored_words);
@@ -361,7 +360,7 @@ export default defineComponent({
     },
     showEvents(word: WordEntry) {
       // If already showing events, hide them and return
-      if (this.showing_events[0] == word) {
+      if (this.showing_events[0] === word) {
         this.showing_events = [];
         return;
       }
@@ -405,7 +404,9 @@ export default defineComponent({
         // A failed save was already reported to its own caller; don't poison the queue.
         .catch((e: unknown) => console.warn('Previous ignored-words save failed', e))
         .then(() =>
-          this.settingsStore.update({ category_builder_ignored_words: this._pending_ignored ?? next })
+          this.settingsStore.update({
+            category_builder_ignored_words: this._pending_ignored ?? next,
+          }),
         );
       const queued = this._persist_queue;
       try {
@@ -416,7 +417,7 @@ export default defineComponent({
       }
     },
     async ignoreWord(word: string) {
-      console.log('Ignoring word: ' + word);
+      console.log(`Ignoring word: ${word}`);
       const current = this._pending_ignored || this.ignored_words;
       if (current.includes(word)) return;
       await this.persistIgnoredWords([...current, word]);
@@ -433,7 +434,7 @@ export default defineComponent({
       await this.fetchWords();
     },
     createRule(word: string) {
-      console.log('Opening modal for creating rule with word: ' + word);
+      console.log(`Opening modal for creating rule with word: ${word}`);
       const lastId = this.categoryStore.addClass({
         name: [word],
         rule: { type: 'regex', regex: _.escapeRegExp(word) },
@@ -442,7 +443,7 @@ export default defineComponent({
       this.create.categoryId = lastId;
     },
     async createRuleOk() {
-      console.log('Creating rule with word: ' + this.create.word);
+      console.log(`Creating rule with word: ${this.create.word}`);
       await this.categoryStore.save();
       this.fetchWords();
     },
@@ -452,12 +453,12 @@ export default defineComponent({
       this.categoryStore.load(); // Restore categories to last saved
     },
     appendRule(word: string) {
-      console.log('Opening modal to append rule with word: ' + word);
+      console.log(`Opening modal to append rule with word: ${word}`);
       this.append.word = _.escapeRegExp(word);
       this.$bvModal.show('appendRule');
     },
     async appendRuleOk() {
-      console.log('Appending rule with word: ' + this.append.word);
+      console.log(`Appending rule with word: ${this.append.word}`);
       const cat = this.categoryStore.get_category(this.append.category);
       if (cat.id === undefined) throw new Error('Cannot append a rule to a category without an id');
       this.categoryStore.appendClassRule(cat.id, this.append.word);

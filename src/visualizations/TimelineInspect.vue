@@ -49,7 +49,7 @@ export default defineComponent({
           this.show_afk,
           this.chunkfunc,
           this.eventfunc,
-          this.$t('visualizations.noData') as string
+          this.$t('visualizations.noData') as string,
         );
       }
     },

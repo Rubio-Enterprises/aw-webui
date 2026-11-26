@@ -56,9 +56,9 @@ div
 <style scoped lang="scss"></style>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
 import _ from 'lodash';
 import moment from 'moment';
+import { defineComponent } from 'vue';
 import { canonicalEvents, querystr_to_array } from '~/queries';
 
 import 'vue-awesome/icons/plus';
@@ -69,7 +69,6 @@ import 'vue-awesome/icons/trash';
 import { useBucketsStore } from '~/stores/buckets';
 import { useCategoryStore } from '~/stores/categories';
 import { useSettingsStore } from '~/stores/settings';
-import { get_day_start_with_offset } from '~/util/time';
 import {
   type AlertGoal,
   cleanAlertGoal,
@@ -77,6 +76,7 @@ import {
   getDefaultAlertGoals,
 } from '~/util/alerts';
 import type { IEvent } from '~/util/interfaces';
+import { get_day_start_with_offset } from '~/util/time';
 
 // The error shape of a failed aw-client request
 type RequestError = { message?: string; response?: { data?: { message?: string } } };
@@ -122,7 +122,7 @@ export default defineComponent({
   },
   computed: {
     categories: function () {
-      return this.categoryStore.category_select(true, key => this.$t(key) as string);
+      return this.categoryStore.category_select(true, (key) => this.$t(key) as string);
     },
     alertTime: function (): (cat: string[]) => number {
       return (cat: string[]) => {
@@ -149,8 +149,8 @@ export default defineComponent({
     // Prevents "There's no bucket named 'aw-watcher-afk_<host>'" when the
     // hosts list contains a stale hostname with only one orphan bucket.
     this.hostnames = this.bucketsStore.hosts.filter(
-      h =>
-        this.bucketsStore.bucketsWindow(h).length > 0 && this.bucketsStore.bucketsAFK(h).length > 0
+      (h) =>
+        this.bucketsStore.bucketsWindow(h).length > 0 && this.bucketsStore.bucketsAFK(h).length > 0,
     );
     this.hostname = this.hostnames[0] ?? '';
   },
@@ -166,7 +166,7 @@ export default defineComponent({
       }
     },
     deleteAlert: async function (name: string) {
-      await this.persistAlerts(this.alerts.filter(a => a.name !== name));
+      await this.persistAlerts(this.alerts.filter((a) => a.name !== name));
     },
 
     // Save the given goals, keeping the shown list and storage in step. Returns
@@ -232,7 +232,7 @@ export default defineComponent({
       if (start.isAfter(now)) {
         start = moment(get_day_start_with_offset(moment(now).startOf('day').subtract(1, 'day')));
       }
-      const timeperiods = [start.format() + '/' + now.format()];
+      const timeperiods = [`${start.format()}/${now.format()}`];
 
       try {
         this.status = 'searching';
@@ -243,18 +243,20 @@ export default defineComponent({
         console.error(e);
         const err = e as RequestError | undefined;
         this.error =
-          err?.response?.data?.message || err?.message || (this.$t('common.requestFailed') as string);
+          err?.response?.data?.message ||
+          err?.message ||
+          (this.$t('common.requestFailed') as string);
         return;
       } finally {
         this.status = null;
       }
 
-      const grouped = _.groupBy(this.events, e => (e.data.$category ?? []).join(','));
+      const grouped = _.groupBy(this.events, (e) => (e.data.$category ?? []).join(','));
       const sumCats = Object.fromEntries(
-        _.map(Object.entries(grouped), entry => {
+        _.map(Object.entries(grouped), (entry) => {
           const [group, events] = entry;
           return [group, _.sumBy(events, 'duration')];
-        })
+        }),
       );
       this.alert_times = sumCats;
 

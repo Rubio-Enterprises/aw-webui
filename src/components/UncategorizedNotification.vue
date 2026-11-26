@@ -63,7 +63,7 @@ export default defineComponent({
       }
       const duration = seconds_to_duration(this.uncategorizedDuration[0]);
       const percent = Math.round(
-        (100 * this.uncategorizedDuration[0]) / this.uncategorizedDuration[1]
+        (100 * this.uncategorizedDuration[0]) / this.uncategorizedDuration[1],
       );
       return this.$t('uncategorized.body', {
         duration,

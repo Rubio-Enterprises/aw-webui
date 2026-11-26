@@ -157,13 +157,11 @@ export default defineComponent({
       type: Boolean,
     },
   },
-  data: function () {
-    return {
-      isListExpanded: false,
-      limit: 100,
-      editableEvent: null as IEvent | null,
-    };
-  },
+  data: () => ({
+    isListExpanded: false,
+    limit: 100,
+    editableEvent: null as IEvent | null,
+  }),
   computed: {
     displayed_events: function (): IEvent[] {
       return (this.events ?? []).slice(0, this.limit);
@@ -173,14 +171,14 @@ export default defineComponent({
     editEvent: function (event: IEvent) {
       this.editableEvent = event;
       this.$nextTick(() => {
-        this.$bvModal.show('edit-modal-' + event.id);
+        this.$bvModal.show(`edit-modal-${event.id}`);
       });
     },
     expandList: function () {
       this.isListExpanded = !this.isListExpanded;
       console.log('List should be expanding: ', this.isListExpanded);
     },
-    removeEvent: function (_event: IEvent) {
+    removeEvent: (_event: IEvent) => {
       // FIXME: Illegal mutation of prop, need to propagate upwards or move into vuex.
       //this.events = this.events.filter(e => e.id != event.id);
     },

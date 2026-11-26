@@ -79,20 +79,20 @@ div
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
 import moment from 'moment';
-import { getClient } from '~/util/awclient';
+import { defineComponent } from 'vue';
+import { useBucketsStore } from '~/stores/buckets';
 import { useCategoryStore } from '~/stores/categories';
 import { useSettingsStore } from '~/stores/settings';
-import { useBucketsStore } from '~/stores/buckets';
-import { get_day_start_with_offset, get_day_end_with_offset } from '~/util/time';
-import { periodStartDate } from '~/util/timeperiod';
+import { getClient } from '~/util/awclient';
 import { neutralizeCsvFormula } from '~/util/export';
 import type { IEvent } from '~/util/interfaces';
+import { get_day_end_with_offset, get_day_start_with_offset } from '~/util/time';
+import { periodStartDate } from '~/util/timeperiod';
 import {
+  getUnsupportedWorkReportHosts,
   getWorkReportHostBuckets,
   getWorkReportHostOptions,
-  getUnsupportedWorkReportHosts,
   WorkReportHostBuckets,
 } from '~/util/workReport';
 
@@ -128,7 +128,7 @@ duration = sum_durations(events);
 RETURN = {"events": events, "duration": duration};`;
   return query
     .split('\n')
-    .map(line => line.replace(/\s+$/, ''))
+    .map((line) => line.replace(/\s+$/, ''))
     .join('\n');
 }
 
@@ -180,7 +180,7 @@ export default defineComponent({
     this.categoryStore.load();
     await this.bucketsStore.ensureLoaded();
     if (this.hostOptions.length > 0) {
-      this.selectedHosts = this.hostOptions.filter(opt => !opt.disabled).map(opt => opt.value);
+      this.selectedHosts = this.hostOptions.filter((opt) => !opt.disabled).map((opt) => opt.value);
     }
   },
   methods: {
@@ -217,11 +217,11 @@ export default defineComponent({
 
         const unsupported = getUnsupportedWorkReportHosts(
           this.selectedHosts,
-          this.bucketsStore.buckets || []
+          this.bucketsStore.buckets || [],
         );
         const hostsToQuery = getWorkReportHostBuckets(
           this.selectedHosts,
-          this.bucketsStore.buckets || []
+          this.bucketsStore.buckets || [],
         );
         if (hostsToQuery.length === 0) {
           this.errorMessage = this.$t('ui.billing.noSupportedHosts', {
@@ -313,11 +313,11 @@ export default defineComponent({
       ].join('\n');
 
       const cols = ['Category', 'Hours', 'Rate ($/h)', 'Amount ($)'];
-      const rows = this.categoryRows.map(row => {
+      const rows = this.categoryRows.map((row) => {
         const rate = this.getEffectiveRate(row);
         const amount = this.getAmount(row);
         return [
-          '"' + neutralizeCsvFormula(row.category).replace(/"/g, '""') + '"',
+          `"${neutralizeCsvFormula(row.category).replace(/"/g, '""')}"`,
           (row.duration / 3600).toFixed(2),
           rate > 0 ? rate.toFixed(2) : '',
           amount > 0 ? amount.toFixed(2) : '',

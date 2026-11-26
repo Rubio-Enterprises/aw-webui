@@ -16,8 +16,8 @@ div
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import type { IEvent } from '~/util/interfaces';
 import { useBucketsStore } from '~/stores/buckets';
+import type { IEvent } from '~/util/interfaces';
 import Timespiral from '~/visualizations/Timespiral.vue';
 
 export default defineComponent({

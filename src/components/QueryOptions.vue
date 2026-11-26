@@ -14,8 +14,8 @@ div
 </template>
 
 <script lang="ts">
-import { defineComponent, type PropType } from 'vue';
 import moment from 'moment';
+import { defineComponent, type PropType } from 'vue';
 import { useBucketsStore } from '~/stores/buckets';
 import { preferKnownHostnames } from '~/util/hostnames';
 

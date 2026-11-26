@@ -9,27 +9,27 @@ div.small(v-else, style="font-size: 16pt; color: #aaa;")
 </template>
 
 <script lang="ts">
-import { defineComponent, type PropType } from 'vue';
-import _ from 'lodash';
 import { ChartOptions } from 'chart.js';
+import _ from 'lodash';
+import { defineComponent, type PropType } from 'vue';
 import 'chart.js/auto';
 import { Bar } from 'vue-chartjs/legacy';
+import { i18n } from '~/i18n';
 import {
   format_date_short,
   format_weekday_short,
   get_hour_offset,
   get_short_month_labels,
 } from '~/util/time';
+import { clampStackedHours } from '~/util/timelineClamp';
 import {
   EXACT_HOURLY_MAX_MS,
-  MAX_DAILY_BUCKETS,
   exactBucketLabels,
   hourlyLabels,
+  MAX_DAILY_BUCKETS,
   timeperiodsCalendarMonthsOfPeriod,
   timeperiodsHoursOfPeriod,
 } from '~/util/timeperiod';
-import { i18n } from '~/i18n';
-import { clampStackedHours } from '~/util/timelineClamp';
 
 // A series of hours per bucket (null for a missing bucket)
 type BarDataset = {
@@ -41,15 +41,14 @@ type BarDataset = {
 function hourToTick(hours: number): string {
   if (hours > 1) {
     return `${hours}h`;
-  } else {
-    if (hours == 1) {
-      return '1h';
-    } else if (hours == 0) {
-      return '0';
-    } else {
-      return Math.round(hours * 60) + 'm';
-    }
   }
+  if (hours === 1) {
+    return '1h';
+  }
+  if (hours === 0) {
+    return '0';
+  }
+  return `${Math.round(hours * 60)}m`;
 }
 
 export default defineComponent({
@@ -96,57 +95,62 @@ export default defineComponent({
         // Exact interval: the same clipped buckets the category query uses
         return start ? exactBucketLabels({ start, length: [count, resolution] }) : [];
       }
-      if (resolution.startsWith('day') && count == 1) {
+      if (resolution.startsWith('day') && count === 1) {
         if (start) return hourlyLabels({ start, length: [count, resolution] });
         // Reports aggregate by wall-clock hour without a selected calendar day.
         const hourOffset = get_hour_offset();
-        return _.range(0, 24).map(h => `${(h + hourOffset) % 24}`);
-      } else if (resolution.startsWith('day') && count > MAX_DAILY_BUCKETS) {
+        return _.range(0, 24).map((h) => `${(h + hourOffset) % 24}`);
+      }
+      if (resolution.startsWith('day') && count > MAX_DAILY_BUCKETS) {
         // Long custom ranges are bucketed by calendar month (see timeperiodsForBarchart)
         const fmt = new Intl.DateTimeFormat(i18n.locale, { month: 'short', year: 'numeric' });
         return timeperiodsCalendarMonthsOfPeriod({
           start: start ?? '',
           length: [count, resolution],
-        }).map(p => fmt.format(new Date(p.start)));
-      } else if (resolution.startsWith('day')) {
-        return _.range(count).map(d => {
+        }).map((p) => fmt.format(new Date(p.start)));
+      }
+      if (resolution.startsWith('day')) {
+        return _.range(count).map((d) => {
           const date = startDate();
           date.setHours(12, 0, 0, 0);
           date.setDate(date.getDate() + d);
           return format_date_short(date, i18n.locale);
         });
-      } else if (resolution === 'weeks') {
+      }
+      if (resolution === 'weeks') {
         // One bar per week (Trends), labelled with each week's start date
-        return _.range(count).map(w => {
+        return _.range(count).map((w) => {
           const date = startDate();
           date.setHours(12, 0, 0, 0);
           date.setDate(date.getDate() + 7 * w);
           return format_date_short(date, i18n.locale);
         });
-      } else if (resolution.startsWith('week')) {
+      }
+      if (resolution.startsWith('week')) {
         // Look up days of the week from `start`
-        return _.range(7).map(d => {
+        return _.range(7).map((d) => {
           const date = startDate();
           date.setHours(12, 0, 0, 0);
           date.setDate(date.getDate() + d);
           return format_weekday_short(date);
         });
-      } else if (resolution.startsWith('month')) {
+      }
+      if (resolution.startsWith('month')) {
         // How many days are in the month containing `start`?
         const date = startDate();
         const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-        return _.range(1, daysInMonth + 1).map(d =>
-          format_date_short(new Date(date.getFullYear(), date.getMonth(), d, 12))
+        return _.range(1, daysInMonth + 1).map((d) =>
+          format_date_short(new Date(date.getFullYear(), date.getMonth(), d, 12)),
         );
-      } else if (resolution == 'year') {
-        return get_short_month_labels();
-      } else {
-        console.error(`Invalid resolution: ${resolution}`);
-        return [];
       }
+      if (resolution === 'year') {
+        return get_short_month_labels();
+      }
+      console.error(`Invalid resolution: ${resolution}`);
+      return [];
     },
     chartData() {
-      let datasets = _.sortBy(this.datasets, d => d.label);
+      let datasets = _.sortBy(this.datasets, (d) => d.label);
       const [count, resolution] = this.timeperiod_length;
       if (this.clamp_hourly) {
         if (resolution.startsWith('day') && count === 1) {
@@ -155,7 +159,7 @@ export default defineComponent({
           const bucketHours = timeperiodsHoursOfPeriod({
             start: this.timeperiod_start ?? '',
             length: [count, resolution],
-          }).map(period => period.length[0]);
+          }).map((period) => period.length[0]);
           datasets = clampStackedHours(datasets, bucketHours);
         }
       }
@@ -182,11 +186,11 @@ export default defineComponent({
             mode: 'point',
             intersect: false,
             callbacks: {
-              label: function (context) {
+              label: (context) => {
                 const value = context.parsed.y;
                 let hours = Math.floor(value);
                 let minutes = Math.round((value - hours) * 60);
-                if (minutes == 60) {
+                if (minutes === 60) {
                   minutes = 0;
                   hours += 1;
                 }
@@ -208,7 +212,7 @@ export default defineComponent({
             min: 0,
             suggestedMax: singleDay ? 1 : undefined,
             ticks: {
-              callback: value => hourToTick(Number(value)),
+              callback: (value) => hourToTick(Number(value)),
               stepSize: singleDay ? 0.25 : undefined,
             },
           },

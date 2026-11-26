@@ -59,9 +59,9 @@ div
 <style scoped lang="scss"></style>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
 import _ from 'lodash';
 import moment from 'moment';
+import { defineComponent } from 'vue';
 
 import 'vue-awesome/icons/search';
 import 'vue-awesome/icons/spinner';
@@ -131,7 +131,7 @@ export default defineComponent({
         filter_afk: this.queryOptions.filter_afk,
         categories: this.categoryStore.classes_for_query,
         filter_categories: this.excludeUncategorized
-          ? this.categoryStore.classes_for_query.map(t => t[0])
+          ? this.categoryStore.classes_for_query.map((t) => t[0])
           : null,
       });
       query += '; RETURN = events;';
@@ -139,7 +139,7 @@ export default defineComponent({
       const query_array = querystr_to_array(query);
       const start = moment(this.queryOptions.start).format();
       const end = moment(this.queryOptions.stop).format();
-      const timeperiods = [start + '/' + end];
+      const timeperiods = [`${start}/${end}`];
       try {
         this.status = 'searching';
         const time = moment();
@@ -152,7 +152,9 @@ export default defineComponent({
         console.error(e);
         const err = e as RequestError | undefined;
         this.error =
-          err?.response?.data?.message || err?.message || (this.$t('common.requestFailed') as string);
+          err?.response?.data?.message ||
+          err?.message ||
+          (this.$t('common.requestFailed') as string);
       } finally {
         this.status = null;
       }
@@ -166,20 +168,20 @@ export default defineComponent({
       const SEP = '>';
 
       // copy all events, slice off category depth deeper than maxDepth
-      const events = input.map(e => {
+      const events = input.map((e) => {
         const $category = (e.data.$category ?? ['Uncategorized']).slice(0, this.maxDepth);
         return { ...e, data: { ...e.data, $category } };
       });
 
       const allCategories: Set<string> = new Set(
-        events.map(e => e.data.$category).map(c => c.join(SEP))
+        events.map((e) => e.data.$category).map((c) => c.join(SEP)),
       );
       const groups: Record<string, number> = { Uncategorized: 0 };
 
       // Generate groups
       for (const category of allCategories) {
         const rootcat = category.split(SEP)[0] ?? '';
-        if (!Object.prototype.hasOwnProperty.call(groups, rootcat)) {
+        if (!Object.keys(groups).includes(rootcat)) {
           groups[rootcat] = Object.keys(groups).length;
         }
       }
@@ -190,8 +192,8 @@ export default defineComponent({
         const rootcat = category.split(SEP)[0] ?? '';
         // Size nodes depending on time spent
         const catTime = events
-          .filter(e => e.data.$category.join(SEP) == category)
-          .map(e => moment(e.timestamp).add(e.duration).diff(e.timestamp))
+          .filter((e) => e.data.$category.join(SEP) === category)
+          .map((e) => moment(e.timestamp).add(e.duration).diff(e.timestamp))
           .reduce((a, b) => a + b, 0);
         nodes.push({
           id: category,
@@ -207,12 +209,14 @@ export default defineComponent({
       for (let i = 0; i < events.length - 1; i++) {
         const e1 = events[i];
         const e2 = events[i + 1];
-        if (!e1 || !e2) continue;
+        if (!(e1 && e2)) continue;
         const e1cat = e1.data.$category;
         const e2cat = e2.data.$category;
         if (_.isEqual(e1cat, e2cat)) continue;
 
-        const link = links.find(l => l.source == e1cat.join(SEP) && l.target == e2cat.join(SEP));
+        const link = links.find(
+          (l) => l.source === e1cat.join(SEP) && l.target === e2cat.join(SEP),
+        );
         if (link) {
           link.value++;
         } else {

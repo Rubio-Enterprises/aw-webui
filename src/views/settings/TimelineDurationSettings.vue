@@ -49,7 +49,7 @@ export default defineComponent({
         return this.settingsStore.durationDefault;
       },
       set(value: number) {
-        console.log('Set default timeline duration to ' + value);
+        console.log(`Set default timeline duration to ${value}`);
         this.settingsStore.update({ durationDefault: value });
       },
     },

@@ -206,8 +206,8 @@ import 'vue-awesome/icons/external-link-alt';
 import _ from 'lodash';
 
 import { mapState } from 'pinia';
-import { useSettingsStore } from '~/stores/settings';
 import { useBucketsStore } from '~/stores/buckets';
+import { useSettingsStore } from '~/stores/settings';
 import { IBucket } from '~/util/interfaces';
 import { ALL_DEVICES, formatHostParam } from '~/util/multidevice';
 import { connectNativeBridge, NATIVE_MENU_ACTIONS, NativeBridge } from '~/util/nativeBridge';
@@ -241,7 +241,7 @@ export default defineComponent({
   computed: {
     ...mapState(useSettingsStore, ['devmode']),
     nativeMenuActions() {
-      return NATIVE_MENU_ACTIONS.filter(a => this.nativeActions.includes(a.id));
+      return NATIVE_MENU_ACTIONS.filter((a) => this.nativeActions.includes(a.id));
     },
   },
   watch: {
@@ -281,17 +281,18 @@ export default defineComponent({
 
     const activityViews: ActivityViewLink[] = [];
 
-    _.each(buckets, v => {
+    _.each(buckets, (v) => {
       // A bucket without a hostname belongs to no device that could be opened
       if (v.hostname === undefined) return;
-      const types = (types_by_host[v.hostname] ||= { afk: false, window: false, android: false });
-      types.afk ||= v.type == 'afkstatus';
-      types.window ||= v.type == 'currentwindow';
-      types.android ||= v.type == 'currentwindow' && v.id.includes('android');
+      const types = types_by_host[v.hostname] ?? { afk: false, window: false, android: false };
+      types_by_host[v.hostname] = types;
+      types.afk ||= v.type === 'afkstatus';
+      types.window ||= v.type === 'currentwindow';
+      types.android ||= v.type === 'currentwindow' && v.id.includes('android');
     });
 
     _.each(types_by_host, (types, hostname) => {
-      if (types['android']) {
+      if (types.android) {
         activityViews.push({
           name: `${hostname} (Android)`,
           hostname: hostname,
@@ -299,7 +300,7 @@ export default defineComponent({
           pathUrl: `/activity/${formatHostParam([hostname])}`,
           icon: 'mobile',
         });
-      } else if (hostname != 'unknown') {
+      } else if (hostname !== 'unknown') {
         activityViews.push({
           name: hostname,
           hostname: hostname,

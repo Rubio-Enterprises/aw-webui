@@ -17,9 +17,9 @@ div
 
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue';
+import type { QueryCategory } from '~/queries';
 import { useCategoryStore } from '~/stores/categories';
 import type { Category } from '~/util/classes';
-import type { QueryCategory } from '~/queries';
 
 const SEP = ' > ';
 
@@ -39,15 +39,13 @@ export default defineComponent({
     };
   },
   computed: {
-    categories: function (): Category[] {
-      return useCategoryStore().classes;
-    },
+    categories: (): Category[] => useCategoryStore().classes,
 
     categoriesWithRules(): QueryCategory[] {
       if (this.mode === 'categories') {
         // Get the category and all subcategories
         return this.categories
-          .filter(cat => {
+          .filter((cat) => {
             const name = cat.name.join(SEP);
             for (const filterCat of this.filterCategoriesData) {
               if (name.includes(filterCat.join(SEP))) {
@@ -56,14 +54,14 @@ export default defineComponent({
             }
             return false;
           })
-          .filter(cat => cat.rule.type === 'regex')
+          .filter((cat) => cat.rule.type === 'regex')
           .map((cat): QueryCategory => [cat.name, cat.rule]);
-      } else if (this.mode === 'custom') {
-        return [[['searched'], { type: 'regex', regex: this.pattern }]];
-      } else {
-        console.error('Unknown mode:', this.mode);
-        return [];
       }
+      if (this.mode === 'custom') {
+        return [[['searched'], { type: 'regex', regex: this.pattern }]];
+      }
+      console.error('Unknown mode:', this.mode);
+      return [];
     },
   },
   watch: {

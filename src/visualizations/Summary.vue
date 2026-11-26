@@ -83,11 +83,11 @@ export default defineComponent({
         summary.updateSummedEvents(
           el,
           this.fields.slice(0, this.limit_),
-          this.namefunc ?? (e => e.data.app ?? ''),
+          this.namefunc ?? ((e) => e.data.app ?? ''),
           this.hoverfunc,
           this.colorfunc ?? (() => ''),
           this.linkfunc,
-          this.$t('visualizations.noData') as string
+          this.$t('visualizations.noData') as string,
         );
       } else {
         summary.set_status(el, this.$t('common.loading') as string);

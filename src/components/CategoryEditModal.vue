@@ -71,18 +71,18 @@ b-modal(id="edit" ref="edit" :title="$t('ui.categoryEditor.editTitle')" @show="r
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
-import _ from 'lodash';
 import type { BModal } from 'bootstrap-vue';
+import _ from 'lodash';
+import { defineComponent } from 'vue';
 import ColorPicker from '~/components/ColorPicker.vue';
 import { useCategoryStore } from '~/stores/categories';
-import { validateRegex, isRegexBroad } from '~/util/validate';
 import {
   CANONICAL_SELECT_KEYS,
   type Category,
   normalizeSelectKeys,
   type Rule,
 } from '~/util/classes';
+import { isRegexBroad, validateRegex } from '~/util/validate';
 
 import 'vue-awesome/icons/trash';
 
@@ -110,24 +110,22 @@ export default defineComponent({
   props: {
     categoryId: { type: Number, required: true },
   },
-  data: function () {
-    return {
-      categoryStore: useCategoryStore(),
+  data: () => ({
+    categoryStore: useCategoryStore(),
 
-      editing: {
-        id: 0, // Placeholder; replaced with the stored category id by resetModal()
-        name: null,
-        rule: {} as Rule,
-        parent: [],
-        inherit_color: true,
-        color: null,
-        inherit_score: true,
-        score: null,
-        match_fields: [],
-        priority: null,
-      } as EditingState,
-    };
-  },
+    editing: {
+      id: 0, // Placeholder; replaced with the stored category id by resetModal()
+      name: null,
+      rule: {} as Rule,
+      parent: [],
+      inherit_color: true,
+      color: null,
+      inherit_score: true,
+      score: null,
+      match_fields: [],
+      priority: null,
+    } as EditingState,
+  }),
   computed: {
     allCategories() {
       return [
@@ -175,7 +173,7 @@ export default defineComponent({
     },
     fieldOptions: function () {
       const extra = (this.editing.match_fields || []).filter(
-        k => !(CANONICAL_SELECT_KEYS as readonly string[]).includes(k)
+        (k) => !(CANONICAL_SELECT_KEYS as readonly string[]).includes(k),
       );
       return [...CANONICAL_SELECT_KEYS, ...extra];
     },

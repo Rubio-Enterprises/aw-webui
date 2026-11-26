@@ -101,11 +101,11 @@ div.sunburst
 </style>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
-import sunburst from './sunburst-clock';
-import moment from 'moment';
 import _ from 'lodash';
+import moment from 'moment';
+import { defineComponent } from 'vue';
 import type { IEvent } from '~/util/interfaces';
+import sunburst from './sunburst-clock';
 
 // An event with the events that fall inside it, as the clock draws them
 type ClockEvent = IEvent & { children?: ClockEvent[] };
@@ -148,7 +148,7 @@ export default defineComponent({
       const querystr = [`RETURN = flood(query_bucket("${bucket_id}"));`];
       const data = await this.$aw.query(
         [`${this.starttime.format()}/${this.endtime.format()}`],
-        querystr
+        querystr,
       );
       // aw-client types event timestamps as Date, but the JSON response carries ISO strings.
       return data[0] as unknown as IEvent[];
@@ -203,7 +203,7 @@ export default defineComponent({
         //console.log(parents);
         const first = parents[0];
         const last = parents[parents.length - 1];
-        if (!first || !last) throw new Error('Cannot build a clock without events');
+        if (!(first && last)) throw new Error('Cannot build a clock without events');
         const m_start = moment(first.timestamp);
         const m_end = moment(last.timestamp);
         const duration = (m_end.valueOf() - m_start.valueOf()) / 1000;
@@ -216,8 +216,8 @@ export default defineComponent({
         };
       }
 
-      this.todaysEvents(this.afkBucketId).then(events_afk => {
-        this.todaysEvents(this.windowBucketId).then(events_window => {
+      this.todaysEvents(this.afkBucketId).then((events_afk) => {
+        this.todaysEvents(this.windowBucketId).then((events_window) => {
           let hierarchy: ClockEvent & { children: ClockEvent[] };
           if (events_afk.length > 0 && events_window.length > 0) {
             hierarchy = buildHierarchy(events_afk, events_window);

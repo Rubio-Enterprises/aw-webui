@@ -76,11 +76,11 @@ export default defineComponent({
       this.colorValue = color;
     },
     updateColors(color: string) {
-      if (color.slice(0, 1) == '#') {
+      if (color.slice(0, 1) === '#') {
         this.colors = {
           hex: color,
         };
-      } else if (color.slice(0, 4) == 'rgba') {
+      } else if (color.slice(0, 4) === 'rgba') {
         const rgba = color.replace(/^rgba?\(|\s+|\)$/g, '').split(',');
         const [r = '', g = '', b = ''] = rgba;
         const hex =
@@ -110,14 +110,14 @@ export default defineComponent({
     },
     updateFromPicker(color: PickedColor) {
       this.colors = color;
-      if (color.rgba.a == 1) {
+      if (color.rgba.a === 1) {
         this.colorValue = color.hex;
       } else {
         this.colorValue = `rgba(${color.rgba.r}, ${color.rgba.g}, ${color.rgba.b}, ${color.rgba.a})`;
       }
     },
     randomColor() {
-      this.colorValue = '#' + (0x1000000 + Math.random() * 0xffffff).toString(16).substr(1, 6);
+      this.colorValue = `#${(0x1000000 + Math.random() * 0xffffff).toString(16).substr(1, 6)}`;
     },
     documentClick(e: MouseEvent) {
       const el = this.$refs.colorpicker as HTMLElement | undefined;

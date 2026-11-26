@@ -76,11 +76,11 @@ import { defineComponent } from 'vue';
 import 'vue-awesome/icons/check';
 import 'vue-awesome/icons/exclamation-triangle';
 import 'vue-awesome/icons/info-circle';
-import { getClient } from '~/util/awclient';
-import { overlappingEvents } from '~/util/transforms';
-import { seconds_to_duration } from '~/util/time';
 import _ from 'lodash';
+import { getClient } from '~/util/awclient';
 import type { IEvent } from '~/util/interfaces';
+import { seconds_to_duration } from '~/util/time';
+import { overlappingEvents } from '~/util/transforms';
 
 export default defineComponent({
   name: 'aw-bucket-merge',
@@ -102,7 +102,7 @@ export default defineComponent({
       if (this.overlappingEvents === null) {
         return null;
       }
-      return this.overlappingEvents.filter(overlap => {
+      return this.overlappingEvents.filter((overlap) => {
         return (
           _.isEqual(overlap[0].start, overlap[1].start) &&
           _.isEqual(overlap[0].end, overlap[1].end) &&
@@ -146,7 +146,7 @@ export default defineComponent({
       if (this.events === null) {
         return null;
       }
-      return this.events.filter(event => event.duration === 0);
+      return this.events.filter((event) => event.duration === 0);
     },
   },
   watch: {
@@ -169,11 +169,11 @@ export default defineComponent({
     getBuckets: async function () {
       const client = getClient();
       const buckets = await client.getBuckets();
-      this.buckets = Object.keys(buckets).map(bucket_id => {
+      this.buckets = Object.keys(buckets).map((bucket_id) => {
         return { value: bucket_id, text: bucket_id };
       });
     },
-    getEvents: async function (bucket_id: string): Promise<IEvent[]> {
+    getEvents: async (bucket_id: string): Promise<IEvent[]> => {
       const client = getClient();
       // aw-client types event timestamps as Date, but the JSON response carries ISO strings.
       return (await client.getEvents(bucket_id)) as unknown as IEvent[];
