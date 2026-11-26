@@ -111,17 +111,17 @@ div
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
 import type { Moment } from 'moment';
+import { defineComponent } from 'vue';
 import 'vue-awesome/icons/filter';
 import 'vue-awesome/icons/ellipsis-v';
 import _ from 'lodash';
 import { mapState } from 'pinia';
-import { useSettingsStore } from '~/stores/settings';
-import { useBucketsStore } from '~/stores/buckets';
-import { getClient } from '~/util/awclient';
 import { canonicalEvents, querystr_to_array } from '~/queries';
+import { useBucketsStore } from '~/stores/buckets';
 import { useCategoryStore } from '~/stores/categories';
+import { useSettingsStore } from '~/stores/settings';
+import { getClient } from '~/util/awclient';
 import { matchString } from '~/util/classes';
 import { getCategorizationStringFromEvent } from '~/util/color';
 import type { IBucket, IEvent } from '~/util/interfaces';
@@ -272,7 +272,7 @@ export default defineComponent({
       // Only refetch when the range changes; filters work on copies below.
       const range = this.daterange;
       const [rangeStart, rangeEnd] = range;
-      if (!rangeStart || !rangeEnd) return;
+      if (!(rangeStart && rangeEnd)) return;
       if (this.fetchedRange !== range || !this.bucketsRequest) {
         this.fetchedRange = range;
         // aw-client types events more narrowly than the store returns them
@@ -393,8 +393,8 @@ export default defineComponent({
     // Merges adjacent events with the same app name within window buckets.
     // This collapses rapid title changes (e.g. toggling UI panels) into single
     // blocks per app, fixing timeline flooding for apps like Adobe Illustrator.
-    _applyMergeSimilar: function (buckets: IBucket[]): IBucket[] {
-      return buckets.map((bucket) => {
+    _applyMergeSimilar: (buckets: IBucket[]): IBucket[] =>
+      buckets.map((bucket) => {
         if (bucket.type !== 'currentwindow' || !bucket.events || bucket.events.length <= 1) {
           return bucket;
         }
@@ -426,8 +426,7 @@ export default defineComponent({
         merged.push(current);
 
         return { ...bucket, events: merged };
-      });
-    },
+      }),
 
     // Replaces raw window bucket events with AFK-filtered events via aw query engine.
     // Also hides AFK status buckets since they're used for filtering, not display.
@@ -482,7 +481,7 @@ export default defineComponent({
       const queryArray = querystr_to_array(queryCode);
 
       const [rangeStart, rangeEnd] = this.daterange ?? [];
-      if (!rangeStart || !rangeEnd) return [];
+      if (!(rangeStart && rangeEnd)) return [];
       const timeperiods = [`${rangeStart.format()}/${rangeEnd.format()}`];
 
       const data = await getClient().query(timeperiods, queryArray);

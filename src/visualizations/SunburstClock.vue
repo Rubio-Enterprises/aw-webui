@@ -101,11 +101,11 @@ div.sunburst
 </style>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
-import sunburst from './sunburst-clock';
-import moment from 'moment';
 import _ from 'lodash';
+import moment from 'moment';
+import { defineComponent } from 'vue';
 import type { IEvent } from '~/util/interfaces';
+import sunburst from './sunburst-clock';
 
 // An event with the events that fall inside it, as the clock draws them
 type ClockEvent = IEvent & { children?: ClockEvent[] };
@@ -203,7 +203,7 @@ export default defineComponent({
         //console.log(parents);
         const first = parents[0];
         const last = parents[parents.length - 1];
-        if (!first || !last) throw new Error('Cannot build a clock without events');
+        if (!(first && last)) throw new Error('Cannot build a clock without events');
         const m_start = moment(first.timestamp);
         const m_end = moment(last.timestamp);
         const duration = (m_end.valueOf() - m_start.valueOf()) / 1000;

@@ -15,8 +15,8 @@ div
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
 import { mapStores } from 'pinia';
+import Vue from 'vue';
 import { useBucketsStore } from '~/stores/buckets';
 
 // Minutes after which a bucket is considered stale

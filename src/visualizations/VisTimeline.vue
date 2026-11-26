@@ -87,27 +87,26 @@ div#visualization {
 </style>
 
 <script lang="ts">
-import { defineComponent, markRaw, type PropType } from 'vue';
+import Color from 'color';
 import _ from 'lodash';
 import type { Moment } from 'moment';
-import Color from 'color';
-import { buildTooltip } from '../util/tooltip';
-import { seconds_to_duration } from '../util/time';
-import { getCategoryColorFromEvent, getColorFromCategory, getTitleAttr } from '../util/color';
+import { DataSet } from 'vis-data';
+import type { DataGroup, DataItem, TimelineOptions } from 'vis-timeline';
+import { Timeline } from 'vis-timeline/esnext';
+import { defineComponent, markRaw, type PropType } from 'vue';
 import { useCategoryStore } from '~/stores/categories';
+import { getCategoryColorFromEvent, getColorFromCategory, getTitleAttr } from '../util/color';
+import type { IBucket, IEvent } from '../util/interfaces';
 import { getSwimlane } from '../util/swimlane';
+import { seconds_to_duration } from '../util/time';
 import {
   type IndexedEvent,
   indexTimelineEvents,
-  visibleTimelineEvents,
   syncTimelineData,
+  visibleTimelineEvents,
 } from '../util/timelineIndex';
-import { DataSet } from 'vis-data';
-import type { DataGroup, DataItem, TimelineOptions } from 'vis-timeline';
-import type { IBucket, IEvent } from '../util/interfaces';
 import { formatTimelineBucketLabelHtml, shortenBucketLabel } from '../util/timelineLabels';
-
-import { Timeline } from 'vis-timeline/esnext';
+import { buildTooltip } from '../util/tooltip';
 import 'vis-timeline/styles/vis-timeline-graph2d.css';
 import EventEditor from '~/components/EventEditor.vue';
 
@@ -187,7 +186,8 @@ export default defineComponent({
     bucketsFromEither(): IBucket[] {
       if (this.buckets) {
         return this.buckets;
-      } else if (this.events) {
+      }
+      if (this.events) {
         // If buckets not passed, check if events have been passed and generate a bucket from those events
         return [
           {
@@ -197,10 +197,9 @@ export default defineComponent({
             events: this.events,
           },
         ];
-      } else {
-        console.error('No buckets or events passed to timeline');
-        return [];
       }
+      console.error('No buckets or events passed to timeline');
+      return [];
     },
     eventIndex(): TimelineIndex {
       const rows = [...this.bucketsFromEither];
@@ -409,7 +408,8 @@ export default defineComponent({
       const [firstItem] = properties.items;
       if (firstItem === undefined) {
         return;
-      } else if (properties.items.length == 1) {
+      }
+      if (properties.items.length == 1) {
         const selected = this.itemEvents.get(firstItem);
         if (!selected) return;
         if (selected.members) {
@@ -421,7 +421,7 @@ export default defineComponent({
         const bucketId = selected.bucket.id;
 
         // Skip editing if event has no ID (e.g. merged query results) or bucket is a placeholder
-        if (!event.id || !bucketId || bucketId === 'events' || bucketId === 'search') {
+        if (!(event.id && bucketId) || bucketId === 'events' || bucketId === 'search') {
           console.log(
             'Event has no ID or bucket is a placeholder, skipping editor',
             event,

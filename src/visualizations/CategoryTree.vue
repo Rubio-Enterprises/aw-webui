@@ -64,8 +64,8 @@ import 'vue-awesome/icons/regular/minus-square';
 import _ from 'lodash';
 import {
   build_category_hierarchy,
-  flatten_category_hierarchy,
   type Category,
+  flatten_category_hierarchy,
 } from '../util/classes.ts';
 import type { IEvent } from '../util/interfaces.ts';
 
@@ -93,12 +93,10 @@ export default defineComponent({
   props: {
     events: { type: Array as PropType<IEvent[]> },
   },
-  data: function () {
-    return {
-      expanded: new Set<string>(),
-      show_perc: false,
-    };
-  },
+  data: () => ({
+    expanded: new Set<string>(),
+    show_perc: false,
+  }),
   computed: {
     total_duration: function (): number {
       // sum top-level categories

@@ -4,8 +4,8 @@ div
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
 import moment from 'moment';
+import { defineComponent } from 'vue';
 import { useActivityStore } from '~/stores/activity';
 
 export default defineComponent({

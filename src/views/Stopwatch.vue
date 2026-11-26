@@ -77,10 +77,10 @@ div
 </style>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
 import type { IEvent as AWEvent } from 'aw-client';
 import _ from 'lodash';
 import moment from 'moment';
+import { defineComponent } from 'vue';
 
 import StopwatchEntry from '../components/StopwatchEntry.vue';
 import 'vue-awesome/icons/play';

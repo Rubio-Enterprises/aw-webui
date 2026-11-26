@@ -105,21 +105,21 @@ div
 </style>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
 import moment from 'moment';
-import {
-  get_today_with_offset,
-  get_day_start_with_offset,
-  format_date_short,
-  format_date_with_weekday,
-} from '~/util/time';
-import { buildBarchartDataset, groupDaysIntoWeeks, type HourlyData } from '~/util/datasets';
+import { defineComponent } from 'vue';
 import { canonicalEvents, querystr_to_array } from '~/queries';
-import { getClient } from '~/util/awclient';
-import type { IEvent } from '~/util/interfaces';
 import { useBucketsStore } from '~/stores/buckets';
 import { useCategoryStore } from '~/stores/categories';
 import { useSettingsStore } from '~/stores/settings';
+import { getClient } from '~/util/awclient';
+import { buildBarchartDataset, groupDaysIntoWeeks, type HourlyData } from '~/util/datasets';
+import type { IEvent } from '~/util/interfaces';
+import {
+  format_date_short,
+  format_date_with_weekday,
+  get_day_start_with_offset,
+  get_today_with_offset,
+} from '~/util/time';
 
 interface CategoryTotals {
   [key: string]: number;

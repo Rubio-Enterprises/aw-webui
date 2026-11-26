@@ -120,28 +120,25 @@ div(v-if="editable || !activityStore.buckets.loaded || has_prerequisites || !set
 </style>
 
 <script lang="ts">
-import { defineComponent, type PropType } from 'vue';
 import _ from 'lodash';
+import { defineComponent, type PropType } from 'vue';
 import 'vue-awesome/icons/cog';
 import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/bars';
 
-import { buildBarchartDataset } from '~/util/datasets';
-
-// TODO: Move this somewhere else
-import { build_category_hierarchy, type Category } from '~/util/classes';
-import type { IBucket, IEvent } from '~/util/interfaces';
-
-import { useActivityStore } from '~/stores/activity';
-import { useCategoryStore } from '~/stores/categories';
-import { useBucketsStore } from '~/stores/buckets';
-import { useViewsStore } from '~/stores/views';
-import { useSettingsStore } from '~/stores/settings';
-import { isBrowserAllowlistMiss } from '~/util/browserAllowlist';
-import { isExactTimeperiod } from '~/util/timeperiod';
-
 import moment from 'moment';
 import type { TranslateResult } from 'vue-i18n';
+import { useActivityStore } from '~/stores/activity';
+import { useBucketsStore } from '~/stores/buckets';
+import { useCategoryStore } from '~/stores/categories';
+import { useSettingsStore } from '~/stores/settings';
+import { useViewsStore } from '~/stores/views';
+import { isBrowserAllowlistMiss } from '~/util/browserAllowlist';
+// TODO: Move this somewhere else
+import { build_category_hierarchy, type Category } from '~/util/classes';
+import { buildBarchartDataset } from '~/util/datasets';
+import type { IBucket, IEvent } from '~/util/interfaces';
+import { isExactTimeperiod } from '~/util/timeperiod';
 
 // A category as the sunburst draws it: named by its last path segment, sized by its time
 interface SunburstNode extends Omit<Category, 'name' | 'children'> {
@@ -169,44 +166,42 @@ export default defineComponent({
     viewId: { type: String, default: '' },
     editable: { type: Boolean, default: true },
   },
-  data: function () {
-    return {
-      activityStore: useActivityStore(),
-      categoryStore: useCategoryStore(),
-      settingsStore: useSettingsStore(),
+  data: () => ({
+    activityStore: useActivityStore(),
+    categoryStore: useCategoryStore(),
+    settingsStore: useSettingsStore(),
 
-      types: [
-        'top_apps',
-        'top_titles',
-        'top_bundle_ids',
-        'top_domains',
-        'top_urls',
-        'top_browser_titles',
-        'top_categories',
-        'category_tree',
-        'category_sunburst',
-        'top_editor_files',
-        'top_editor_languages',
-        'top_editor_projects',
-        'timeline_barchart',
-        'sunburst_clock',
-        'custom_vis',
-        'vis_timeline',
-        'score',
-        'top_stopwatches',
-        'top_bucket_data',
-      ],
-      // TODO: Move this function somewhere else
-      top_editor_files_namefunc: (e: IEvent): string => lastPathSegment(e.data.file),
-      top_editor_files_hoverfunc: (e: IEvent): string => {
-        return 'file: ' + e.data.file + '\n' + 'project: ' + e.data.project;
-      },
-      // TODO: Move this function somewhere else
-      top_editor_projects_namefunc: (e: IEvent): string => lastPathSegment(e.data.project),
-      top_editor_projects_hoverfunc: (e: IEvent) => e.data.project,
-      timeline_buckets: null as readonly IBucket[] | null,
-    };
-  },
+    types: [
+      'top_apps',
+      'top_titles',
+      'top_bundle_ids',
+      'top_domains',
+      'top_urls',
+      'top_browser_titles',
+      'top_categories',
+      'category_tree',
+      'category_sunburst',
+      'top_editor_files',
+      'top_editor_languages',
+      'top_editor_projects',
+      'timeline_barchart',
+      'sunburst_clock',
+      'custom_vis',
+      'vis_timeline',
+      'score',
+      'top_stopwatches',
+      'top_bucket_data',
+    ],
+    // TODO: Move this function somewhere else
+    top_editor_files_namefunc: (e: IEvent): string => lastPathSegment(e.data.file),
+    top_editor_files_hoverfunc: (e: IEvent): string => {
+      return 'file: ' + e.data.file + '\nproject: ' + e.data.project;
+    },
+    // TODO: Move this function somewhere else
+    top_editor_projects_namefunc: (e: IEvent): string => lastPathSegment(e.data.project),
+    top_editor_projects_hoverfunc: (e: IEvent) => e.data.project,
+    timeline_buckets: null as readonly IBucket[] | null,
+  }),
   computed: {
     visualizations: function (): Record<string, { title: TranslateResult; available?: boolean }> {
       return {
@@ -319,9 +314,8 @@ export default defineComponent({
           name: 'All',
           children: build_category_hierarchy(categories).map((c) => pick_subname_as_name(c)),
         };
-      } else {
-        return null;
       }
+      return null;
     },
     datasets: function () {
       // Return empty array if not loaded
@@ -334,7 +328,7 @@ export default defineComponent({
 
       // Return dataset if data found, else return null (indicating no data)
       if (datasets.length > 0) return datasets;
-      else return null;
+      return null;
     },
     date: function (): string | undefined {
       const options = this.activityStore.query_options;

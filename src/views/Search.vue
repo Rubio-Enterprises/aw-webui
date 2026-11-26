@@ -61,10 +61,10 @@ div
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
 import _ from 'lodash';
 import moment from 'moment';
-import { canonicalEvents, browserSearchQuery, querystr_to_array } from '~/queries';
+import { defineComponent } from 'vue';
+import { browserSearchQuery, canonicalEvents, querystr_to_array } from '~/queries';
 import { useBucketsStore } from '~/stores/buckets';
 import type { IEvent } from '~/util/interfaces';
 

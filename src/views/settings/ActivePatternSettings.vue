@@ -25,8 +25,8 @@ div
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { isRegexBroad, validateRegex } from '~/util/validate';
 import { useSettingsStore } from '~/stores/settings';
+import { isRegexBroad, validateRegex } from '~/util/validate';
 
 export default defineComponent({
   name: 'ActivePatternSettings',

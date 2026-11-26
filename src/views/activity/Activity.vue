@@ -426,30 +426,30 @@ div
 </style>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
-import { mapState } from 'pinia';
+import _ from 'lodash';
 import moment from 'moment';
+import { mapState } from 'pinia';
+import { defineComponent } from 'vue';
 import { get_day_start_with_offset, get_today_with_offset, seconds_to_duration } from '~/util/time';
 import {
   DateRange,
-  TimePeriod,
-  ExactInterval,
   dateRangeToTimeperiod,
+  ExactInterval,
   exactIntervalReadable,
   exactIntervalToTimeperiod,
   formatDateRange,
   formatExactInterval,
+  formatInstant,
   instantToWall,
+  MAX_INTERVAL_MS,
   parseDateRange,
   parseExactInterval,
-  shiftExactInterval,
-  wallTimeInstants,
-  MAX_INTERVAL_MS,
-  formatInstant,
   periodStartDate,
   shiftDateRange,
+  shiftExactInterval,
+  TimePeriod,
+  wallTimeInstants,
 } from '~/util/timeperiod';
-import _ from 'lodash';
 
 import 'vue-awesome/icons/arrow-left';
 import 'vue-awesome/icons/arrow-right';
@@ -467,33 +467,33 @@ import 'vue-awesome/icons/desktop';
 import 'vue-awesome/icons/caret-down';
 import 'vue-awesome/icons/caret-right';
 
-import { useSettingsStore } from '~/stores/settings';
-import { useCategoryStore } from '~/stores/categories';
-import { useActivityStore, QueryOptions } from '~/stores/activity';
-import { useViewsStore } from '~/stores/views';
+import { schemeTableau10 } from 'd3';
+import { QueryOptions, useActivityStore } from '~/stores/activity';
 import { useBucketsStore } from '~/stores/buckets';
+import { useCategoryStore } from '~/stores/categories';
+import { useSettingsStore } from '~/stores/settings';
+import { useViewsStore } from '~/stores/views';
+import {
+  ActivityDiagnostic,
+  activityDiagnostic as diagnoseActivity,
+} from '~/util/activityDiagnostics';
+import { getClient } from '~/util/awclient';
+import { nextEarliestDate } from '~/util/earliestEvent';
+import type { HostDuration } from '~/util/multidevice';
 import {
   ALL_DEVICES,
-  HostSelection,
   eligibleMultideviceHosts,
   formatHostParam,
+  HostSelection,
   isMultiHostSelection,
   parseHostParam,
   resolveHostSelection,
   toggleHostInSelection,
 } from '~/util/multidevice';
-import type { HostDuration } from '~/util/multidevice';
-import { schemeTableau10 } from 'd3';
-import { getClient } from '~/util/awclient';
-import { nextEarliestDate } from '~/util/earliestEvent';
 import {
   isMultideviceNoteDismissed,
   persistMultideviceNoteDismissed,
 } from '~/util/multideviceNote';
-import {
-  ActivityDiagnostic,
-  activityDiagnostic as diagnoseActivity,
-} from '~/util/activityDiagnostics';
 
 // Shown under the period picker when an exact start/end edit can't be applied
 interface IntervalIssue {
@@ -524,39 +524,37 @@ export default defineComponent({
       default: 'day',
     },
   },
-  data: function () {
-    return {
-      activityStore: useActivityStore(),
-      categoryStore: useCategoryStore(),
-      viewsStore: useViewsStore(),
-      settingsStore: useSettingsStore(),
-      bucketsStore: useBucketsStore(),
+  data: () => ({
+    activityStore: useActivityStore(),
+    categoryStore: useCategoryStore(),
+    viewsStore: useViewsStore(),
+    settingsStore: useSettingsStore(),
+    bucketsStore: useBucketsStore(),
 
-      today: null as string | null,
-      showOptions: false,
-      multideviceNoteDismissed: isMultideviceNoteDismissed(),
-      showDeviceBreakdown: false,
-      // First day with data for the host, used by All time
-      earliestDate: null as string | null,
-      // Problem with the last exact start/end edit (nonexistent or repeated DST time, bad order)
-      intervalIssue: null as IntervalIssue | null,
-      navigationNow: Date.now(),
+    today: null as string | null,
+    showOptions: false,
+    multideviceNoteDismissed: isMultideviceNoteDismissed(),
+    showDeviceBreakdown: false,
+    // First day with data for the host, used by All time
+    earliestDate: null as string | null,
+    // Problem with the last exact start/end edit (nonexistent or repeated DST time, bad order)
+    intervalIssue: null as IntervalIssue | null,
+    navigationNow: Date.now(),
 
-      include_audible: true,
-      // Include stopwatch events when a stopwatch bucket exists. The
-      // store query falls back to noop if no bucket is present, so this
-      // is safe for users without stopwatch data. Enabling by default
-      // means the "Top Stopwatch Events" visualization shows real
-      // numbers as soon as a user records a session; previously a
-      // stopwatch run produced "No data" unless they also flipped the
-      // dev-only "Include manually logged events" checkbox.
-      include_stopwatch: true,
-      refreshing: false,
-      refreshGeneration: 0,
-      filter_afk: true,
-      new_view: { id: '', name: '' },
-    };
-  },
+    include_audible: true,
+    // Include stopwatch events when a stopwatch bucket exists. The
+    // store query falls back to noop if no bucket is present, so this
+    // is safe for users without stopwatch data. Enabling by default
+    // means the "Top Stopwatch Events" visualization shows real
+    // numbers as soon as a user records a session; previously a
+    // stopwatch run produced "No data" unless they also flipped the
+    // dev-only "Include manually logged events" checkbox.
+    include_stopwatch: true,
+    refreshing: false,
+    refreshGeneration: 0,
+    filter_afk: true,
+    new_view: { id: '', name: '' },
+  }),
   computed: {
     categoryOptions() {
       return this.categoryStore.category_select(true, (key) => this.$t(key) as string);
@@ -748,9 +746,8 @@ export default defineComponent({
           c.length > p.length && _.isEqual(p, c.slice(0, p.length));
         const children = _.filter(cats, isChild(this.filter_category));
         return [this.filter_category].concat(children);
-      } else {
-        return null;
       }
+      return null;
     },
     // The device selection encoded in the :host route param
     hostSelection(): HostSelection {
@@ -815,20 +812,24 @@ export default defineComponent({
       if (this.exactInterval) {
         // Exact instants: no start-of-day offset applies
         return exactIntervalToTimeperiod(this.exactInterval);
-      } else if (this.dateRange) {
+      }
+      if (this.dateRange) {
         return dateRangeToTimeperiod(this.dateRange, settingsStore.startOfDay);
-      } else if (this.periodLength === 'all') {
+      }
+      if (this.periodLength === 'all') {
         // null until the earliest date is known; refresh() waits for it
         return this.allTimeRange
           ? dateRangeToTimeperiod(this.allTimeRange, settingsStore.startOfDay)
           : null;
-      } else if (this.periodLength === 'range' || this.periodLength === 'interval') {
+      }
+      if (this.periodLength === 'range' || this.periodLength === 'interval') {
         // Invalid range in the URL: fall back to today (a warning is shown)
         return {
           start: get_day_start_with_offset(this._date, settingsStore.startOfDay),
           length: [1, 'day'],
         };
-      } else if (this.periodIsBrowseable) {
+      }
+      if (this.periodIsBrowseable) {
         // The URL date isn't necessarily aligned to the period (e.g. /week with no
         // date falls back to today), so snap it to the start of the week/month/year.
         return {
@@ -838,19 +839,15 @@ export default defineComponent({
           ),
           length: [1, this.periodLength],
         };
-      } else {
-        const len: [number, string] = this.periodLength === 'last7d' ? [7, 'days'] : [30, 'days'];
-        return {
-          start: get_day_start_with_offset(
-            moment(this._date).subtract(
-              len[0] - 1,
-              len[1] as moment.unitOfTime.DurationConstructor,
-            ),
-            settingsStore.startOfDay,
-          ),
-          length: len,
-        };
       }
+      const len: [number, string] = this.periodLength === 'last7d' ? [7, 'days'] : [30, 'days'];
+      return {
+        start: get_day_start_with_offset(
+          moment(this._date).subtract(len[0] - 1, len[1] as moment.unitOfTime.DurationConstructor),
+          settingsStore.startOfDay,
+        ),
+        length: len,
+      };
     },
     periodReadableRange: function (): string {
       const timeperiod = this.timeperiod;
@@ -879,14 +876,12 @@ export default defineComponent({
       let periodLength: [number, string];
       if (this.periodIsBrowseable) {
         periodLength = [1, this.periodLength];
+      } else if (this.periodLength === 'last7d') {
+        periodLength = [7, 'day'];
+      } else if (this.periodLength === 'last30d') {
+        periodLength = [30, 'day'];
       } else {
-        if (this.periodLength === 'last7d') {
-          periodLength = [7, 'day'];
-        } else if (this.periodLength === 'last30d') {
-          periodLength = [30, 'day'];
-        } else {
-          throw 'unknown periodLength';
-        }
+        throw 'unknown periodLength';
       }
 
       const startOfPeriod = periodStart.format(dateFormatString);
@@ -1011,7 +1006,7 @@ export default defineComponent({
     editInterval: function (field: 'start' | 'end', wall: string, pick?: string) {
       this.intervalIssue = null;
       const current = this.exactInterval;
-      if (!current || !wall) return;
+      if (!(current && wall)) return;
       const candidates = wallTimeInstants(wall);
       if (candidates.length === 0) {
         this.intervalIssue = {

@@ -89,8 +89,8 @@ div
 <script lang="ts">
 import { defineComponent } from 'vue';
 import 'vue-awesome/icons/trash';
-import moment from 'moment';
 import _ from 'lodash';
+import moment from 'moment';
 import { querystr_to_array } from '~/queries';
 import { useCategoryStore } from '~/stores/categories';
 import { useSettingsStore } from '~/stores/settings';
@@ -157,7 +157,7 @@ RETURN = sort_by_duration(merged_events);
     },
     eventcount_str: function () {
       if (Array.isArray(this.events)) return 'Number of events: ' + this.events.length;
-      else return '';
+      return '';
     },
   },
   mounted: async function () {

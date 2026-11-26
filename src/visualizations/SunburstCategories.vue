@@ -32,11 +32,11 @@ import {
   zoomOnClick,
 } from 'vue-d3-sunburst';
 import 'vue-d3-sunburst/dist/vue-d3-sunburst.css';
-import { getColorFromCategory } from '~/util/color';
-import { fitLabel, measureText, sunburstLabelFontPx } from '~/util/sunburstLabels';
 
 import { useCategoryStore } from '~/stores/categories';
 import { useSettingsStore } from '~/stores/settings';
+import { getColorFromCategory } from '~/util/color';
+import { fitLabel, measureText, sunburstLabelFontPx } from '~/util/sunburstLabels';
 import { isDarkThemeApplied } from '~/util/theme';
 
 const example_data = {
@@ -103,7 +103,7 @@ export default defineComponent({
     labelFor: function (node: SunburstArc): string | null {
       const name = node.data.name;
       const chart = this.$refs.sunburst as SunburstChart | undefined;
-      if (!chart || !chart.scaleY) return name;
+      if (!(chart && chart.scaleY)) return name;
       const { scaleY, maxLabelText } = chart;
       const overflow = node.children ? 0 : maxLabelText;
       const maxWidth = scaleY(node.y1) - scaleY(node.y0) + overflow - 6;
@@ -111,11 +111,11 @@ export default defineComponent({
       const fontFamily = getComputedStyle(chart.$el).fontFamily;
       return fitLabel(name, maxWidth, (s) => measureText(s, fontPx, fontFamily));
     },
-    categoryForColor: function (d: { name: string; parent?: string[] }) {
+    categoryForColor: (d: { name: string; parent?: string[] }) => {
       const category = d.parent ? d.parent.concat([d.name]) : [d.name];
       return category.join(SEP);
     },
-    colorfunc: function (s: string) {
+    colorfunc: (s: string) => {
       // 'All' needs to be bright if light theme, and dark if dark theme
       // ('auto' resolves to the theme actually applied to the page, so it
       // stays in sync with the dark stylesheet managed by App.vue/Theme.vue)

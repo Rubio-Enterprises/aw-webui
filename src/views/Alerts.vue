@@ -56,9 +56,9 @@ div
 <style scoped lang="scss"></style>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
 import _ from 'lodash';
 import moment from 'moment';
+import { defineComponent } from 'vue';
 import { canonicalEvents, querystr_to_array } from '~/queries';
 
 import 'vue-awesome/icons/plus';
@@ -69,7 +69,6 @@ import 'vue-awesome/icons/trash';
 import { useBucketsStore } from '~/stores/buckets';
 import { useCategoryStore } from '~/stores/categories';
 import { useSettingsStore } from '~/stores/settings';
-import { get_day_start_with_offset } from '~/util/time';
 import {
   type AlertGoal,
   cleanAlertGoal,
@@ -77,6 +76,7 @@ import {
   getDefaultAlertGoals,
 } from '~/util/alerts';
 import type { IEvent } from '~/util/interfaces';
+import { get_day_start_with_offset } from '~/util/time';
 
 // The error shape of a failed aw-client request
 type RequestError = { message?: string; response?: { data?: { message?: string } } };

@@ -128,10 +128,10 @@ div
       b-btn(variant="primary" @click="onImportAddOnTop") {{ $t('settings.categorization.importAddOnTop') }}
 </template>
 <script lang="ts">
+import { mapGetters, mapState } from 'pinia';
 import { defineComponent } from 'vue';
-import { mapState, mapGetters } from 'pinia';
-import CategoryEditTree from '~/components/CategoryEditTree.vue';
 import CategoryEditModal from '~/components/CategoryEditModal.vue';
+import CategoryEditTree from '~/components/CategoryEditTree.vue';
 import 'vue-awesome/icons/undo';
 import 'vue-awesome/icons/angle-double-down';
 import 'vue-awesome/icons/angle-double-up';
@@ -270,7 +270,7 @@ export default defineComponent({
     },
     onImportReplace: function () {
       this.showImportModal = false;
-      if (!this.pendingImportSetId || !this.pendingImportCategories) return;
+      if (!(this.pendingImportSetId && this.pendingImportCategories)) return;
       let setId = this.pendingImportSetId;
       const cats = this.pendingImportCategories;
       while (
@@ -299,7 +299,7 @@ export default defineComponent({
     },
     onImportAddOnTop: function () {
       this.showImportModal = false;
-      if (!this.pendingImportSetId || !this.pendingImportCategories) return;
+      if (!(this.pendingImportSetId && this.pendingImportCategories)) return;
       this.categoryStore.importSetOnTop(this.pendingImportSetId, this.pendingImportCategories);
       this.pendingImportSetId = '';
       this.pendingImportCategories = null;

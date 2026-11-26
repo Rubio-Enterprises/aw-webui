@@ -44,11 +44,10 @@ import 'vue-awesome/icons/trash';
 import 'vue-awesome/icons/plus';
 import 'vue-awesome/icons/edit';
 
-import CategoryEditModal from './CategoryEditModal.vue';
+import _ from 'lodash';
 import { useCategoryStore } from '~/stores/categories';
 import type { Category } from '~/util/classes';
-
-import _ from 'lodash';
+import CategoryEditModal from './CategoryEditModal.vue';
 
 export default defineComponent({
   name: 'CategoryEditTree',

@@ -64,9 +64,9 @@ ul {
 </style>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
 import { range } from 'lodash/fp';
 import moment from 'moment';
+import { defineComponent } from 'vue';
 
 import { useSettingsStore } from '~/stores/settings';
 

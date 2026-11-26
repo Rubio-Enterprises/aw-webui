@@ -82,7 +82,7 @@ import 'vue-awesome/icons/undo';
 
 import draggable from 'vuedraggable';
 
-import { useViewsStore, type IElement, type View } from '~/stores/views';
+import { type IElement, useViewsStore, type View } from '~/stores/views';
 
 // The view is missing while views load or when the URL names an unknown one;
 // the template only shows the controls once it exists.
@@ -115,9 +115,8 @@ export default defineComponent({
     view: function (): View | undefined {
       if (this.view_id == 'default') {
         return this.views[0];
-      } else {
-        return this.views.find((v) => v.id == this.view_id);
       }
+      return this.views.find((v) => v.id == this.view_id);
     },
     viewMissing: function (): boolean {
       // True only once views have loaded but the requested id doesn't exist.
@@ -177,7 +176,7 @@ export default defineComponent({
       });
     },
     async onCustomVisConfirm(event: Event) {
-      if (!this.customVisWatcherName.trim() || !this.customVisTitle.trim()) {
+      if (!(this.customVisWatcherName.trim() && this.customVisTitle.trim())) {
         event.preventDefault();
         return;
       }

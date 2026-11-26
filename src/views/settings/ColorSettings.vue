@@ -16,11 +16,11 @@ export default defineComponent({
   name: 'ColorSettings',
   computed: {
     useColorFallback: {
-      get: function () {
+      get: () => {
         const settingsStore = useSettingsStore();
         return settingsStore.useColorFallback;
       },
-      set: function (val: boolean) {
+      set: (val: boolean) => {
         const settingsStore = useSettingsStore();
         settingsStore.update({ useColorFallback: val });
       },

@@ -121,24 +121,22 @@ div
 </style>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
 import _ from 'lodash';
 import moment from 'moment';
 import { mapState } from 'pinia';
-
-import { useCategoryStore } from '~/stores/categories';
-import { useBucketsStore } from '~/stores/buckets';
-import { useSettingsStore } from '~/stores/settings';
-
-import { canonicalEvents } from '~/queries';
-import type { AndroidQueryParams, DesktopQueryParams } from '~/queries';
-import type { IEvent } from '~/util/interfaces';
-import { getClient } from '~/util/awclient';
+import { defineComponent } from 'vue';
 import CategoryEditModal from '~/components/CategoryEditModal.vue';
-import { isRegexBroad, validateRegex } from '~/util/validate';
-import { findCommonPhrases } from '~/util/categorization';
+import type { AndroidQueryParams, DesktopQueryParams } from '~/queries';
+import { canonicalEvents } from '~/queries';
+import { useBucketsStore } from '~/stores/buckets';
+import { useCategoryStore } from '~/stores/categories';
+import { useSettingsStore } from '~/stores/settings';
+import { getClient } from '~/util/awclient';
 import type { WordEntry } from '~/util/categorization';
+import { findCommonPhrases } from '~/util/categorization';
 import { categoryBuilderHostnameEmptyKind, selectSoleKnownHostname } from '~/util/hostnames';
+import type { IEvent } from '~/util/interfaces';
+import { isRegexBroad, validateRegex } from '~/util/validate';
 
 // The word whose events are shown and the events (grouped by data); empty when hidden
 type ShownEvents = [word?: WordEntry, events?: IEvent[]];

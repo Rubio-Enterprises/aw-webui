@@ -68,13 +68,13 @@ import { defineComponent } from 'vue';
 import 'vue-awesome/icons/plus';
 import 'vue-awesome/icons/trash';
 
-import { getClient } from '~/util/awclient';
 import {
   AwNotifyAlert,
   AwNotifyConfig,
   parseAwNotifyConfig,
   parseThresholds,
 } from '~/util/aw-notify';
+import { getClient } from '~/util/awclient';
 
 const SETTINGS_KEY = 'aw-notify';
 

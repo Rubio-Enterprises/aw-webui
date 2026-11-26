@@ -70,8 +70,8 @@ div
 </style>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
 import _ from 'lodash';
+import { defineComponent } from 'vue';
 import 'vue-awesome/icons/question-circle';
 import { useActivityStore } from '~/stores/activity';
 import type { IEvent } from '~/util/interfaces';
@@ -82,7 +82,7 @@ import { periodReadable } from '~/util/timeperiod';
 export default defineComponent({
   name: 'aw-score',
   computed: {
-    categories_with_score: function (): IEvent[] {
+    categories_with_score: (): IEvent[] => {
       // FIXME: Does this get all category time? Or just top ones?
       const top_categories = useActivityStore().category.top;
       return _.map(top_categories, (cat) => {
@@ -93,7 +93,7 @@ export default defineComponent({
     score: function (): number {
       return _.sum(_.map(this.categories_with_score, (cat) => cat.data.$total_score ?? 0));
     },
-    score_period_label: function (): string {
+    score_period_label: (): string => {
       const timeperiod = useActivityStore().query_options?.timeperiod;
       return timeperiod ? periodReadable(timeperiod) : 'selected period';
     },

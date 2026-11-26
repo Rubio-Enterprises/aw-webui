@@ -56,10 +56,11 @@ b-modal(v-if="event && event.id", :id="'edit-modal-' + event.id", ref="eventEdit
 <style lang="scss"></style>
 
 <script lang="ts">
-import { defineComponent, type PropType } from 'vue';
-import type { BModal } from 'bootstrap-vue';
 import type { IEvent as AWEvent } from 'aw-client';
+import type { BModal } from 'bootstrap-vue';
+import { defineComponent, type PropType } from 'vue';
 import type { IEvent } from '~/util/interfaces';
+
 // This EventEditor can be used to edit events in a specific bucket.
 //
 // It is used in:
@@ -68,8 +69,8 @@ import type { IEvent } from '~/util/interfaces';
 //  - Timeline (on event-click)
 //  - Search (soon)
 
-import moment from 'moment';
 import _ from 'lodash';
+import moment from 'moment';
 
 import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/save';

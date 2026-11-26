@@ -7,6 +7,7 @@ div
 
 <script lang="ts">
 import { defineComponent } from 'vue';
+
 // Based on: https://medium.com/@dillonchanis/handling-errors-in-vue-with-error-boundaries-91f6ead0093b
 // An error as aw-client (axios) raises it: request failures carry a code and the server response
 type CapturedError = Error & {

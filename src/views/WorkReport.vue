@@ -85,21 +85,21 @@ div
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
 import moment from 'moment';
-import { getClient } from '~/util/awclient';
-import type { IEvent } from '~/util/interfaces';
+import { defineComponent } from 'vue';
+import { useBucketsStore } from '~/stores/buckets';
 import { useCategoryStore } from '~/stores/categories';
 import { useSettingsStore } from '~/stores/settings';
-import { useBucketsStore } from '~/stores/buckets';
-import { get_day_start_with_offset, get_day_end_with_offset } from '~/util/time';
+import { getClient } from '~/util/awclient';
+import type { IEvent } from '~/util/interfaces';
+import { get_day_end_with_offset, get_day_start_with_offset } from '~/util/time';
 import { periodStartDate } from '~/util/timeperiod';
 import {
+  buildWorkReportQuery,
   getSupportedWorkReportHosts,
+  getUnsupportedWorkReportHosts,
   getWorkReportHostBuckets,
   getWorkReportHostOptions,
-  getUnsupportedWorkReportHosts,
-  buildWorkReportQuery,
   summarizeWorkSessions,
 } from '~/util/workReport';
 

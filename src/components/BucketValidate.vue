@@ -76,11 +76,11 @@ import { defineComponent } from 'vue';
 import 'vue-awesome/icons/check';
 import 'vue-awesome/icons/exclamation-triangle';
 import 'vue-awesome/icons/info-circle';
-import { getClient } from '~/util/awclient';
-import { overlappingEvents } from '~/util/transforms';
-import { seconds_to_duration } from '~/util/time';
 import _ from 'lodash';
+import { getClient } from '~/util/awclient';
 import type { IEvent } from '~/util/interfaces';
+import { seconds_to_duration } from '~/util/time';
+import { overlappingEvents } from '~/util/transforms';
 
 export default defineComponent({
   name: 'aw-bucket-merge',
@@ -173,7 +173,7 @@ export default defineComponent({
         return { value: bucket_id, text: bucket_id };
       });
     },
-    getEvents: async function (bucket_id: string): Promise<IEvent[]> {
+    getEvents: async (bucket_id: string): Promise<IEvent[]> => {
       const client = getClient();
       // aw-client types event timestamps as Date, but the JSON response carries ISO strings.
       return (await client.getEvents(bucket_id)) as unknown as IEvent[];

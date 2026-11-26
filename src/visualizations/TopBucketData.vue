@@ -49,13 +49,13 @@ div
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
 import _ from 'lodash';
 import moment from 'moment';
-import { earliestEventInBucket, rangeCoveringEarliest } from '~/util/earliestEvent';
+import { defineComponent } from 'vue';
 import { useActivityStore } from '~/stores/activity';
 import { useBucketsStore } from '~/stores/buckets';
 import { getClient } from '~/util/awclient';
+import { earliestEventInBucket, rangeCoveringEarliest } from '~/util/earliestEvent';
 import type { IEvent } from '~/util/interfaces';
 
 interface AggregatedEvent {
@@ -109,7 +109,7 @@ export default defineComponent({
     },
     timeRange(): { start: string; end: string } | null {
       const opts = this.activityStore.query_options;
-      if (!opts || !opts.timeperiod) return null;
+      if (!(opts && opts.timeperiod)) return null;
       const start = opts.timeperiod.start;
       const end = moment(start)
         .add(
@@ -181,7 +181,7 @@ export default defineComponent({
     async queryRange(bucketId: string): Promise<{ start: string; end: string } | null> {
       const range = this.timeRange;
       const opts = this.activityStore.query_options;
-      if (!range || !opts || !opts.all_time) return range;
+      if (!(range && opts && opts.all_time)) return range;
       // A forced refresh must re-check the bucket's earliest event, so events
       // imported while the page stayed open are not left out of All time.
       if (opts.force || !(bucketId in this.earliestByBucket)) {
@@ -206,7 +206,7 @@ export default defineComponent({
       // the meantime. Reusing the captured id keeps the widened range and the
       // fetched events in agreement, and drops this run if it was superseded.
       const bucketId = this.selectedBucketId;
-      if (!bucketId || !this.timeRange) return;
+      if (!(bucketId && this.timeRange)) return;
       this.loading = true;
       this.error = '';
       this.aggregated = [];

@@ -30,16 +30,14 @@ export default defineComponent({
     events: Array as PropType<IEvent[]>,
     event_type: { type: String, default: 'currentwindow' },
   },
-  data: function () {
-    return {
-      vis_method: 'eventlist',
+  data: () => ({
+    vis_method: 'eventlist',
 
-      /* Summary props */
-      summaryKey: 'title',
-      colorfunc: null as EventKeyFunc | null,
-      namefunc: null as EventKeyFunc | null,
-    };
-  },
+    /* Summary props */
+    summaryKey: 'title',
+    colorfunc: null as EventKeyFunc | null,
+    namefunc: null as EventKeyFunc | null,
+  }),
   mounted: async function () {
     this.colorfunc = this.summaryKeyFunc;
     this.namefunc = this.summaryKeyFunc;

@@ -247,8 +247,8 @@ div
 </style>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
 import type { AWClient } from 'aw-client';
+import { defineComponent } from 'vue';
 import 'vue-awesome/icons/trash';
 import 'vue-awesome/icons/download';
 import 'vue-awesome/icons/folder-open';
@@ -260,12 +260,11 @@ import 'vue-awesome/icons/ellipsis-v';
 
 import _ from 'lodash';
 import moment from 'moment';
-
+import { type BucketDevice, useBucketsStore } from '~/stores/buckets';
 import { useServerStore } from '~/stores/server';
-import { useBucketsStore, type BucketDevice } from '~/stores/buckets';
-import type { IBucket } from '~/util/interfaces';
 import { getStoredApiToken } from '~/util/awclient';
 import { androidExportFromUrl, downloadBlob } from '~/util/export';
+import type { IBucket } from '~/util/interfaces';
 import { compact_relative_time } from '~/util/time';
 
 // NOTE: keep this out of the component's `methods`. The global
@@ -349,22 +348,17 @@ export default defineComponent({
     await this.bucketsStore.loadBuckets();
   },
   methods: {
-    sortedBuckets: function (device: BucketDevice) {
-      return [...device.buckets].sort((a, b) => a.id.localeCompare(b.id));
-    },
+    sortedBuckets: (device: BucketDevice) =>
+      [...device.buckets].sort((a, b) => a.id.localeCompare(b.id)),
     compactRelativeTime: function (timestamp: string, unitOnly = false) {
       return compact_relative_time(timestamp, this.$i18n.locale, unitOnly);
     },
-    isRecent: function (date: Date | string | undefined) {
-      return moment().diff(date) / 1000 < 120;
-    },
-    bucketHasEvents: function (bucket: IBucket | undefined) {
-      return Boolean(bucket && bucket.last_updated);
-    },
+    isRecent: (date: Date | string | undefined) => moment().diff(date) / 1000 < 120,
+    bucketHasEvents: (bucket: IBucket | undefined) => Boolean(bucket && bucket.last_updated),
     deviceHasEvents: function (device: BucketDevice) {
       return _.some(device.buckets, (b) => this.bucketHasEvents(b));
     },
-    runChecks: function (device: BucketDevice) {
+    runChecks: (device: BucketDevice) => {
       const checks = [
         {
           msg: () => {
@@ -470,7 +464,7 @@ export default defineComponent({
         // the CSV never enters JS memory. Tauri cannot use <a download>, and
         // token-authenticated deployments need Authorization: Bearer, so those
         // still go through the blob client.
-        if (!('__TAURI__' in window) && !getStoredApiToken()) {
+        if (!('__TAURI__' in window || getStoredApiToken())) {
           const link = document.createElement('a');
           link.href = url;
           link.download = filename;

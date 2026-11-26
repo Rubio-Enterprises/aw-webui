@@ -103,9 +103,8 @@ export default defineComponent({
     split_on_hour(): IEvent[] {
       if (this.events && this.events.length > 0) {
         return split_events_on_hours(this.events);
-      } else {
-        return [];
       }
+      return [];
     },
   },
   watch: {

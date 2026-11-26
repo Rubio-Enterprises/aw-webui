@@ -124,8 +124,8 @@ div
 </style>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
 import moment, { type Moment } from 'moment';
+import { defineComponent } from 'vue';
 import 'vue-awesome/icons/sync';
 export default defineComponent({
   name: 'input-timeinterval',
@@ -178,9 +178,8 @@ export default defineComponent({
         // If only start date is set, show that single day
         const endDate = this.end ? moment(this.end).add(1, 'day') : startDate.clone().add(1, 'day');
         return [startDate, endDate];
-      } else {
-        return [moment().subtract(this.duration, 'seconds'), moment()];
       }
+      return [moment().subtract(this.duration, 'seconds'), moment()];
     },
     emptyDaterange(): boolean {
       return !this.start;
@@ -213,7 +212,7 @@ export default defineComponent({
     valueChanged() {
       if (
         this.mode == 'last_duration' ||
-        (!this.emptyDaterange && !this.invalidDaterange && !this.daterangeTooLong)
+        !(this.emptyDaterange || this.invalidDaterange || this.daterangeTooLong)
       ) {
         this.lastUpdate = moment();
         this.$emit('input', this.value);

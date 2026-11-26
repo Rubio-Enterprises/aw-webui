@@ -82,17 +82,17 @@ div
 
 <script lang="ts">
 import { defineComponent } from 'vue';
+import { analysisContextQuery } from '~/queries';
 import { useBucketsStore } from '~/stores/buckets';
 import { useCategoryStore } from '~/stores/categories';
-import { getClient } from '~/util/awclient';
-import { analysisContextQuery } from '~/queries';
-import { loadLLMConfig, saveLLMConfig, callLLM, type LLMProvider } from '~/util/aiSummary';
 import {
   buildActivityContext,
+  type CategoryName,
   formatActivityContext,
   privateCategoriesFrom,
-  type CategoryName,
 } from '~/util/activityContext';
+import { callLLM, type LLMProvider, loadLLMConfig, saveLLMConfig } from '~/util/aiSummary';
+import { getClient } from '~/util/awclient';
 import 'vue-awesome/icons/copy';
 
 const DEFAULT_PROMPT =

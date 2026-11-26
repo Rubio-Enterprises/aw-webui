@@ -39,9 +39,9 @@ div
 </style>
 
 <script lang="ts">
-import { defineComponent, type PropType } from 'vue';
 import type { IEvent } from 'aw-client';
 import moment from 'moment';
+import { defineComponent, type PropType } from 'vue';
 import 'vue-awesome/icons/edit';
 import 'vue-awesome/icons/stop';
 import 'vue-awesome/icons/play';

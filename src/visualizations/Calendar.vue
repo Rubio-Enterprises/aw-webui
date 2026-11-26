@@ -15,14 +15,14 @@ div.mx-3
 </template>
 
 <script lang="ts">
-import { defineComponent, type PropType } from 'vue';
-import { getTitleAttr, getColorFromString } from '../util/color';
-import moment from 'moment';
-import _ from 'lodash';
-import FullCalendar from '@fullcalendar/vue';
 import timeGridPlugin from '@fullcalendar/timegrid';
+import FullCalendar from '@fullcalendar/vue';
+import _ from 'lodash';
+import moment from 'moment';
+import { defineComponent, type PropType } from 'vue';
 import { calendarTimeBounds } from '~/util/calendar';
 import type { IBucket } from '~/util/interfaces';
+import { getColorFromString, getTitleAttr } from '../util/color';
 
 // An event as FullCalendar takes it (not an ActivityWatch event)
 interface CalendarEvent {
@@ -98,7 +98,7 @@ export default defineComponent({
     },
   },
   methods: {
-    onEventClick: function (arg: { event: unknown }) {
+    onEventClick: (arg: { event: unknown }) => {
       // TODO: Open event inspector/editor here
       console.info('Calendar event selected:', arg.event);
     },

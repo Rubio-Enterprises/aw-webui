@@ -14,14 +14,14 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
 import axios from 'axios';
-import moment from 'moment';
-import semver from 'semver';
-import { mapWritableState } from 'pinia';
 import type { Moment } from 'moment';
+import moment from 'moment';
+import { mapWritableState } from 'pinia';
+import semver from 'semver';
+import { defineComponent } from 'vue';
 
-import { useSettingsStore, LONG_BACKOFF_PERIOD, SHORT_BACKOFF_PERIOD } from '~/stores/settings';
+import { LONG_BACKOFF_PERIOD, SHORT_BACKOFF_PERIOD, useSettingsStore } from '~/stores/settings';
 import { getClient } from '~/util/awclient';
 
 // After reminding the user every SHORT_BACKOFF_PERIOD days for BACKOFF_THRESHOLD times, switch to LONG_BACKOFF_PERIOD

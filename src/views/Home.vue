@@ -93,11 +93,11 @@ div
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
 import moment from 'moment';
 import { mapState } from 'pinia';
-import { useServerStore } from '~/stores/server';
+import { defineComponent } from 'vue';
 import { useBucketsStore } from '~/stores/buckets';
+import { useServerStore } from '~/stores/server';
 import { IBucket } from '~/util/interfaces';
 
 // "Support ActivityWatch" nudge — engagement-gated, dismissable, never modal.

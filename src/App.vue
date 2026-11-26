@@ -14,20 +14,18 @@ div#wrapper(v-if="loaded")
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { useSettingsStore } from '~/stores/settings';
 import { useServerStore } from '~/stores/server';
+import { useSettingsStore } from '~/stores/settings';
 import { DARK_THEME_HREF, detectPreferredTheme } from '~/util/theme';
 // if vite is used, you can import css file as module
 //import darkCssUrl from '../static/dark.css?url';
 //import darkCssContent from '../static/dark.css?inline';
 
 export default defineComponent({
-  data: function () {
-    return {
-      isNewReleaseCheckEnabled: !process.env.VUE_APP_ON_ANDROID,
-      loaded: false,
-    };
-  },
+  data: () => ({
+    isNewReleaseCheckEnabled: !process.env.VUE_APP_ON_ANDROID,
+    loaded: false,
+  }),
 
   computed: {
     fullContainer() {
@@ -67,7 +65,7 @@ export default defineComponent({
     this.loaded = true;
   },
 
-  mounted: async function () {
+  mounted: async () => {
     const serverStore = useServerStore();
     await serverStore.getInfo();
   },

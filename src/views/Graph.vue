@@ -59,9 +59,9 @@ div
 <style scoped lang="scss"></style>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
 import _ from 'lodash';
 import moment from 'moment';
+import { defineComponent } from 'vue';
 
 import 'vue-awesome/icons/search';
 import 'vue-awesome/icons/spinner';
@@ -181,7 +181,7 @@ export default defineComponent({
       // Generate groups
       for (const category of allCategories) {
         const rootcat = category.split(SEP)[0] ?? '';
-        if (!Object.prototype.hasOwnProperty.call(groups, rootcat)) {
+        if (!Object.keys(groups).includes(rootcat)) {
           groups[rootcat] = Object.keys(groups).length;
         }
       }
@@ -209,7 +209,7 @@ export default defineComponent({
       for (let i = 0; i < events.length - 1; i++) {
         const e1 = events[i];
         const e2 = events[i + 1];
-        if (!e1 || !e2) continue;
+        if (!(e1 && e2)) continue;
         const e1cat = e1.data.$category;
         const e2cat = e2.data.$category;
         if (_.isEqual(e1cat, e2cat)) continue;
