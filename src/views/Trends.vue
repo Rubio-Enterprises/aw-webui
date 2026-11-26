@@ -465,7 +465,7 @@ export default defineComponent({
       const byPeriod: Record<string, HourlyData> = {};
       const totals: CategoryTotals = {};
       periods.forEach((p, i) => {
-        const events = (results[i] && results[i].cat_events) || [];
+        const events = results[i]?.cat_events || [];
         // buildBarchartDataset expects entries of the shape { cat_events: [] }
         byPeriod[p] = { cat_events: events };
         for (const e of events) {
@@ -489,7 +489,7 @@ export default defineComponent({
         offset,
       )}`;
       const r = await getClient().query([period], query, { name: 'trendsTotals', verbose: true });
-      const events = (r[0] && r[0].cat_events) || [];
+      const events = r[0]?.cat_events || [];
       const totals: CategoryTotals = {};
       for (const e of events) {
         const key = JSON.stringify(e.data['$category'] || ['Uncategorized']);

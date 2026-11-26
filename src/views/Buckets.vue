@@ -354,7 +354,7 @@ export default defineComponent({
       return compact_relative_time(timestamp, this.$i18n.locale, unitOnly);
     },
     isRecent: (date: Date | string | undefined) => moment().diff(date) / 1000 < 120,
-    bucketHasEvents: (bucket: IBucket | undefined) => Boolean(bucket && bucket.last_updated),
+    bucketHasEvents: (bucket: IBucket | undefined) => Boolean(bucket?.last_updated),
     deviceHasEvents: function (device: BucketDevice) {
       return _.some(device.buckets, (b) => this.bucketHasEvents(b));
     },

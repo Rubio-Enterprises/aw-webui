@@ -109,7 +109,7 @@ export default defineComponent({
     },
     timeRange(): { start: string; end: string } | null {
       const opts = this.activityStore.query_options;
-      if (!(opts && opts.timeperiod)) return null;
+      if (!opts?.timeperiod) return null;
       const start = opts.timeperiod.start;
       const end = moment(start)
         .add(
@@ -165,7 +165,7 @@ export default defineComponent({
   methods: {
     setDefaultBucket() {
       if (this.selectedBucketId) return;
-      const host = this.activityStore.query_options && this.activityStore.query_options.host;
+      const host = this.activityStore.query_options?.host;
       const byHost = host ? this.bucketsStore.buckets.filter((b) => b.hostname === host) : [];
       const [firstByHost] = byHost;
       const [firstBucket] = this.bucketsStore.buckets;
@@ -181,7 +181,7 @@ export default defineComponent({
     async queryRange(bucketId: string): Promise<{ start: string; end: string } | null> {
       const range = this.timeRange;
       const opts = this.activityStore.query_options;
-      if (!(range && opts && opts.all_time)) return range;
+      if (!(range && opts?.all_time)) return range;
       // A forced refresh must re-check the bucket's earliest event, so events
       // imported while the page stayed open are not left out of All time.
       if (opts.force || !(bucketId in this.earliestByBucket)) {

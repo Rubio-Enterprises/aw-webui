@@ -35,7 +35,7 @@ export default defineComponent({
     // fallback
     let msg: string | Error = err;
     // use server error response if available; err.isAxiosError doesn't help much here…
-    if (err.response && err.response.data && err.response.data.message) {
+    if (err.response?.data?.message) {
       msg = err.response.data.message;
     } else if (err.name && err.message) {
       msg = `${err.name}: ${err.message}.

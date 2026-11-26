@@ -79,7 +79,7 @@ export default defineComponent({
         return [];
       }
       const bucketEvents = Array.isArray(bucket.events) ? bucket.events : [];
-      const longEvents = bucketEvents.filter((e) => e && e.timestamp && Number(e.duration) > 10);
+      const longEvents = bucketEvents.filter((e) => e?.timestamp && Number(e.duration) > 10);
       return longEvents.map((e): CalendarEvent => {
         return {
           title: getTitleAttr(bucket, e),

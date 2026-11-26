@@ -544,12 +544,12 @@ export default defineComponent({
       // TODO: drop the hostnameless-exception branch once
       // stopwatch/browser buckets are migrated to per-host ids.
       const realHost = (b: IBucket): string | undefined => {
-        const h = b && (b.hostname || (b.data && b.data.hostname));
+        const h = b && (b.hostname || b.data?.hostname);
         return h && h !== 'unknown' ? h : undefined;
       };
       const labelCounts: Record<string, number> = {};
       _.each(buckets, (b) => {
-        if (b && b.id && realHost(b)) {
+        if (b?.id && realHost(b)) {
           const short = shortenBucketLabel(b.id) || b.id;
           labelCounts[short] = (labelCounts[short] || 0) + 1;
         }

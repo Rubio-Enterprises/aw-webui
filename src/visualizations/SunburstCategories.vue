@@ -103,7 +103,7 @@ export default defineComponent({
     labelFor: function (node: SunburstArc): string | null {
       const name = node.data.name;
       const chart = this.$refs.sunburst as SunburstChart | undefined;
-      if (!(chart && chart.scaleY)) return name;
+      if (!chart?.scaleY) return name;
       const { scaleY, maxLabelText } = chart;
       const overflow = node.children ? 0 : maxLabelText;
       const maxWidth = scaleY(node.y1) - scaleY(node.y0) + overflow - 6;

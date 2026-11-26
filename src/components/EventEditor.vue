@@ -167,7 +167,7 @@ export default defineComponent({
       request: () => Promise<void>,
     ) {
       if (this.pending) return;
-      const editingId = this.event && this.event.id;
+      const editingId = this.event?.id;
       this.pending = name;
       this.error = '';
       try {
@@ -203,7 +203,7 @@ export default defineComponent({
       if (modal) modal.hide();
     },
     async getEvent() {
-      if (this.bucket_id && this.event && this.event.id) {
+      if (this.bucket_id && this.event?.id) {
         this.editedEvent = await this.$aw.getEvent(this.bucket_id, this.event.id);
       } else {
         this.editedEvent = null;
