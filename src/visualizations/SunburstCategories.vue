@@ -119,7 +119,7 @@ export default defineComponent({
       // 'All' needs to be bright if light theme, and dark if dark theme
       // ('auto' resolves to the theme actually applied to the page, so it
       // stays in sync with the dark stylesheet managed by App.vue/Theme.vue)
-      if (s == 'All') {
+      if (s === 'All') {
         const theme = useSettingsStore().theme;
         const resolved = theme === 'auto' ? (isDarkThemeApplied() ? 'dark' : 'light') : theme;
         return resolved === 'dark' ? '#333' : '#fff';

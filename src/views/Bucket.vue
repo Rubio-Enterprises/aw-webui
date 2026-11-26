@@ -139,7 +139,7 @@ export default defineComponent({
       // Stale or imported buckets have nothing in the selected range (#136):
       // fall back to the latest events so the view stays useful for debugging.
       const hasData = this.bucket?.metadata?.end;
-      if (this.events.length == 0 && hasData) {
+      if (this.events.length === 0 && hasData) {
         try {
           const recent = await this.bucketsStore.getBucketWithEvents({
             id: bucket_id,
@@ -167,8 +167,8 @@ export default defineComponent({
       this.eventcount = typeof count === 'number' ? count : count.data;
     },
     updateEvent: function (event: IEvent) {
-      const i = this.events.findIndex((e) => e.id == event.id);
-      if (i != -1) {
+      const i = this.events.findIndex((e) => e.id === event.id);
+      if (i !== -1) {
         // This is needed instead of this.events[i] because insides of arrays
         // are not reactive in Vue.
         this.$set(this.events, i, event);

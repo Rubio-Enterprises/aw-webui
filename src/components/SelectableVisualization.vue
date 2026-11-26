@@ -293,7 +293,7 @@ export default defineComponent({
       return isBrowserAllowlistMiss(this.activityStore.browser);
     },
     supports_period: function () {
-      if (this.type == 'sunburst_clock' || this.type == 'vis_timeline') {
+      if (this.type === 'sunburst_clock' || this.type === 'vis_timeline') {
         return this.isSingleDay;
       }
       return true;
@@ -353,11 +353,11 @@ export default defineComponent({
       await this.getTimelineBuckets();
     },
     type: async function (newType) {
-      if (newType == 'vis_timeline') await this.getTimelineBuckets();
+      if (newType === 'vis_timeline') await this.getTimelineBuckets();
     },
   },
   mounted: async function () {
-    if (this.type == 'vis_timeline') {
+    if (this.type === 'vis_timeline') {
       await this.getTimelineBuckets();
     }
   },
@@ -373,7 +373,7 @@ export default defineComponent({
       });
     },
     getTimelineBuckets: async function () {
-      if (this.type != 'vis_timeline') return;
+      if (this.type !== 'vis_timeline') return;
       if (!this.timeline_daterange) return;
 
       await useBucketsStore().ensureLoaded();

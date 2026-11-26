@@ -74,7 +74,7 @@ export default defineComponent({
       // NOTE: This returns FullCalendar events, not ActivityWatch events.
       if (this.buckets == null) return [];
 
-      const bucket = _.find(this.buckets, (b) => b.id == this.selectedBucket);
+      const bucket = _.find(this.buckets, (b) => b.id === this.selectedBucket);
       if (bucket == null) {
         return [];
       }

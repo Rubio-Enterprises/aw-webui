@@ -641,7 +641,7 @@ export default defineComponent({
       return ['day', 'week', 'month', 'year'].includes(this.periodLength);
     },
     currentView: function () {
-      return this.views.find((v) => v.id == this.$route.params.view_id) || this.views[0];
+      return this.views.find((v) => v.id === this.$route.params.view_id) || this.views[0];
     },
     needsCategoryHistory() {
       return !!this.currentView?.elements.some((el) => el.type === 'timeline_barchart');
@@ -1157,10 +1157,10 @@ export default defineComponent({
       }
 
       let new_date: string;
-      if (periodLength == '7 days') {
+      if (periodLength === '7 days') {
         periodLength = 'last7d';
         new_date = anchorDate.clone().add(1, 'days').format('YYYY-MM-DD');
-      } else if (periodLength == '30 days') {
+      } else if (periodLength === '30 days') {
         periodLength = 'last30d';
         new_date = anchorDate.clone().add(1, 'days').format('YYYY-MM-DD');
       } else if (periodLength === 'last7d' || periodLength === 'last30d') {
@@ -1279,7 +1279,7 @@ export default defineComponent({
         [this.$t('activity.errMissingName').toString(), this.new_view.name === ''],
       ];
       const errors = checks.filter(([, v]) => v).map(([k]) => k);
-      const valid = errors.length == 0;
+      const valid = errors.length === 0;
       if (!valid) {
         alert(this.$t('activity.invalidForm', { errors: errors.join(', ') }));
       }

@@ -301,10 +301,10 @@ export default defineComponent({
 
       let buckets: IBucket[] = allBuckets.map((bucket) => ({ ...bucket }));
       if (this.filter_hostname) {
-        buckets = _.filter(buckets, (b) => b.hostname == this.filter_hostname);
+        buckets = _.filter(buckets, (b) => b.hostname === this.filter_hostname);
       }
       if (this.filter_client) {
-        buckets = _.filter(buckets, (b) => b.client == this.filter_client);
+        buckets = _.filter(buckets, (b) => b.client === this.filter_client);
       }
 
       // Start the category query now so it runs concurrently with the raw-row

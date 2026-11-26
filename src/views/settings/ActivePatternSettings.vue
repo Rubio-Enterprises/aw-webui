@@ -38,7 +38,7 @@ export default defineComponent({
   },
   computed: {
     enabled: function () {
-      return this.always_active_pattern_editing != '';
+      return this.always_active_pattern_editing !== '';
     },
     valid: function () {
       return validateRegex(this.always_active_pattern_editing);
@@ -47,7 +47,7 @@ export default defineComponent({
       // Check if the pattern matches random strings that we don't expect it to
       // like the alphabet
       const pattern = this.always_active_pattern_editing;
-      if (pattern == '') {
+      if (pattern === '') {
         return false;
       }
       return isRegexBroad(pattern);
@@ -64,13 +64,13 @@ export default defineComponent({
   },
   watch: {
     always_active_pattern_editing: function (value) {
-      if (value == this.always_active_pattern) {
+      if (value === this.always_active_pattern) {
         return;
       }
 
       if (
-        (value != '' && this.valid) ||
-        (value == '' && this.settingsStore.always_active_pattern.length != 0)
+        (value !== '' && this.valid) ||
+        (value === '' && this.settingsStore.always_active_pattern.length !== 0)
       ) {
         this.always_active_pattern = value;
       }

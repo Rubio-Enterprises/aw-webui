@@ -361,7 +361,7 @@ export default defineComponent({
     },
     showEvents(word: WordEntry) {
       // If already showing events, hide them and return
-      if (this.showing_events[0] == word) {
+      if (this.showing_events[0] === word) {
         this.showing_events = [];
         return;
       }

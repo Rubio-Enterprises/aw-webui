@@ -289,7 +289,7 @@ export default defineComponent({
       timeline.on('rangechange', this.scheduleViewportUpdate);
       timeline.on('select', (properties: SelectProperties) => {
         // Sends both 'press' and 'tap' events, only one should trigger
-        if (properties.event.type == 'tap') {
+        if (properties.event.type === 'tap') {
           this.onSelect(properties);
         }
       });
@@ -409,7 +409,7 @@ export default defineComponent({
       if (firstItem === undefined) {
         return;
       }
-      if (properties.items.length == 1) {
+      if (properties.items.length === 1) {
         const selected = this.itemEvents.get(firstItem);
         if (!selected) return;
         if (selected.members) {

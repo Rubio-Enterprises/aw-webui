@@ -96,10 +96,10 @@ export default defineComponent({
 
       // Remove the build metadata if it exists, e.g. 'v0.8.dev+c6433ea'
       const plus_idx = tag.indexOf('+');
-      tag = tag.substring(0, plus_idx != -1 ? plus_idx : tag.length);
+      tag = tag.substring(0, plus_idx !== -1 ? plus_idx : tag.length);
       // Remove server type if it exists, e.g. 'v0.8.0 (rust)'
       const space_idx = tag.indexOf(' ');
-      tag = tag.substring(0, space_idx != -1 ? space_idx : tag.length);
+      tag = tag.substring(0, space_idx !== -1 ? space_idx : tag.length);
 
       return semver.valid(tag);
     },

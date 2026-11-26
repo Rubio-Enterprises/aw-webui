@@ -31,7 +31,7 @@ export default defineComponent({
         title: this.title ?? '',
       });
       let _origin = document.location.origin;
-      if (document.location.port == '27180') {
+      if (document.location.port === '27180') {
         // NOTE: document.location.origin won't work when running aw-webui in dev mode
         _origin = 'http://localhost:5666';
       }

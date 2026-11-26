@@ -192,7 +192,7 @@ export default defineComponent({
         const rootcat = category.split(SEP)[0] ?? '';
         // Size nodes depending on time spent
         const catTime = events
-          .filter((e) => e.data.$category.join(SEP) == category)
+          .filter((e) => e.data.$category.join(SEP) === category)
           .map((e) => moment(e.timestamp).add(e.duration).diff(e.timestamp))
           .reduce((a, b) => a + b, 0);
         nodes.push({
@@ -214,7 +214,7 @@ export default defineComponent({
         const e2cat = e2.data.$category;
         if (_.isEqual(e1cat, e2cat)) continue;
 
-        const link = links.find((l) => l.source == e1cat.join(SEP) && l.target == e2cat.join(SEP));
+        const link = links.find((l) => l.source === e1cat.join(SEP) && l.target === e2cat.join(SEP));
         if (link) {
           link.value++;
         } else {

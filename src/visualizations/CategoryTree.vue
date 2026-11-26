@@ -100,7 +100,7 @@ export default defineComponent({
   computed: {
     total_duration: function (): number {
       // sum top-level categories
-      const top_c = _.filter(this.category_hierarchy, (c) => c.depth == 0);
+      const top_c = _.filter(this.category_hierarchy, (c) => c.depth === 0);
       return _.sumBy(top_c, (c) => c.duration);
     },
     category_hierarchy: function (): TreeCategory[] {
@@ -129,7 +129,7 @@ export default defineComponent({
       });
 
       const cats_with_depth0 = _.sortBy(
-        _.filter(cats, (c) => c.depth == 0),
+        _.filter(cats, (c) => c.depth === 0),
         (c) => -c.duration,
       );
       _.map(cats_with_depth0, (c) => _assign_children(c, cats));

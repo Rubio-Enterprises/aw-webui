@@ -173,7 +173,7 @@ export default defineComponent({
       ];
     },
     value(): Moment[] {
-      if (this.mode == 'range' && this.start) {
+      if (this.mode === 'range' && this.start) {
         const startDate = moment(this.start);
         // If only start date is set, show that single day
         const endDate = this.end ? moment(this.end).add(1, 'day') : startDate.clone().add(1, 'day');
@@ -211,7 +211,7 @@ export default defineComponent({
   methods: {
     valueChanged() {
       if (
-        this.mode == 'last_duration' ||
+        this.mode === 'last_duration' ||
         !(this.emptyDaterange || this.invalidDaterange || this.daterangeTooLong)
       ) {
         this.lastUpdate = moment();

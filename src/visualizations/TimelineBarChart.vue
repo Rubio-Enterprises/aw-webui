@@ -42,10 +42,10 @@ function hourToTick(hours: number): string {
   if (hours > 1) {
     return `${hours}h`;
   }
-  if (hours == 1) {
+  if (hours === 1) {
     return '1h';
   }
-  if (hours == 0) {
+  if (hours === 0) {
     return '0';
   }
   return Math.round(hours * 60) + 'm';
@@ -95,7 +95,7 @@ export default defineComponent({
         // Exact interval: the same clipped buckets the category query uses
         return start ? exactBucketLabels({ start, length: [count, resolution] }) : [];
       }
-      if (resolution.startsWith('day') && count == 1) {
+      if (resolution.startsWith('day') && count === 1) {
         if (start) return hourlyLabels({ start, length: [count, resolution] });
         // Reports aggregate by wall-clock hour without a selected calendar day.
         const hourOffset = get_hour_offset();
@@ -143,7 +143,7 @@ export default defineComponent({
           format_date_short(new Date(date.getFullYear(), date.getMonth(), d, 12)),
         );
       }
-      if (resolution == 'year') {
+      if (resolution === 'year') {
         return get_short_month_labels();
       }
       console.error(`Invalid resolution: ${resolution}`);
@@ -190,7 +190,7 @@ export default defineComponent({
                 const value = context.parsed.y;
                 let hours = Math.floor(value);
                 let minutes = Math.round((value - hours) * 60);
-                if (minutes == 60) {
+                if (minutes === 60) {
                   minutes = 0;
                   hours += 1;
                 }

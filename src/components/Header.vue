@@ -285,9 +285,9 @@ export default defineComponent({
       // A bucket without a hostname belongs to no device that could be opened
       if (v.hostname === undefined) return;
       const types = (types_by_host[v.hostname] ||= { afk: false, window: false, android: false });
-      types.afk ||= v.type == 'afkstatus';
-      types.window ||= v.type == 'currentwindow';
-      types.android ||= v.type == 'currentwindow' && v.id.includes('android');
+      types.afk ||= v.type === 'afkstatus';
+      types.window ||= v.type === 'currentwindow';
+      types.android ||= v.type === 'currentwindow' && v.id.includes('android');
     });
 
     _.each(types_by_host, (types, hostname) => {
@@ -299,7 +299,7 @@ export default defineComponent({
           pathUrl: `/activity/${formatHostParam([hostname])}`,
           icon: 'mobile',
         });
-      } else if (hostname != 'unknown') {
+      } else if (hostname !== 'unknown') {
         activityViews.push({
           name: hostname,
           hostname: hostname,

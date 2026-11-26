@@ -113,10 +113,10 @@ export default defineComponent({
       return useViewsStore().viewsForHost(this.$route.params.host || '');
     },
     view: function (): View | undefined {
-      if (this.view_id == 'default') {
+      if (this.view_id === 'default') {
         return this.views[0];
       }
-      return this.views.find((v) => v.id == this.view_id);
+      return this.views.find((v) => v.id === this.view_id);
     },
     viewMissing: function (): boolean {
       // True only once views have loaded but the requested id doesn't exist.
@@ -197,7 +197,7 @@ export default defineComponent({
       await useViewsStore().removeVisualization({ view_id: requireView(this.view).id, el_id: id });
     },
     isVisLarge(el: IElement) {
-      return el.type == 'sunburst_clock' || el.type == 'vis_timeline';
+      return el.type === 'sunburst_clock' || el.type === 'vis_timeline';
     },
   },
 });

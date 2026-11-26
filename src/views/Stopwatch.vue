@@ -156,8 +156,8 @@ export default defineComponent({
     },
 
     updateTimer: async function (new_event: StopwatchEvent) {
-      const i = this.events.findIndex((e) => e.id == new_event.id);
-      if (i != -1) {
+      const i = this.events.findIndex((e) => e.id === new_event.id);
+      if (i !== -1) {
         // This is needed instead of this.events[i] because insides of arrays
         // are not reactive in Vue
         this.$set(this.events, i, new_event);
@@ -168,7 +168,7 @@ export default defineComponent({
     },
 
     removeTimer: async function (event: StopwatchEvent) {
-      this.events = _.filter(this.events, (e) => e.id != event.id);
+      this.events = _.filter(this.events, (e) => e.id !== event.id);
       await this.getEvents();
     },
 

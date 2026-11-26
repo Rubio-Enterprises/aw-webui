@@ -146,7 +146,7 @@ export default defineComponent({
       g.setAttribute('font-size', `${textScale}em`);
     },
     renderChart() {
-      if (this.events.length == 0) return;
+      if (this.events.length === 0) return;
 
       // Gets a deepcopy of events
       // The arc angles are filled in below
@@ -312,7 +312,7 @@ export default defineComponent({
           // NOTE: Attempted rotation around a pivot point, doesn't work
           //.attr('transform', `rotate(-5 ${x} ${y})`)
           // TODO: Colors should come from events (retrievable by query), not hardcoded
-          .attr('fill', e.data.status == 'not-afk' ? '#0d0' : '#ccc')
+          .attr('fill', e.data.status === 'not-afk' ? '#0d0' : '#ccc')
           .attr('opacity', 0.7);
       });
 
@@ -368,7 +368,7 @@ export default defineComponent({
           .text(text || moment({ hours: h }).format('HH:mm'))
           // Fall back to middle,
           // but should be right for 18:00 and left for 06:00.
-          .attr('text-anchor', h == 6 ? 'start' : h == 18 ? 'end' : 'middle')
+          .attr('text-anchor', h === 6 ? 'start' : h === 18 ? 'end' : 'middle')
           .attr('dominant-baseline', 'middle')
           .attr('font-size', '1em')
           //.attr("font-weight", "bold")
