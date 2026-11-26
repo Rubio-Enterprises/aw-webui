@@ -139,7 +139,8 @@ export default defineComponent({
     // to compensate (capped so they don't crowd the spiral).
     updateTextScale() {
       const svg = this.$el.querySelector('svg#timespiral');
-      const g = svg?.querySelector(':scope > g');
+      if (!svg) return;
+      const g = svg.querySelector(':scope > g');
       if (!g) return;
       const renderedWidth = svg.getBoundingClientRect().width || 600;
       const textScale = Math.min(Math.max(600 / renderedWidth, 1), 1.4);
