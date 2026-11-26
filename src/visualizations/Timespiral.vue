@@ -426,7 +426,9 @@ export default defineComponent({
       }
 
       const date_labels = d3.timeDays(...domain);
-      date_labels.forEach((d) => drawDate(g, d));
+      date_labels.forEach((d) => {
+        drawDate(g, d);
+      });
 
       // From: https://stackoverflow.com/a/49097025/965332
       // Might serve as a base for later improvements

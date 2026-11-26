@@ -209,7 +209,7 @@ export default defineComponent({
         this.historyLimit = historyLimit;
         this.hasMoreRunning = running.length > runningLimit;
         this.hasMoreHistory = stopped.length > historyLimit;
-      } catch (error) {
+      } catch {
         if (requestId === this.requestId) {
           this.error = 'Unable to load stopwatch timers. Please retry.';
         }

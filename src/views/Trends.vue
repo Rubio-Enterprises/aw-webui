@@ -469,7 +469,7 @@ export default defineComponent({
         // buildBarchartDataset expects entries of the shape { cat_events: [] }
         byPeriod[p] = { cat_events: events };
         for (const e of events) {
-          const key = JSON.stringify(e.data['$category'] || ['Uncategorized']);
+          const key = JSON.stringify(e.data.$category || ['Uncategorized']);
           totals[key] = (totals[key] || 0) + (e.duration || 0);
         }
       });
@@ -492,7 +492,7 @@ export default defineComponent({
       const events = r[0]?.cat_events || [];
       const totals: CategoryTotals = {};
       for (const e of events) {
-        const key = JSON.stringify(e.data['$category'] || ['Uncategorized']);
+        const key = JSON.stringify(e.data.$category || ['Uncategorized']);
         totals[key] = (totals[key] || 0) + (e.duration || 0);
       }
       return totals;

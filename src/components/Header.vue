@@ -284,14 +284,15 @@ export default defineComponent({
     _.each(buckets, (v) => {
       // A bucket without a hostname belongs to no device that could be opened
       if (v.hostname === undefined) return;
-      const types = (types_by_host[v.hostname] ||= { afk: false, window: false, android: false });
+      const types = types_by_host[v.hostname] ?? { afk: false, window: false, android: false };
+      types_by_host[v.hostname] = types;
       types.afk ||= v.type === 'afkstatus';
       types.window ||= v.type === 'currentwindow';
       types.android ||= v.type === 'currentwindow' && v.id.includes('android');
     });
 
     _.each(types_by_host, (types, hostname) => {
-      if (types['android']) {
+      if (types.android) {
         activityViews.push({
           name: `${hostname} (Android)`,
           hostname: hostname,

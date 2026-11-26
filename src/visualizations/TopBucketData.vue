@@ -248,7 +248,9 @@ export default defineComponent({
       // Sample first 100 events for field discovery (performance vs coverage tradeoff)
       const keys = new Set<string>();
       events.slice(0, 100).forEach((e) => {
-        Object.keys(e.data || {}).forEach((k) => keys.add(k));
+        Object.keys(e.data || {}).forEach((k) => {
+          keys.add(k);
+        });
       });
       return Array.from(keys).sort();
     },

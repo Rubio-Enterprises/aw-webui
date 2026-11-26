@@ -222,7 +222,7 @@ export default defineComponent({
         const raw = localStorage.getItem(SUPPORTER_NUDGE_DISMISS_KEY);
         if (!raw) return false;
         const until = new Date(raw).getTime();
-        return !isNaN(until) && until > Date.now();
+        return !Number.isNaN(until) && until > Date.now();
       } catch {
         return false;
       }
@@ -272,7 +272,7 @@ export default defineComponent({
       // `created` timestamp across all buckets.
       const createds = buckets
         .map((b) => (b.created ? new Date(b.created as unknown as string).getTime() : NaN))
-        .filter((t) => !isNaN(t));
+        .filter((t) => !Number.isNaN(t));
       if (createds.length > 0) {
         const earliest = Math.min(...createds);
         const ageDays = (Date.now() - earliest) / (1000 * 60 * 60 * 24);

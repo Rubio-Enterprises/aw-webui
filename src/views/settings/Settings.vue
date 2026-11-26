@@ -64,7 +64,7 @@ export default defineComponent({
     PrivacyFilterSettings,
     AwNotifySettings,
   },
-  async beforeRouteLeave(to, from, next) {
+  async beforeRouteLeave(_to, _from, next) {
     const categoryStore = useCategoryStore();
     if (categoryStore.classes_unsaved_changes) {
       const confirmed = await this.$bvModal.msgBoxConfirm(
