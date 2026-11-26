@@ -109,7 +109,7 @@ export default defineComponent({
       const maxWidth = scaleY(node.y1) - scaleY(node.y0) + overflow - 6;
       const fontPx = sunburstLabelFontPx(node.context.relativeDepth);
       const fontFamily = getComputedStyle(chart.$el).fontFamily;
-      return fitLabel(name, maxWidth, s => measureText(s, fontPx, fontFamily));
+      return fitLabel(name, maxWidth, (s) => measureText(s, fontPx, fontFamily));
     },
     categoryForColor: function (d: { name: string; parent?: string[] }) {
       const category = d.parent ? d.parent.concat([d.name]) : [d.name];

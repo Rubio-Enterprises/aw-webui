@@ -176,9 +176,7 @@ export default defineComponent({
       if (this.mode == 'range' && this.start) {
         const startDate = moment(this.start);
         // If only start date is set, show that single day
-        const endDate = this.end
-          ? moment(this.end).add(1, 'day')
-          : startDate.clone().add(1, 'day');
+        const endDate = this.end ? moment(this.end).add(1, 'day') : startDate.clone().add(1, 'day');
         return [startDate, endDate];
       } else {
         return [moment().subtract(this.duration, 'seconds'), moment()];

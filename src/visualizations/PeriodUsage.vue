@@ -36,7 +36,7 @@ export default defineComponent({
         this.$el as SVGElement,
         this.periodusage_arr,
         this.onPeriodClicked,
-        this.chartLabels()
+        this.chartLabels(),
       );
     },
   },
@@ -47,7 +47,7 @@ export default defineComponent({
       this.$el as SVGElement,
       this.periodusage_arr,
       this.onPeriodClicked,
-      this.chartLabels()
+      this.chartLabels(),
     );
   },
   methods: {

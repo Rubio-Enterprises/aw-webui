@@ -559,7 +559,7 @@ export default defineComponent({
   },
   computed: {
     categoryOptions() {
-      return this.categoryStore.category_select(true, key => this.$t(key) as string);
+      return this.categoryStore.category_select(true, (key) => this.$t(key) as string);
     },
 
     views(): import('~/stores/views').View[] {
@@ -623,26 +623,30 @@ export default defineComponent({
       return Object.entries(this.periodLengths).map(([value, text]) => ({ value, text }));
     },
     primaryPeriods: function () {
-      return this.periodLengthsButtons.filter(p => ['day', 'last7d', 'last30d'].includes(p.value));
+      return this.periodLengthsButtons.filter((p) =>
+        ['day', 'last7d', 'last30d'].includes(p.value),
+      );
     },
     extendedPeriods: function () {
-      return this.periodLengthsButtons.filter(p => !['day', 'last7d', 'last30d'].includes(p.value));
+      return this.periodLengthsButtons.filter(
+        (p) => !['day', 'last7d', 'last30d'].includes(p.value),
+      );
     },
     isPrimaryPeriod: function () {
       return ['day', 'last7d', 'last30d'].includes(this.periodLength);
     },
     extendedPeriodLabel: function () {
-      const opt = this.extendedPeriods.find(p => p.value === this.periodLength);
+      const opt = this.extendedPeriods.find((p) => p.value === this.periodLength);
       return opt ? opt.text : '';
     },
     periodIsBrowseable: function () {
       return ['day', 'week', 'month', 'year'].includes(this.periodLength);
     },
     currentView: function () {
-      return this.views.find(v => v.id == this.$route.params.view_id) || this.views[0];
+      return this.views.find((v) => v.id == this.$route.params.view_id) || this.views[0];
     },
     needsCategoryHistory() {
-      return !!this.currentView?.elements.some(el => el.type === 'timeline_barchart');
+      return !!this.currentView?.elements.some((el) => el.type === 'timeline_barchart');
     },
     currentViewId: function () {
       // If localStore is not yet initialized, then currentView can be undefined. In that case, we return an empty string (which should route to the default view)
@@ -726,7 +730,7 @@ export default defineComponent({
       const today = this.todayDate;
       if (this.exactInterval) {
         return moment(shiftExactInterval(this.exactInterval, 1).start).isSameOrAfter(
-          this.navigationNow
+          this.navigationNow,
         );
       }
       if (this.dateRange) {
@@ -765,11 +769,11 @@ export default defineComponent({
         this.bucketsStore.bucketsWindow,
         this.bucketsStore.bucketsAFK,
         this.bucketsStore.bucketsAndroid,
-        { includeFakedata: this.hostSelection.hosts.some(h => h.startsWith('fakedata')) }
+        { includeFakedata: this.hostSelection.hosts.some((h) => h.startsWith('fakedata')) },
       );
       // A single host is queried whatever buckets it has, so keep it listed
       if (!this.isMultidevice) {
-        this.hostSelection.hosts.forEach(h => {
+        this.hostSelection.hosts.forEach((h) => {
           if (!hosts.includes(h)) hosts.push(h);
         });
       }
@@ -779,7 +783,7 @@ export default defineComponent({
     // (and are therefore left out of the query)
     unavailableHosts(): string[] {
       if (!this.isMultidevice) return [];
-      return this.hostSelection.hosts.filter(h => !this.selectableHosts.includes(h));
+      return this.hostSelection.hosts.filter((h) => !this.selectableHosts.includes(h));
     },
     selectedHosts(): string[] {
       return resolveHostSelection(this.hostSelection, this.selectableHosts);
@@ -830,7 +834,7 @@ export default defineComponent({
         return {
           start: get_day_start_with_offset(
             periodStartDate(this._date, this.periodLength),
-            settingsStore.startOfDay
+            settingsStore.startOfDay,
           ),
           length: [1, this.periodLength],
         };
@@ -838,8 +842,11 @@ export default defineComponent({
         const len: [number, string] = this.periodLength === 'last7d' ? [7, 'days'] : [30, 'days'];
         return {
           start: get_day_start_with_offset(
-            moment(this._date).subtract(len[0] - 1, len[1] as moment.unitOfTime.DurationConstructor),
-            settingsStore.startOfDay
+            moment(this._date).subtract(
+              len[0] - 1,
+              len[1] as moment.unitOfTime.DurationConstructor,
+            ),
+            settingsStore.startOfDay,
           ),
           length: len,
         };
@@ -1019,7 +1026,7 @@ export default defineComponent({
           wall,
           options: [
             { value: null, text: '—', disabled: true },
-            ...candidates.map(c => ({ value: c, text: moment(c).format('HH:mm Z') })),
+            ...candidates.map((c) => ({ value: c, text: moment(c).format('HH:mm Z') })),
           ],
         };
         return;
@@ -1091,12 +1098,12 @@ export default defineComponent({
           .clone()
           .add(
             this.timeperiod.length[0],
-            this.timeperiod.length[1] as moment.unitOfTime.DurationConstructor
+            this.timeperiod.length[1] as moment.unitOfTime.DurationConstructor,
           );
         const capped = moment.min(end, start.clone().add(MAX_INTERVAL_MS, 'milliseconds'));
         this.pushPeriod(
           'interval',
-          formatExactInterval({ start: formatInstant(start), end: formatInstant(capped) })
+          formatExactInterval({ start: formatInstant(start), end: formatInstant(capped) }),
         );
         return;
       }
@@ -1120,10 +1127,10 @@ export default defineComponent({
             moment(this.timeperiod.start)
               .add(
                 this.timeperiod.length[0],
-                this.timeperiod.length[1] as moment.unitOfTime.DurationConstructor
+                this.timeperiod.length[1] as moment.unitOfTime.DurationConstructor,
               )
-              .diff(moment(this.timeperiod.start), 'days', true)
-          )
+              .diff(moment(this.timeperiod.start), 'days', true),
+          ),
         );
         const start = this.periodLength === 'range' ? momentJsDate : moment(this.timeperiod.start);
         let end = start.clone().add(days - 1, 'days');
@@ -1144,7 +1151,7 @@ export default defineComponent({
       const today = moment(get_today_with_offset(this.settingsStore.startOfDay));
       if (this.periodIsBrowseable) {
         const sourceStart = moment(
-          periodStartDate(momentJsDate.format('YYYY-MM-DD'), this.periodLength)
+          periodStartDate(momentJsDate.format('YYYY-MM-DD'), this.periodLength),
         );
         const sourceEnd = sourceStart
           .clone()
@@ -1184,7 +1191,7 @@ export default defineComponent({
       const date = nextEarliestDate(
         this.earliestDate,
         found || get_today_with_offset(this.settingsStore.startOfDay),
-        { approximate }
+        { approximate },
       );
       const changed = date !== this.earliestDate;
       this.earliestDate = date;
@@ -1271,7 +1278,7 @@ export default defineComponent({
       const checks: [string, boolean][] = [
         [
           this.$t('activity.errIdNotUnique').toString(),
-          this.viewsStore.views.map(v => v.id).includes(this.new_view.id),
+          this.viewsStore.views.map((v) => v.id).includes(this.new_view.id),
         ],
         [this.$t('activity.errMissingId').toString(), this.new_view.id === ''],
         [this.$t('activity.errMissingName').toString(), this.new_view.name === ''],

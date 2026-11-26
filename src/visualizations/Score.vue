@@ -85,13 +85,13 @@ export default defineComponent({
     categories_with_score: function (): IEvent[] {
       // FIXME: Does this get all category time? Or just top ones?
       const top_categories = useActivityStore().category.top;
-      return _.map(top_categories, cat => {
+      return _.map(top_categories, (cat) => {
         cat.data.$total_score = (cat.duration / (60 * 60)) * (cat.data.$score ?? Number.NaN);
         return cat;
       });
     },
     score: function (): number {
-      return _.sum(_.map(this.categories_with_score, cat => cat.data.$total_score ?? 0));
+      return _.sum(_.map(this.categories_with_score, (cat) => cat.data.$total_score ?? 0));
     },
     score_period_label: function (): string {
       const timeperiod = useActivityStore().query_options?.timeperiod;
@@ -99,23 +99,23 @@ export default defineComponent({
     },
     score_productive_percent() {
       // Compute the percentage of time spent on productive activities (score > 0)
-      const total_time = _.sumBy(this.categories_with_score as IEvent[], cat => cat.duration);
+      const total_time = _.sumBy(this.categories_with_score as IEvent[], (cat) => cat.duration);
       const productive_time = _.sumBy(
-        _.filter(this.categories_with_score, cat => (cat.data.$total_score ?? 0) > 0),
-        cat => cat.duration
+        _.filter(this.categories_with_score, (cat) => (cat.data.$total_score ?? 0) > 0),
+        (cat) => cat.duration,
       );
       return (productive_time / total_time) * 100;
     },
     top_productive: function () {
       return _.sortBy(
-        _.filter(this.categories_with_score, cat => (cat.data.$total_score ?? 0) > 0.1),
-        c => -(c.data.$total_score ?? 0)
+        _.filter(this.categories_with_score, (cat) => (cat.data.$total_score ?? 0) > 0.1),
+        (c) => -(c.data.$total_score ?? 0),
       );
     },
     top_distracting: function () {
       return _.sortBy(
-        _.filter(this.categories_with_score, cat => (cat.data.$total_score ?? 0) < -0.1),
-        c => c.data.$total_score ?? 0
+        _.filter(this.categories_with_score, (cat) => (cat.data.$total_score ?? 0) < -0.1),
+        (c) => c.data.$total_score ?? 0,
       );
     },
   },

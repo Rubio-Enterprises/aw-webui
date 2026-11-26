@@ -116,7 +116,7 @@ export default defineComponent({
       if (this.view_id == 'default') {
         return this.views[0];
       } else {
-        return this.views.find(v => v.id == this.view_id);
+        return this.views.find((v) => v.id == this.view_id);
       }
     },
     viewMissing: function (): boolean {

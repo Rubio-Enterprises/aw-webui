@@ -175,7 +175,7 @@ export default defineComponent({
       // pending invalid edit in a hidden field cannot block the toggle.
       let alertDtos: AwNotifyAlert[];
       if (this.enabled) {
-        if (this.alerts.some(row => parseThresholds(row.thresholdStr) === null)) {
+        if (this.alerts.some((row) => parseThresholds(row.thresholdStr) === null)) {
           this.error = 'Thresholds must be comma-separated positive whole minutes.';
           return;
         }

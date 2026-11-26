@@ -148,7 +148,7 @@ export default defineComponent({
       const querystr = [`RETURN = flood(query_bucket("${bucket_id}"));`];
       const data = await this.$aw.query(
         [`${this.starttime.format()}/${this.endtime.format()}`],
-        querystr
+        querystr,
       );
       // aw-client types event timestamps as Date, but the JSON response carries ISO strings.
       return data[0] as unknown as IEvent[];
@@ -216,8 +216,8 @@ export default defineComponent({
         };
       }
 
-      this.todaysEvents(this.afkBucketId).then(events_afk => {
-        this.todaysEvents(this.windowBucketId).then(events_window => {
+      this.todaysEvents(this.afkBucketId).then((events_afk) => {
+        this.todaysEvents(this.windowBucketId).then((events_window) => {
           let hierarchy: ClockEvent & { children: ClockEvent[] };
           if (events_afk.length > 0 && events_window.length > 0) {
             hierarchy = buildHierarchy(events_afk, events_window);

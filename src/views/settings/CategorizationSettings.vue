@@ -165,7 +165,7 @@ export default defineComponent({
     ...mapState(useCategoryStore, ['classes_unsaved_changes']),
     ...mapGetters(useCategoryStore, ['classes_hierarchy']),
     otherSets: function () {
-      return this.categoryStore.category_sets.filter(s => s.id !== this.activeSetId);
+      return this.categoryStore.category_sets.filter((s) => s.id !== this.activeSetId);
     },
     extraSetIds: function (): string[] {
       return this.categoryStore.active_set_ids.slice(1);
@@ -275,12 +275,12 @@ export default defineComponent({
       const cats = this.pendingImportCategories;
       while (
         this.categoryStore.category_sets.find(
-          s => s.id === setId && s.id !== (this.categoryStore.active_set_ids[0] || '')
+          (s) => s.id === setId && s.id !== (this.categoryStore.active_set_ids[0] || ''),
         )
       ) {
         setId = setId + '-imported';
       }
-      const existing = this.categoryStore.category_sets.find(s => s.id === setId);
+      const existing = this.categoryStore.category_sets.find((s) => s.id === setId);
       if (existing) {
         existing.categories = cats;
         const isActiveSet = setId === (this.categoryStore.active_set_ids[0] || '');
@@ -314,7 +314,7 @@ export default defineComponent({
         event.preventDefault();
         return;
       }
-      if (this.categoryStore.category_sets.find(s => s.id === name)) {
+      if (this.categoryStore.category_sets.find((s) => s.id === name)) {
         event.preventDefault();
         alert(`A set named "${name}" already exists.`);
         return;
@@ -333,7 +333,7 @@ export default defineComponent({
           okVariant: 'danger',
           cancelTitle: 'Cancel',
           centered: true,
-        }
+        },
       );
       if (!confirmed) return;
       this.categoryStore.deleteSet(id);
@@ -343,7 +343,7 @@ export default defineComponent({
       if (this.classes_unsaved_changes) {
         const confirmed = await this.$bvModal.msgBoxConfirm(
           'You have unsaved changes. Switch sets anyway? (Changes will be discarded)',
-          { title: 'Unsaved Changes', okTitle: 'Switch', cancelTitle: 'Cancel', centered: true }
+          { title: 'Unsaved Changes', okTitle: 'Switch', cancelTitle: 'Cancel', centered: true },
         );
         if (!confirmed) {
           this.activeSetId = this.categoryStore.active_set_ids[0] || 'default';
@@ -358,7 +358,7 @@ export default defineComponent({
       if (enabled) extras.add(setId);
       else extras.delete(setId);
       // Keep extras in category-set order: earlier sets win on name clashes.
-      const ordered = this.otherSets.map(s => s.id).filter(id => extras.has(id));
+      const ordered = this.otherSets.map((s) => s.id).filter((id) => extras.has(id));
       this.categoryStore.setActiveSets([this.activeSetId, ...ordered]);
     },
     beforeUnload: function (e: BeforeUnloadEvent): string | undefined {

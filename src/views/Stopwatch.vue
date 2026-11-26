@@ -120,13 +120,13 @@ export default defineComponent({
   },
   computed: {
     runningTimers() {
-      return _.filter(this.events, e => e.data.running);
+      return _.filter(this.events, (e) => e.data.running);
     },
     stoppedTimers() {
-      return _.filter(this.events, e => !e.data.running);
+      return _.filter(this.events, (e) => !e.data.running);
     },
     timersByDate() {
-      return _.groupBy(this.stoppedTimers, e => moment(e.timestamp).format('YYYY-MM-DD'));
+      return _.groupBy(this.stoppedTimers, (e) => moment(e.timestamp).format('YYYY-MM-DD'));
     },
   },
   mounted: async function () {
@@ -156,7 +156,7 @@ export default defineComponent({
     },
 
     updateTimer: async function (new_event: StopwatchEvent) {
-      const i = this.events.findIndex(e => e.id == new_event.id);
+      const i = this.events.findIndex((e) => e.id == new_event.id);
       if (i != -1) {
         // This is needed instead of this.events[i] because insides of arrays
         // are not reactive in Vue
@@ -168,7 +168,7 @@ export default defineComponent({
     },
 
     removeTimer: async function (event: StopwatchEvent) {
-      this.events = _.filter(this.events, e => e.id != event.id);
+      this.events = _.filter(this.events, (e) => e.id != event.id);
       await this.getEvents();
     },
 
@@ -203,7 +203,7 @@ export default defineComponent({
           history: (Omit<StopwatchEvent, 'timestamp'> & { timestamp: string })[];
         };
         this.events = [...running.slice(0, runningLimit), ...stopped.slice(0, historyLimit)].map(
-          (e): StopwatchEvent => ({ ...e, timestamp: new Date(e.timestamp) })
+          (e): StopwatchEvent => ({ ...e, timestamp: new Date(e.timestamp) }),
         );
         this.runningLimit = runningLimit;
         this.historyLimit = historyLimit;

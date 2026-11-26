@@ -32,7 +32,7 @@ function split_events_on_hours(events: IEvent[]): IEvent[] {
   events = JSON.parse(JSON.stringify(events));
 
   // First we need to find them, and filter them away from the other events.
-  const crossing_events = events.filter(e => {
+  const crossing_events = events.filter((e) => {
     // Does the event cross an hour mark?
     const start = moment(e.timestamp);
     const end = moment(e.timestamp).add(e.duration, 'seconds');
@@ -40,7 +40,7 @@ function split_events_on_hours(events: IEvent[]): IEvent[] {
   });
 
   const split_events = crossing_events
-    .map(e => {
+    .map((e) => {
       // Split the event into at least two events, one more for each additional hour boundary crossed.
       const start = moment(e.timestamp);
       const end = moment(e.timestamp).add(e.duration, 'seconds');
@@ -81,7 +81,7 @@ function split_events_on_hours(events: IEvent[]): IEvent[] {
   // Return the sorted list of: original events, without the crossing events, and with the new split events added.
   return (
     events
-      .filter(e => !crossing_events.includes(e))
+      .filter((e) => !crossing_events.includes(e))
       .concat(split_events)
       // TypeScript won't let me sort this with -, for some reason
       .sort((a, b) => {
@@ -151,7 +151,11 @@ export default defineComponent({
 
       // Gets a deepcopy of events
       // The arc angles are filled in below
-      let events: SpiralEvent[] = this.split_on_hour.map(e => ({ ...e, startAngle: 0, endAngle: 0 }));
+      let events: SpiralEvent[] = this.split_on_hour.map((e) => ({
+        ...e,
+        startAngle: 0,
+        endAngle: 0,
+      }));
       const eventAt = (i: number): SpiralEvent => {
         const e = events[i];
         if (!e) throw new Error(`No event at index ${i}`);
@@ -197,10 +201,10 @@ export default defineComponent({
         domain = [_domain_start.toDate(), _domain_end.toDate()];
       }
       const nbSpirals = Math.ceil(
-        (domain[1].valueOf() - domain[0].valueOf()) / (24 * 60 * 60 * 1000)
+        (domain[1].valueOf() - domain[0].valueOf()) / (24 * 60 * 60 * 1000),
       );
 
-      events = events.filter(e => moment(e.timestamp).isAfter(domain[0]));
+      events = events.filter((e) => moment(e.timestamp).isAfter(domain[0]));
 
       // To generate a spiral, we need two scales. One for the angle, and one for the radius.
 
@@ -227,7 +231,7 @@ export default defineComponent({
 
       // We want to add some spacing at hour-boundaries,
       // to do this we compress the startAngle and endAngle of each hour-segment, around the hour-center, by 1%.
-      events.forEach(d => {
+      events.forEach((d) => {
         d.startAngle = xScale(new Date(d.timestamp));
         d.endAngle = xScale(new Date(d.timestamp).valueOf() + 1000 * d.duration);
 
@@ -259,11 +263,11 @@ export default defineComponent({
       const arcGen = d3
         .arc<PieArcDatum<number>>()
         // Compute the radius of each event, rounded to the hour in which the event occurs.
-        .innerRadius(d => {
+        .innerRadius((d) => {
           const [radius, thick] = spiralThickness(eventAt(d.data).timestamp, true);
           return radius - thick / 2;
         })
-        .outerRadius(d => {
+        .outerRadius((d) => {
           const [radius, thick] = spiralThickness(eventAt(d.data).timestamp, true);
           return radius + thick / 2;
         })
@@ -352,7 +356,7 @@ export default defineComponent({
         m: number,
         text: string,
         radius: number,
-        inner = false
+        inner = false,
       ) {
         const a = 2 * Math.PI * (h / 24 + m / 24 / 60) - (1 / 2) * Math.PI;
         drawClockTick(g, a, radius, inner);
@@ -423,7 +427,7 @@ export default defineComponent({
       }
 
       const date_labels = d3.timeDays(...domain);
-      date_labels.forEach(d => drawDate(g, d));
+      date_labels.forEach((d) => drawDate(g, d));
 
       // From: https://stackoverflow.com/a/49097025/965332
       // Might serve as a base for later improvements

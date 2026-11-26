@@ -122,7 +122,7 @@ export default defineComponent({
   },
   computed: {
     categories: function () {
-      return this.categoryStore.category_select(true, key => this.$t(key) as string);
+      return this.categoryStore.category_select(true, (key) => this.$t(key) as string);
     },
     alertTime: function (): (cat: string[]) => number {
       return (cat: string[]) => {
@@ -149,8 +149,8 @@ export default defineComponent({
     // Prevents "There's no bucket named 'aw-watcher-afk_<host>'" when the
     // hosts list contains a stale hostname with only one orphan bucket.
     this.hostnames = this.bucketsStore.hosts.filter(
-      h =>
-        this.bucketsStore.bucketsWindow(h).length > 0 && this.bucketsStore.bucketsAFK(h).length > 0
+      (h) =>
+        this.bucketsStore.bucketsWindow(h).length > 0 && this.bucketsStore.bucketsAFK(h).length > 0,
     );
     this.hostname = this.hostnames[0] ?? '';
   },
@@ -166,7 +166,7 @@ export default defineComponent({
       }
     },
     deleteAlert: async function (name: string) {
-      await this.persistAlerts(this.alerts.filter(a => a.name !== name));
+      await this.persistAlerts(this.alerts.filter((a) => a.name !== name));
     },
 
     // Save the given goals, keeping the shown list and storage in step. Returns
@@ -243,18 +243,20 @@ export default defineComponent({
         console.error(e);
         const err = e as RequestError | undefined;
         this.error =
-          err?.response?.data?.message || err?.message || (this.$t('common.requestFailed') as string);
+          err?.response?.data?.message ||
+          err?.message ||
+          (this.$t('common.requestFailed') as string);
         return;
       } finally {
         this.status = null;
       }
 
-      const grouped = _.groupBy(this.events, e => (e.data.$category ?? []).join(','));
+      const grouped = _.groupBy(this.events, (e) => (e.data.$category ?? []).join(','));
       const sumCats = Object.fromEntries(
-        _.map(Object.entries(grouped), entry => {
+        _.map(Object.entries(grouped), (entry) => {
           const [group, events] = entry;
           return [group, _.sumBy(events, 'duration')];
-        })
+        }),
       );
       this.alert_times = sumCats;
 

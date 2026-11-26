@@ -30,7 +30,7 @@ b-form-tags#tags-component-select(
 import { defineComponent } from 'vue';
 import { useCategoryStore } from '~/stores/categories';
 
-const SEP = " > ";
+const SEP = ' > ';
 
 export default defineComponent({
   data() {
@@ -42,13 +42,13 @@ export default defineComponent({
   computed: {
     options() {
       const classes = useCategoryStore().classes;
-      return classes.map(category => category.name.join(SEP));
-    }
+      return classes.map((category) => category.name.join(SEP));
+    },
   },
 
   watch: {
     value(val: string[]) {
-      const category_names = val.map(v => v.split(SEP))
+      const category_names = val.map((v) => v.split(SEP));
       this.$emit('input', category_names);
     },
   },

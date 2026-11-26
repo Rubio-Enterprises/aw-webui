@@ -167,7 +167,7 @@ export default defineComponent({
       this.eventcount = typeof count === 'number' ? count : count.data;
     },
     updateEvent: function (event: IEvent) {
-      const i = this.events.findIndex(e => e.id == event.id);
+      const i = this.events.findIndex((e) => e.id == event.id);
       if (i != -1) {
         // This is needed instead of this.events[i] because insides of arrays
         // are not reactive in Vue.

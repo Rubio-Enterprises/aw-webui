@@ -201,7 +201,7 @@ export default defineComponent({
       if (!this.selectedCategory) return null;
       const selected = this.selectedCategory;
       const descendants = this.categoryStore.all_categories.filter(
-        path => path.length > selected.length && selected.every((part, i) => path[i] === part)
+        (path) => path.length > selected.length && selected.every((part, i) => path[i] === part),
       );
       return [selected, ...descendants];
     },
@@ -241,7 +241,7 @@ export default defineComponent({
     },
 
     hostOptions(): { value: string; text: string }[] {
-      return this.bucketsStore.knownHosts.map(h => ({ value: h, text: h }));
+      return this.bucketsStore.knownHosts.map((h) => ({ value: h, text: h }));
     },
 
     today(): string {
@@ -260,7 +260,7 @@ export default defineComponent({
 
     previousRangeLabel(): string {
       const start = format_date_short(
-        this.currentStart.clone().subtract(this.periodDays, 'days').toDate()
+        this.currentStart.clone().subtract(this.periodDays, 'days').toDate(),
       );
       const end = format_date_short(moment(this.today).subtract(this.periodDays, 'days').toDate());
       return `${start} – ${end}`;
@@ -269,14 +269,14 @@ export default defineComponent({
     totalCurrent(): number {
       return Object.values(this.currentTotals as CategoryTotals).reduce(
         (a: number, b: number) => a + b,
-        0
+        0,
       );
     },
 
     totalPrevious(): number {
       return Object.values(this.previousTotals as CategoryTotals).reduce(
         (a: number, b: number) => a + b,
-        0
+        0,
       );
     },
 
@@ -375,7 +375,7 @@ export default defineComponent({
 
     formatDelta(current: number, previous: number): string {
       const delta = current - previous;
-      if (previous === 0) return delta > 0 ? this.$t('ui.trends.new') as string : '0';
+      if (previous === 0) return delta > 0 ? (this.$t('ui.trends.new') as string) : '0';
       const pct = (delta / previous) * 100;
       const sign = delta >= 0 ? '+' : '';
       return `${sign}${pct.toFixed(0)}%`;
@@ -436,7 +436,7 @@ export default defineComponent({
       while (day.isBefore(end)) {
         const nextDay = day.clone().add(1, 'day');
         periods.push(
-          `${get_day_start_with_offset(day, offset)}/${get_day_start_with_offset(nextDay, offset)}`
+          `${get_day_start_with_offset(day, offset)}/${get_day_start_with_offset(nextDay, offset)}`,
         );
         day.add(1, 'day');
       }
@@ -450,7 +450,7 @@ export default defineComponent({
       host: string,
       start: moment.Moment,
       end: moment.Moment,
-      isCurrent: () => boolean = () => true
+      isCurrent: () => boolean = () => true,
     ): Promise<{ byPeriod: Record<string, HourlyData>; totals: CategoryTotals }> {
       const periods = this.dayPeriods(start, end);
       const query = this.buildCategoryQuery(host);
@@ -480,13 +480,13 @@ export default defineComponent({
     async queryTotals(
       host: string,
       start: moment.Moment,
-      end: moment.Moment
+      end: moment.Moment,
     ): Promise<CategoryTotals> {
       const query = this.buildCategoryQuery(host);
       const offset = this.settingsStore.startOfDay;
       const period = `${get_day_start_with_offset(start, offset)}/${get_day_start_with_offset(
         end,
-        offset
+        offset,
       )}`;
       const r = await getClient().query([period], query, { name: 'trendsTotals', verbose: true });
       const events = (r[0] && r[0].cat_events) || [];

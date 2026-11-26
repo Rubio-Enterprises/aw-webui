@@ -54,7 +54,7 @@ export default defineComponent({
       ];
     },
     startOfWeekLabel() {
-      const option = this.weekOptions.find(item => item.value === this.startOfWeek);
+      const option = this.weekOptions.find((item) => item.value === this.startOfWeek);
       return option?.text || this.startOfWeek;
     },
   },

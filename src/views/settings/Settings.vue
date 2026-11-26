@@ -75,7 +75,7 @@ export default defineComponent({
           okTitle: this.$t('settings.unsavedCategoriesLeaveOk') as string,
           cancelTitle: this.$t('settings.unsavedCategoriesLeaveCancel') as string,
           centered: true,
-        }
+        },
       );
       if (confirmed) {
         next();
@@ -92,7 +92,7 @@ export default defineComponent({
   computed: {
     activeGroup(): string {
       const requested = this.group || 'general';
-      return this.groups.some(g => g.id === requested) ? requested : 'general';
+      return this.groups.some((g) => g.id === requested) ? requested : 'general';
     },
     groups(): Group[] {
       const general: Group = {

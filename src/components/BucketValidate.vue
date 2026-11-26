@@ -102,7 +102,7 @@ export default defineComponent({
       if (this.overlappingEvents === null) {
         return null;
       }
-      return this.overlappingEvents.filter(overlap => {
+      return this.overlappingEvents.filter((overlap) => {
         return (
           _.isEqual(overlap[0].start, overlap[1].start) &&
           _.isEqual(overlap[0].end, overlap[1].end) &&
@@ -146,7 +146,7 @@ export default defineComponent({
       if (this.events === null) {
         return null;
       }
-      return this.events.filter(event => event.duration === 0);
+      return this.events.filter((event) => event.duration === 0);
     },
   },
   watch: {
@@ -169,7 +169,7 @@ export default defineComponent({
     getBuckets: async function () {
       const client = getClient();
       const buckets = await client.getBuckets();
-      this.buckets = Object.keys(buckets).map(bucket_id => {
+      this.buckets = Object.keys(buckets).map((bucket_id) => {
         return { value: bucket_id, text: bucket_id };
       });
     },

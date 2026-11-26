@@ -31,7 +31,7 @@ export default defineComponent({
         this.$el as SVGElement,
         this.events,
         this.event_type,
-        this.$t('visualizations.noData') as string
+        this.$t('visualizations.noData') as string,
       );
     },
   },

@@ -141,7 +141,7 @@ export default defineComponent({
           hosts.add(b.hostname);
         }
       }
-      return Array.from(hosts).map(h => ({ value: h, text: h }));
+      return Array.from(hosts).map((h) => ({ value: h, text: h }));
     },
     dateRangeOptions() {
       return [
@@ -224,7 +224,7 @@ export default defineComponent({
             apiKey: this.apiKey.trim(),
             model: effectiveModel,
           },
-          fullPrompt
+          fullPrompt,
         );
         this.llmResponse = response;
       } catch (err) {
@@ -243,7 +243,7 @@ export default defineComponent({
         throw new Error(`No window-watcher bucket found for host: ${this.selectedHost}`);
       }
       const afkBucket = buckets.find(
-        b => b.type === 'afkstatus' && b.hostname === this.selectedHost
+        (b) => b.type === 'afkstatus' && b.hostname === this.selectedHost,
       );
       // Only include browser buckets for the selected host; mixing buckets from
       // other hosts would send another device's domains to the LLM under the

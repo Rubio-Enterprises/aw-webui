@@ -153,7 +153,7 @@ RETURN = sort_by_duration(merged_events);
       return sortSavedQueries(this.settingsStore.saved_queries || []);
     },
     selectedSavedQuery: function (): SavedQuery | null {
-      return this.savedQueries.find(query => query.id === this.selected_saved_query_id) || null;
+      return this.savedQueries.find((query) => query.id === this.selected_saved_query_id) || null;
     },
     eventcount_str: function () {
       if (Array.isArray(this.events)) return 'Number of events: ' + this.events.length;
@@ -194,7 +194,7 @@ RETURN = sort_by_duration(merged_events);
       if (current) {
         const confirmed = await this.$bvModal.msgBoxConfirm(
           `Update saved query "${current.name}"?`,
-          { title: 'Update Query', okTitle: 'Update', cancelTitle: 'Cancel', centered: true }
+          { title: 'Update Query', okTitle: 'Update', cancelTitle: 'Cancel', centered: true },
         );
         if (!confirmed) {
           return;
@@ -210,9 +210,9 @@ RETURN = sort_by_duration(merged_events);
         });
 
         const didPersist = await this.persistSavedQueries(
-          this.savedQueries.map(savedQuery =>
-            savedQuery.id === current.id ? updatedQuery : savedQuery
-          )
+          this.savedQueries.map((savedQuery) =>
+            savedQuery.id === current.id ? updatedQuery : savedQuery,
+          ),
         );
         if (didPersist) {
           this.selected_saved_query_id = current.id;
@@ -235,7 +235,7 @@ RETURN = sort_by_duration(merged_events);
 
       const newId = buildSavedQueryId(
         trimmedName,
-        this.savedQueries.map(savedQuery => savedQuery.id)
+        this.savedQueries.map((savedQuery) => savedQuery.id),
       );
       const newQuery = buildSavedQuery({
         id: newId,
@@ -275,9 +275,9 @@ RETURN = sort_by_duration(merged_events);
 
       const selectedQueryId = this.selectedSavedQuery.id;
       const didPersist = await this.persistSavedQueries(
-        this.savedQueries.map(savedQuery =>
-          savedQuery.id === selectedQueryId ? { ...savedQuery, name: trimmedName } : savedQuery
-        )
+        this.savedQueries.map((savedQuery) =>
+          savedQuery.id === selectedQueryId ? { ...savedQuery, name: trimmedName } : savedQuery,
+        ),
       );
       if (didPersist) {
         this.showRenameQueryModal = false;
@@ -296,14 +296,14 @@ RETURN = sort_by_duration(merged_events);
           okVariant: 'danger',
           cancelTitle: 'Cancel',
           centered: true,
-        }
+        },
       );
       if (!confirmed) {
         return;
       }
 
       const didPersist = await this.persistSavedQueries(
-        this.savedQueries.filter(savedQuery => savedQuery.id !== this.selected_saved_query_id)
+        this.savedQueries.filter((savedQuery) => savedQuery.id !== this.selected_saved_query_id),
       );
       if (didPersist) {
         this.selected_saved_query_id = '';

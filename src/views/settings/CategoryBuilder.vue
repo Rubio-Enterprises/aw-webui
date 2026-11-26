@@ -160,7 +160,7 @@ export default defineComponent({
           okTitle: this.$t('settings.unsavedCategoriesLeaveOk') as string,
           cancelTitle: this.$t('settings.unsavedCategoriesLeaveCancel') as string,
           centered: true,
-        }
+        },
       );
       if (confirmed) {
         next();
@@ -234,8 +234,8 @@ export default defineComponent({
       const words: { word: string; duration: number }[] = [...this.words.values()];
       return words
         .sort((a, b) => b.duration - a.duration)
-        .filter(word => word.duration > 60)
-        .filter(word => !this.ignored_words.includes(word.word));
+        .filter((word) => word.duration > 60)
+        .filter((word) => !this.ignored_words.includes(word.word));
     },
     words_visible: function () {
       return this.words_by_duration.slice(0, this.visible_count);
@@ -325,7 +325,9 @@ export default defineComponent({
             filter_afk: options.filter_afk,
           };
         } else if (androidBuckets[0] !== undefined) {
-          const screentimeBucket = androidBuckets.find(id => id.startsWith('aw-import-screentime'));
+          const screentimeBucket = androidBuckets.find((id) =>
+            id.startsWith('aw-import-screentime'),
+          );
           bucketParams = {
             bid_android: screentimeBucket || androidBuckets[0],
             // ScreenTime events have titles; Android events do not.
@@ -347,7 +349,7 @@ export default defineComponent({
           }) + 'RETURN = limit_events(sort_by_duration(events), 1000);';
         const data = await getClient().query(
           [{ start: new Date(options.start), end: new Date(options.stop) }],
-          query.split('\n')
+          query.split('\n'),
         );
         if (requestId !== this.requestId) return;
         this.words = findCommonPhrases(data[0], this.ignored_words);
@@ -405,7 +407,9 @@ export default defineComponent({
         // A failed save was already reported to its own caller; don't poison the queue.
         .catch((e: unknown) => console.warn('Previous ignored-words save failed', e))
         .then(() =>
-          this.settingsStore.update({ category_builder_ignored_words: this._pending_ignored ?? next })
+          this.settingsStore.update({
+            category_builder_ignored_words: this._pending_ignored ?? next,
+          }),
         );
       const queued = this._persist_queue;
       try {

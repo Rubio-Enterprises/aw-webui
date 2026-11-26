@@ -131,7 +131,7 @@ export default defineComponent({
         filter_afk: this.queryOptions.filter_afk,
         categories: this.categoryStore.classes_for_query,
         filter_categories: this.excludeUncategorized
-          ? this.categoryStore.classes_for_query.map(t => t[0])
+          ? this.categoryStore.classes_for_query.map((t) => t[0])
           : null,
       });
       query += '; RETURN = events;';
@@ -152,7 +152,9 @@ export default defineComponent({
         console.error(e);
         const err = e as RequestError | undefined;
         this.error =
-          err?.response?.data?.message || err?.message || (this.$t('common.requestFailed') as string);
+          err?.response?.data?.message ||
+          err?.message ||
+          (this.$t('common.requestFailed') as string);
       } finally {
         this.status = null;
       }
@@ -166,13 +168,13 @@ export default defineComponent({
       const SEP = '>';
 
       // copy all events, slice off category depth deeper than maxDepth
-      const events = input.map(e => {
+      const events = input.map((e) => {
         const $category = (e.data.$category ?? ['Uncategorized']).slice(0, this.maxDepth);
         return { ...e, data: { ...e.data, $category } };
       });
 
       const allCategories: Set<string> = new Set(
-        events.map(e => e.data.$category).map(c => c.join(SEP))
+        events.map((e) => e.data.$category).map((c) => c.join(SEP)),
       );
       const groups: Record<string, number> = { Uncategorized: 0 };
 
@@ -190,8 +192,8 @@ export default defineComponent({
         const rootcat = category.split(SEP)[0] ?? '';
         // Size nodes depending on time spent
         const catTime = events
-          .filter(e => e.data.$category.join(SEP) == category)
-          .map(e => moment(e.timestamp).add(e.duration).diff(e.timestamp))
+          .filter((e) => e.data.$category.join(SEP) == category)
+          .map((e) => moment(e.timestamp).add(e.duration).diff(e.timestamp))
           .reduce((a, b) => a + b, 0);
         nodes.push({
           id: category,
@@ -212,7 +214,7 @@ export default defineComponent({
         const e2cat = e2.data.$category;
         if (_.isEqual(e1cat, e2cat)) continue;
 
-        const link = links.find(l => l.source == e1cat.join(SEP) && l.target == e2cat.join(SEP));
+        const link = links.find((l) => l.source == e1cat.join(SEP) && l.target == e2cat.join(SEP));
         if (link) {
           link.value++;
         } else {

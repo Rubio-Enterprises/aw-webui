@@ -139,7 +139,7 @@ export default defineComponent({
 
     categoryOptions() {
       const cats = this.categoryStore.all_categories || [];
-      return cats.map(cat => ({
+      return cats.map((cat) => ({
         value: JSON.stringify(cat),
         text: cat.join(' > '),
       }));
@@ -147,9 +147,9 @@ export default defineComponent({
     // Hide categories that are already selected (or that are descendants of
     // a selected category, since we auto-include subcategories anyway).
     addableCategoryOptions() {
-      const selected: string[][] = this.selectedCategories.map(c => JSON.parse(c));
+      const selected: string[][] = this.selectedCategories.map((c) => JSON.parse(c));
       const isCoveredBySelected = (cat: string[]) =>
-        selected.some(sel => sel.every((seg, i) => cat[i] === seg));
+        selected.some((sel) => sel.every((seg, i) => cat[i] === seg));
       return [
         {
           value: '',
@@ -159,7 +159,7 @@ export default defineComponent({
               : this.$t('ui.workReport.addCategory'),
           disabled: true,
         },
-        ...this.categoryOptions.filter(opt => !isCoveredBySelected(JSON.parse(opt.value))),
+        ...this.categoryOptions.filter((opt) => !isCoveredBySelected(JSON.parse(opt.value))),
       ];
     },
     dateRangeOptions() {
@@ -188,7 +188,7 @@ export default defineComponent({
     await this.bucketsStore.ensureLoaded();
 
     if (this.hostOptions.length > 0) {
-      this.selectedHosts = this.hostOptions.filter(opt => !opt.disabled).map(opt => opt.value);
+      this.selectedHosts = this.hostOptions.filter((opt) => !opt.disabled).map((opt) => opt.value);
     }
   },
   methods: {
@@ -211,18 +211,18 @@ export default defineComponent({
 
         const unsupportedHosts = getUnsupportedWorkReportHosts(
           this.selectedHosts,
-          this.bucketsStore.buckets || []
+          this.bucketsStore.buckets || [],
         );
         if (unsupportedHosts.length > 0) {
           const supportedHosts = getSupportedWorkReportHosts(
             this.selectedHosts,
-            this.bucketsStore.buckets || []
+            this.bucketsStore.buckets || [],
           );
           if (supportedHosts.length === 0) {
             alert(
               this.$t('ui.workReport.unsupportedHosts', {
                 hosts: unsupportedHosts.join(', '),
-              })
+              }),
             );
             this.loading = false;
             return;
@@ -232,14 +232,14 @@ export default defineComponent({
             this.$t('ui.workReport.skippingHosts', {
               unsupported: unsupportedHosts.join(', '),
               supported: supportedHosts.join(', '),
-            })
+            }),
           );
           this.selectedHosts = supportedHosts;
         }
 
         const hostsToQuery = getWorkReportHostBuckets(
           this.selectedHosts,
-          this.bucketsStore.buckets || []
+          this.bucketsStore.buckets || [],
         );
         const timeperiods = this.getTimeperiods();
         const breakTimeSeconds = this.breakTime * 60;
@@ -248,13 +248,13 @@ export default defineComponent({
         // etc., which is what users intuitively expect — aw-query's
         // filter_keyvals only does exact-array matches on $category.
         const allCategories = (this.categoryStore.all_categories || []) as string[][];
-        const selected: string[][] = this.selectedCategories.map(c => JSON.parse(c));
+        const selected: string[][] = this.selectedCategories.map((c) => JSON.parse(c));
         const isDescendant = (sel: string[], cat: string[]) =>
           cat.length >= sel.length && sel.every((seg, i) => cat[i] === seg);
         const expanded: string[][] = [];
         const seen = new Set<string>();
         for (const cat of allCategories) {
-          if (selected.some(sel => isDescendant(sel, cat))) {
+          if (selected.some((sel) => isDescendant(sel, cat))) {
             const key = JSON.stringify(cat);
             if (!seen.has(key)) {
               seen.add(key);
@@ -359,13 +359,13 @@ export default defineComponent({
       const hours = Math.floor(seconds / 3600);
       const minutes = Math.floor((seconds % 3600) / 60);
       return `${hours}${this.$t('common.durationHours')} ${minutes}${this.$t(
-        'common.durationMinutes'
+        'common.durationMinutes',
       )}`;
     },
 
     exportCSV() {
       const headers = ['Date', 'Duration (hours)', 'Sessions', 'Avg Session (minutes)'];
-      const rows = this.dailyData.map(day => [
+      const rows = this.dailyData.map((day) => [
         day.date,
         (day.duration / 3600).toFixed(2),
         day.sessions,
@@ -374,7 +374,7 @@ export default defineComponent({
 
       const csv = [
         headers.join(','),
-        ...rows.map(row => row.join(',')),
+        ...rows.map((row) => row.join(',')),
         '',
         `Total,${(this.totalDuration / 3600).toFixed(2)},${this.totalSessions},${(
           this.avgSessionLength / 60

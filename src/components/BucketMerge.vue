@@ -96,7 +96,7 @@ export default defineComponent({
     getBuckets: async function () {
       const client = getClient();
       const buckets = await client.getBuckets();
-      this.buckets = Object.keys(buckets).map(bucket_id => {
+      this.buckets = Object.keys(buckets).map((bucket_id) => {
         return { value: bucket_id, text: bucket_id };
       });
     },

@@ -306,7 +306,7 @@ export default defineComponent({
     top_categories_hierarchy: function () {
       const top_categories = this.activityStore.category.top;
       if (top_categories) {
-        const categories = top_categories.map(c => {
+        const categories = top_categories.map((c) => {
           // A category path is always set by the category query
           return {
             name: c.data.$category ?? ['Uncategorized'],
@@ -317,7 +317,7 @@ export default defineComponent({
 
         return {
           name: 'All',
-          children: build_category_hierarchy(categories).map(c => pick_subname_as_name(c)),
+          children: build_category_hierarchy(categories).map((c) => pick_subname_as_name(c)),
         };
       } else {
         return null;
@@ -329,7 +329,7 @@ export default defineComponent({
 
       const datasets = buildBarchartDataset(
         this.activityStore.category.by_period,
-        this.categoryStore.classes
+        this.categoryStore.classes,
       );
 
       // Return dataset if data found, else return null (indicating no data)
@@ -388,7 +388,7 @@ export default defineComponent({
         await useBucketsStore().getBucketsWithEvents({
           start: start.format(),
           end: end.format(),
-        })
+        }),
       );
     },
   },

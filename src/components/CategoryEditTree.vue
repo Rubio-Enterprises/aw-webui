@@ -85,7 +85,7 @@ export default defineComponent({
       const baseName = this.$t('ui.categoryEditor.newClass') as string;
       let name = baseName;
       let counter = 2;
-      const existingNames = this.categoryStore.classes.map(c => JSON.stringify(c.name));
+      const existingNames = this.categoryStore.classes.map((c) => JSON.stringify(c.name));
       while (existingNames.includes(JSON.stringify(parent.name.concat([name])))) {
         name = `${baseName} (${counter})`;
         counter++;

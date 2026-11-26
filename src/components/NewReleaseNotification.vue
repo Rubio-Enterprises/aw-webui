@@ -83,7 +83,7 @@ export default defineComponent({
     async retrieveLatestVersion() {
       try {
         const response = await axios.get(
-          'https://api.github.com/repos/ActivityWatch/activitywatch/releases/latest'
+          'https://api.github.com/repos/ActivityWatch/activitywatch/releases/latest',
         );
         this.latestVersion = this.cleanVersionTag(response.data.tag_name);
         this.latestVersionDate = moment(response.data.published_at);

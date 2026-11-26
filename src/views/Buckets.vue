@@ -362,7 +362,7 @@ export default defineComponent({
       return Boolean(bucket && bucket.last_updated);
     },
     deviceHasEvents: function (device: BucketDevice) {
-      return _.some(device.buckets, b => this.bucketHasEvents(b));
+      return _.some(device.buckets, (b) => this.bucketHasEvents(b));
     },
     runChecks: function (device: BucketDevice) {
       const checks = [
@@ -385,8 +385,8 @@ export default defineComponent({
           failed: () => _.isEqual(device.hostnames, ['unknown']),
         },
       ];
-      const failedChecks = _.filter(checks, c => c.failed());
-      return _.map(failedChecks, c => c.msg());
+      const failedChecks = _.filter(checks, (c) => c.failed());
+      return _.map(failedChecks, (c) => c.msg());
     },
     openDeleteBucketModal: function (bucketId: string) {
       this.delete_bucket_selected = bucketId;

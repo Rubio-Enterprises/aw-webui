@@ -74,12 +74,12 @@ export default defineComponent({
       // NOTE: This returns FullCalendar events, not ActivityWatch events.
       if (this.buckets == null) return [];
 
-      const bucket = _.find(this.buckets, b => b.id == this.selectedBucket);
+      const bucket = _.find(this.buckets, (b) => b.id == this.selectedBucket);
       if (bucket == null) {
         return [];
       }
       const bucketEvents = Array.isArray(bucket.events) ? bucket.events : [];
-      const longEvents = bucketEvents.filter(e => e && e.timestamp && Number(e.duration) > 10);
+      const longEvents = bucketEvents.filter((e) => e && e.timestamp && Number(e.duration) > 10);
       return longEvents.map((e): CalendarEvent => {
         return {
           title: getTitleAttr(bucket, e),

@@ -128,7 +128,7 @@ duration = sum_durations(events);
 RETURN = {"events": events, "duration": duration};`;
   return query
     .split('\n')
-    .map(line => line.replace(/\s+$/, ''))
+    .map((line) => line.replace(/\s+$/, ''))
     .join('\n');
 }
 
@@ -180,7 +180,7 @@ export default defineComponent({
     this.categoryStore.load();
     await this.bucketsStore.ensureLoaded();
     if (this.hostOptions.length > 0) {
-      this.selectedHosts = this.hostOptions.filter(opt => !opt.disabled).map(opt => opt.value);
+      this.selectedHosts = this.hostOptions.filter((opt) => !opt.disabled).map((opt) => opt.value);
     }
   },
   methods: {
@@ -217,11 +217,11 @@ export default defineComponent({
 
         const unsupported = getUnsupportedWorkReportHosts(
           this.selectedHosts,
-          this.bucketsStore.buckets || []
+          this.bucketsStore.buckets || [],
         );
         const hostsToQuery = getWorkReportHostBuckets(
           this.selectedHosts,
-          this.bucketsStore.buckets || []
+          this.bucketsStore.buckets || [],
         );
         if (hostsToQuery.length === 0) {
           this.errorMessage = this.$t('ui.billing.noSupportedHosts', {
@@ -313,7 +313,7 @@ export default defineComponent({
       ].join('\n');
 
       const cols = ['Category', 'Hours', 'Rate ($/h)', 'Amount ($)'];
-      const rows = this.categoryRows.map(row => {
+      const rows = this.categoryRows.map((row) => {
         const rate = this.getEffectiveRate(row);
         const amount = this.getAmount(row);
         return [

@@ -74,7 +74,7 @@ export default defineComponent({
     drawGraph({ nodes, links }: GraphData) {
       console.log('rendering...');
       this.cancelPromise?.();
-      const promise = new Promise<void>(resolve => {
+      const promise = new Promise<void>((resolve) => {
         this.cancelPromise = resolve;
       });
 
@@ -123,11 +123,11 @@ function ForceGraph(
     width?: number;
     height?: number;
     invalidation?: Promise<void>;
-  } = {}
+  } = {},
 ): SVGSVGElement | null {
   // Replace the input nodes and links with mutable objects for the simulation.
   // Scale so that the area of each node is ~proportional to the time value.
-  const nodes: GNode[] = inputNodes.map(node => ({
+  const nodes: GNode[] = inputNodes.map((node) => ({
     id: node.id,
     color: node.color,
     value: node.value,
@@ -142,7 +142,7 @@ function ForceGraph(
 
   // Construct the forces.
   const forceNode = d3.forceManyBody<GNode>();
-  const forceLink = d3.forceLink<GNode, GLink>(links).id(d => d.id);
+  const forceLink = d3.forceLink<GNode, GLink>(links).id((d) => d.id);
   forceLink.strength(linkStrength);
 
   const simulation = d3
@@ -152,7 +152,7 @@ function ForceGraph(
     .force('center', d3.forceCenter())
     .force(
       'collision',
-      d3.forceCollide<GNode>(d => d.radius)
+      d3.forceCollide<GNode>((d) => d.radius),
     )
     .on('tick', ticked);
 
@@ -182,11 +182,11 @@ function ForceGraph(
     .selectAll<SVGCircleElement, GNode>('circle')
     .data(nodes)
     .join('circle')
-    .attr('r', d => d.radius)
-    .attr('fill', d => d.color)
+    .attr('r', (d) => d.radius)
+    .attr('fill', (d) => d.color)
     .call(drag(simulation));
 
-  node.append('title').text(d => d.id);
+  node.append('title').text((d) => d.id);
 
   // Label each node with the last segment of its category (ids look like "Work>Programming"),
   // since titles only show on hover, which isn't available on touch devices.
@@ -199,7 +199,7 @@ function ForceGraph(
     .data(nodes)
     .join('text')
     .attr('dy', '0.35em')
-    .text(d => String(d.id).split('>').pop() ?? '');
+    .text((d) => String(d.id).split('>').pop() ?? '');
   invalidation?.then(() => simulation.stop());
 
   // After the first tick the link force has replaced the ids by the nodes
@@ -209,18 +209,18 @@ function ForceGraph(
 
   function ticked() {
     link
-      .attr('x1', d => endpoint(d.source)?.x ?? 0)
-      .attr('y1', d => endpoint(d.source)?.y ?? 0)
-      .attr('x2', d => endpoint(d.target)?.x ?? 0)
-      .attr('y2', d => endpoint(d.target)?.y ?? 0);
+      .attr('x1', (d) => endpoint(d.source)?.x ?? 0)
+      .attr('y1', (d) => endpoint(d.source)?.y ?? 0)
+      .attr('x2', (d) => endpoint(d.target)?.x ?? 0)
+      .attr('y2', (d) => endpoint(d.target)?.y ?? 0);
 
-    node.attr('cx', d => d.x ?? 0).attr('cy', d => d.y ?? 0);
+    node.attr('cx', (d) => d.x ?? 0).attr('cy', (d) => d.y ?? 0);
     // Put each label on the side of its node facing the center, so labels of nodes
     // near the left/right edge stay inside the graph.
     label
-      .attr('text-anchor', d => ((d.x ?? 0) > 0 ? 'end' : 'start'))
-      .attr('x', d => (d.x ?? 0) + ((d.x ?? 0) > 0 ? -1 : 1) * (d.radius + 3))
-      .attr('y', d => d.y ?? 0);
+      .attr('text-anchor', (d) => ((d.x ?? 0) > 0 ? 'end' : 'start'))
+      .attr('x', (d) => (d.x ?? 0) + ((d.x ?? 0) > 0 ? -1 : 1) * (d.radius + 3))
+      .attr('y', (d) => d.y ?? 0);
   }
 
   function drag(_simulation: d3.Simulation<GNode, undefined>) {

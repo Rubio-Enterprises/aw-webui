@@ -134,7 +134,7 @@ export default defineComponent({
     datasets: function () {
       return buildBarchartDataset(
         this.activityStore.category.by_period ?? null,
-        this.categoryStore.classes
+        this.categoryStore.classes,
       );
     },
   },
@@ -148,7 +148,7 @@ export default defineComponent({
         ...this.bucketsStore.desktopBucketIds(this.queryOptions.hostname ?? ''),
         filter_afk: this.queryOptions.filter_afk,
         categories: this.filterCategories,
-        filter_categories: this.filterCategories.map(c => c[0]),
+        filter_categories: this.filterCategories.map((c) => c[0]),
       });
       query += '; RETURN = events;';
 
@@ -170,7 +170,9 @@ export default defineComponent({
         console.error(e);
         const err = e as RequestError | undefined;
         this.error =
-          err?.response?.data?.message || err?.message || (this.$t('common.requestFailed') as string);
+          err?.response?.data?.message ||
+          err?.message ||
+          (this.$t('common.requestFailed') as string);
       } finally {
         this.status = null;
       }

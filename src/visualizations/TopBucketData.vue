@@ -93,13 +93,13 @@ export default defineComponent({
   },
   computed: {
     bucketOptions(): { value: string; text: string }[] {
-      return this.bucketsStore.buckets.map(b => ({
+      return this.bucketsStore.buckets.map((b) => ({
         value: b.id,
         text: `${b.id} (${b.type || this.$t('common.unknown')})`,
       }));
     },
     fieldSelectOptions(): { value: string; text: string }[] {
-      const options = this.fieldOptions.map(f => ({ value: f, text: f }));
+      const options = this.fieldOptions.map((f) => ({ value: f, text: f }));
       options.push({ value: '__custom', text: this.$t('ui.topBucket.customField') as string });
       return options;
     },
@@ -114,19 +114,19 @@ export default defineComponent({
       const end = moment(start)
         .add(
           opts.timeperiod.length[0],
-          opts.timeperiod.length[1] as moment.unitOfTime.DurationConstructor
+          opts.timeperiod.length[1] as moment.unitOfTime.DurationConstructor,
         )
         .toISOString();
       return { start, end };
     },
     namefunc(): (e: AggregatedEvent) => string {
-      return e => e.data.display;
+      return (e) => e.data.display;
     },
     hoverfunc(): (e: AggregatedEvent) => string {
-      return e => e.data.display;
+      return (e) => e.data.display;
     },
     colorfunc(): (e: AggregatedEvent) => string {
-      return e => e.data.colorKey;
+      return (e) => e.data.colorKey;
     },
   },
   watch: {
@@ -166,7 +166,7 @@ export default defineComponent({
     setDefaultBucket() {
       if (this.selectedBucketId) return;
       const host = this.activityStore.query_options && this.activityStore.query_options.host;
-      const byHost = host ? this.bucketsStore.buckets.filter(b => b.hostname === host) : [];
+      const byHost = host ? this.bucketsStore.buckets.filter((b) => b.hostname === host) : [];
       const [firstByHost] = byHost;
       const [firstBucket] = this.bucketsStore.buckets;
       if (firstByHost) {
@@ -194,7 +194,7 @@ export default defineComponent({
         }
         const client = getClient();
         const earliest = await earliestEventInBucket(bucket, (id, params) =>
-          client.getEvents(id, params)
+          client.getEvents(id, params),
         );
         this.earliestByBucket = { ...this.earliestByBucket, [bucketId]: earliest };
       }
@@ -247,8 +247,8 @@ export default defineComponent({
     extractFields(events: IEvent[]): string[] {
       // Sample first 100 events for field discovery (performance vs coverage tradeoff)
       const keys = new Set<string>();
-      events.slice(0, 100).forEach(e => {
-        Object.keys(e.data || {}).forEach(k => keys.add(k));
+      events.slice(0, 100).forEach((e) => {
+        Object.keys(e.data || {}).forEach((k) => keys.add(k));
       });
       return Array.from(keys).sort();
     },
@@ -262,7 +262,7 @@ export default defineComponent({
       // to gracefully let it pass. Chances are there are no nested data.data.title.
       const path = fieldValue.startsWith('data.') ? fieldValue : `data.${fieldValue}`;
       const grouped = new Map<string, AggregatedEvent>();
-      this.events.forEach(e => {
+      this.events.forEach((e) => {
         const value = _.get(e, path);
         const display = formatValue(value);
         const key = Array.isArray(value) ? JSON.stringify(value) : String(display);

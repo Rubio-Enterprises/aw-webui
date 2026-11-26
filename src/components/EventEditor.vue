@@ -141,7 +141,7 @@ export default defineComponent({
       const savedEvent = _.cloneDeep(this.editedEvent);
       const bucketId = this.bucket_id;
       await this.runMutation('save', savedEvent, bucketId, () =>
-        this.$aw.replaceEvent(bucketId, savedEvent)
+        this.$aw.replaceEvent(bucketId, savedEvent),
       );
     },
     async delete_() {
@@ -163,7 +163,7 @@ export default defineComponent({
       name: Mutation,
       payload: unknown,
       bucketId: string,
-      request: () => Promise<void>
+      request: () => Promise<void>,
     ) {
       if (this.pending) return;
       const editingId = this.event && this.event.id;

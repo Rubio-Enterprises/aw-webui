@@ -175,7 +175,7 @@ export default defineComponent({
     },
     fieldOptions: function () {
       const extra = (this.editing.match_fields || []).filter(
-        k => !(CANONICAL_SELECT_KEYS as readonly string[]).includes(k)
+        (k) => !(CANONICAL_SELECT_KEYS as readonly string[]).includes(k),
       );
       return [...CANONICAL_SELECT_KEYS, ...extra];
     },
