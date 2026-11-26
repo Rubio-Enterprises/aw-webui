@@ -48,7 +48,7 @@ export default defineComponent({
         return settingsStore.theme;
       },
       set(value: 'light' | 'dark' | 'auto') {
-        console.log('Set theme to ' + value);
+        console.log(`Set theme to ${value}`);
         const settingsStore = useSettingsStore();
         settingsStore.update({
           theme: value,

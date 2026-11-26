@@ -348,7 +348,7 @@ export default defineComponent({
         const date = moment().subtract(i, 'days');
         const start = get_day_start_with_offset(date, offset);
         const end = get_day_end_with_offset(date, offset);
-        timeperiods.push(start + '/' + end);
+        timeperiods.push(`${start}/${end}`);
       }
 
       return timeperiods;

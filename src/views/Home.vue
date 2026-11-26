@@ -160,7 +160,7 @@ export default defineComponent({
     },
     apiBrowserUrl(): string {
       const base = window.location.pathname.replace(/[^/]*$/, '');
-      return base + 'api/';
+      return `${base}api/`;
     },
     supporterNudgeHref(): string {
       return `https://activitywatch.net/go/?src=${this.supporterNudgeSrc}`;

@@ -468,15 +468,14 @@ export default defineComponent({
       windowBucketId: string,
       afkBucketId: string,
     ): Promise<IEvent[]> {
-      const queryCode =
-        canonicalEvents({
-          bid_window: windowBucketId,
-          bid_afk: afkBucketId,
-          filter_afk: true,
-          always_active_pattern: this.always_active_pattern || undefined,
-          categories: [],
-          filter_categories: null,
-        }) + '\nRETURN = events;';
+      const queryCode = `${canonicalEvents({
+        bid_window: windowBucketId,
+        bid_afk: afkBucketId,
+        filter_afk: true,
+        always_active_pattern: this.always_active_pattern || undefined,
+        categories: [],
+        filter_categories: null,
+      })}\nRETURN = events;`;
 
       const queryArray = querystr_to_array(queryCode);
 

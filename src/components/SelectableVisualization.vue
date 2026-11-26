@@ -195,7 +195,7 @@ export default defineComponent({
     // TODO: Move this function somewhere else
     top_editor_files_namefunc: (e: IEvent): string => lastPathSegment(e.data.file),
     top_editor_files_hoverfunc: (e: IEvent): string => {
-      return 'file: ' + e.data.file + '\nproject: ' + e.data.project;
+      return `file: ${e.data.file}\nproject: ${e.data.project}`;
     },
     // TODO: Move this function somewhere else
     top_editor_projects_namefunc: (e: IEvent): string => lastPathSegment(e.data.project),

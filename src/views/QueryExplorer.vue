@@ -156,7 +156,7 @@ RETURN = sort_by_duration(merged_events);
       return this.savedQueries.find((query) => query.id === this.selected_saved_query_id) || null;
     },
     eventcount_str: function () {
-      if (Array.isArray(this.events)) return 'Number of events: ' + this.events.length;
+      if (Array.isArray(this.events)) return `Number of events: ${this.events.length}`;
       return '';
     },
   },
@@ -326,7 +326,7 @@ RETURN = sort_by_duration(merged_events);
 
       // the aw-client expects an array of commands with whitespace cleaned up
       const queryLines = querystr_to_array(query);
-      const timeperiods = [moment(this.startdate).format() + '/' + moment(this.enddate).format()];
+      const timeperiods = [`${moment(this.startdate).format()}/${moment(this.enddate).format()}`];
 
       try {
         const data = await this.$aw.query(timeperiods, queryLines);

@@ -386,7 +386,7 @@ export default defineComponent({
     },
     openEditor: function () {
       if (!this.editingEvent) return;
-      this.$bvModal.show('edit-modal-' + this.editingEvent.id);
+      this.$bvModal.show(`edit-modal-${this.editingEvent.id}`);
     },
     displayEvent: function (bucketId: string, event: IEvent): IEvent {
       return this.eventOverrides[`${bucketId}\0${event.id}`] || event;
@@ -441,7 +441,7 @@ export default defineComponent({
           this.openEditor();
         });
       } else {
-        alert('selected multiple items: ' + JSON.stringify(properties.items));
+        alert(`selected multiple items: ${JSON.stringify(properties.items)}`);
       }
     },
     abbreviateBucketName(bucketId: string): string {

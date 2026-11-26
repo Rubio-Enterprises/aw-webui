@@ -232,7 +232,7 @@ export default defineComponent({
       if (start.isAfter(now)) {
         start = moment(get_day_start_with_offset(moment(now).startOf('day').subtract(1, 'day')));
       }
-      const timeperiods = [start.format() + '/' + now.format()];
+      const timeperiods = [`${start.format()}/${now.format()}`];
 
       try {
         this.status = 'searching';

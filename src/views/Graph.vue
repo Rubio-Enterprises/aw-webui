@@ -139,7 +139,7 @@ export default defineComponent({
       const query_array = querystr_to_array(query);
       const start = moment(this.queryOptions.start).format();
       const end = moment(this.queryOptions.stop).format();
-      const timeperiods = [start + '/' + end];
+      const timeperiods = [`${start}/${end}`];
       try {
         this.status = 'searching';
         const time = moment();
@@ -214,7 +214,9 @@ export default defineComponent({
         const e2cat = e2.data.$category;
         if (_.isEqual(e1cat, e2cat)) continue;
 
-        const link = links.find((l) => l.source === e1cat.join(SEP) && l.target === e2cat.join(SEP));
+        const link = links.find(
+          (l) => l.source === e1cat.join(SEP) && l.target === e2cat.join(SEP),
+        );
         if (link) {
           link.value++;
         } else {

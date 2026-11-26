@@ -153,7 +153,7 @@ export default defineComponent({
       const query_array = querystr_to_array(query);
       const start = moment(this.queryOptions.start).format();
       const end = moment(this.queryOptions.stop).format();
-      const timeperiods = [start + '/' + end];
+      const timeperiods = [`${start}/${end}`];
       try {
         this.status = 'searching';
         const time = moment();

@@ -33,7 +33,7 @@ export default defineComponent({
         return this.settingsStore.startOfDay;
       },
       set: function (value: string) {
-        console.log('Set start of day to ' + value);
+        console.log(`Set start of day to ${value}`);
         this.settingsStore.update({ startOfDay: value });
       },
     },
@@ -42,7 +42,7 @@ export default defineComponent({
         return this.settingsStore.startOfWeek;
       },
       set: function (value: string) {
-        console.log('Set start of week to ' + value);
+        console.log(`Set start of week to ${value}`);
         this.settingsStore.update({ startOfWeek: value });
       },
     },

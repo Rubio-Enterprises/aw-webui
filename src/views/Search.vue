@@ -106,7 +106,7 @@ export default defineComponent({
   methods: {
     search: async function () {
       const timeperiods = [
-        moment(this.queryOptions.start).format() + '/' + moment(this.queryOptions.stop).format(),
+        `${moment(this.queryOptions.start).format()}/${moment(this.queryOptions.stop).format()}`,
       ];
 
       // Window search query

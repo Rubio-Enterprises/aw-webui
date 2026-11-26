@@ -598,7 +598,7 @@ export default defineComponent({
         last30d: this.$t('activity.periodLast30d').toString(),
         range: this.$t('activity.periodCustomRange').toString(),
         interval: this.$t('activity.periodExactInterval').toString(),
-        all: this.$t('activity.periodAllTime').toString() + ' 🐌',
+        all: `${this.$t('activity.periodAllTime').toString()} 🐌`,
       };
       return periods;
     },

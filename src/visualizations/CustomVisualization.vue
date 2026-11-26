@@ -35,7 +35,7 @@ export default defineComponent({
         // NOTE: document.location.origin won't work when running aw-webui in dev mode
         _origin = 'http://localhost:5666';
       }
-      return _origin + '/pages/' + this.visname + '/?' + urlParams.toString();
+      return `${_origin}/pages/${this.visname}/?${urlParams.toString()}`;
     },
   },
 });

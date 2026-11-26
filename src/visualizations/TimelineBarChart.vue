@@ -48,7 +48,7 @@ function hourToTick(hours: number): string {
   if (hours === 0) {
     return '0';
   }
-  return Math.round(hours * 60) + 'm';
+  return `${Math.round(hours * 60)}m`;
 }
 
 export default defineComponent({

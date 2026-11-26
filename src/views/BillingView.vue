@@ -317,7 +317,7 @@ export default defineComponent({
         const rate = this.getEffectiveRate(row);
         const amount = this.getAmount(row);
         return [
-          '"' + neutralizeCsvFormula(row.category).replace(/"/g, '""') + '"',
+          `"${neutralizeCsvFormula(row.category).replace(/"/g, '""')}"`,
           (row.duration / 3600).toFixed(2),
           rate > 0 ? rate.toFixed(2) : '',
           amount > 0 ? amount.toFixed(2) : '',

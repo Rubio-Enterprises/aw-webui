@@ -339,12 +339,11 @@ export default defineComponent({
         // Make sure we don't query with stale unsaved category changes.
         await this.categoryStore.load();
         if (requestId !== this.requestId) return;
-        const query =
-          canonicalEvents({
-            ...bucketParams,
-            categories: this.categoryStore.classes_for_query,
-            filter_categories: [this.category],
-          }) + 'RETURN = limit_events(sort_by_duration(events), 1000);';
+        const query = `${canonicalEvents({
+          ...bucketParams,
+          categories: this.categoryStore.classes_for_query,
+          filter_categories: [this.category],
+        })}RETURN = limit_events(sort_by_duration(events), 1000);`;
         const data = await getClient().query(
           [{ start: new Date(options.start), end: new Date(options.stop) }],
           query.split('\n'),
@@ -418,7 +417,7 @@ export default defineComponent({
       }
     },
     async ignoreWord(word: string) {
-      console.log('Ignoring word: ' + word);
+      console.log(`Ignoring word: ${word}`);
       const current = this._pending_ignored || this.ignored_words;
       if (current.includes(word)) return;
       await this.persistIgnoredWords([...current, word]);
@@ -435,7 +434,7 @@ export default defineComponent({
       await this.fetchWords();
     },
     createRule(word: string) {
-      console.log('Opening modal for creating rule with word: ' + word);
+      console.log(`Opening modal for creating rule with word: ${word}`);
       const lastId = this.categoryStore.addClass({
         name: [word],
         rule: { type: 'regex', regex: _.escapeRegExp(word) },
@@ -444,7 +443,7 @@ export default defineComponent({
       this.create.categoryId = lastId;
     },
     async createRuleOk() {
-      console.log('Creating rule with word: ' + this.create.word);
+      console.log(`Creating rule with word: ${this.create.word}`);
       await this.categoryStore.save();
       this.fetchWords();
     },
@@ -454,12 +453,12 @@ export default defineComponent({
       this.categoryStore.load(); // Restore categories to last saved
     },
     appendRule(word: string) {
-      console.log('Opening modal to append rule with word: ' + word);
+      console.log(`Opening modal to append rule with word: ${word}`);
       this.append.word = _.escapeRegExp(word);
       this.$bvModal.show('appendRule');
     },
     async appendRuleOk() {
-      console.log('Appending rule with word: ' + this.append.word);
+      console.log(`Appending rule with word: ${this.append.word}`);
       const cat = this.categoryStore.get_category(this.append.category);
       if (cat.id === undefined) throw new Error('Cannot append a rule to a category without an id');
       this.categoryStore.appendClassRule(cat.id, this.append.word);

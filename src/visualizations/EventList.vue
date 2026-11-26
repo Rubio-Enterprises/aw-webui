@@ -171,7 +171,7 @@ export default defineComponent({
     editEvent: function (event: IEvent) {
       this.editableEvent = event;
       this.$nextTick(() => {
-        this.$bvModal.show('edit-modal-' + event.id);
+        this.$bvModal.show(`edit-modal-${event.id}`);
       });
     },
     expandList: function () {

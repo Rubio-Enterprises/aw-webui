@@ -278,7 +278,7 @@ export default defineComponent({
           (s) => s.id === setId && s.id !== (this.categoryStore.active_set_ids[0] || ''),
         )
       ) {
-        setId = setId + '-imported';
+        setId = `${setId}-imported`;
       }
       const existing = this.categoryStore.category_sets.find((s) => s.id === setId);
       if (existing) {
