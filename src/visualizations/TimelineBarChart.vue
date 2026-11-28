@@ -1,7 +1,7 @@
 <template lang="pug">
 div(v-if="datasets && datasets.length > 0")
   // Height set here to avoid elements jumping when loading Activity view
-  bar(:chart-data="chartData" :chart-options="chartOptions" :height="height")
+  bar(:data="chartData" :options="chartOptions" :height="height")
 div.small(v-else-if="datasets === null", style="font-size: 16pt; color: #aaa;")
   | {{ $t('visualizations.noData') }}
 div.small(v-else, style="font-size: 16pt; color: #aaa;")
@@ -9,11 +9,11 @@ div.small(v-else, style="font-size: 16pt; color: #aaa;")
 </template>
 
 <script lang="ts">
-import { ChartOptions } from 'chart.js';
+import type { ChartData, ChartOptions } from 'chart.js';
 import _ from 'lodash';
 import { defineComponent, type PropType } from 'vue';
 import 'chart.js/auto';
-import { Bar } from 'vue-chartjs/legacy';
+import { Bar } from 'vue-chartjs';
 import { i18n } from '~/i18n';
 import {
   format_date_short,
@@ -35,7 +35,7 @@ import {
 type BarDataset = {
   label?: string;
   backgroundColor?: string | string[];
-  data?: (number | null)[];
+  data: (number | null)[];
 };
 
 function hourToTick(hours: number): string {
@@ -149,7 +149,7 @@ export default defineComponent({
       console.error(`Invalid resolution: ${resolution}`);
       return [];
     },
-    chartData() {
+    chartData(): ChartData<'bar', (number | null)[], string> {
       let datasets = _.sortBy(this.datasets, (d) => d.label);
       const [count, resolution] = this.timeperiod_length;
       if (this.clamp_hourly) {
@@ -166,13 +166,9 @@ export default defineComponent({
       return {
         labels: this.labels,
         datasets,
-        title: {
-          display: true,
-          text: i18n.t('timeline.title'),
-        },
       };
     },
-    chartOptions(): ChartOptions {
+    chartOptions(): ChartOptions<'bar'> {
       const [count, resolution] = this.timeperiod_length;
       // Hourly buckets: a single day, or an exact interval of at most one day
       const singleDay =
@@ -187,7 +183,7 @@ export default defineComponent({
             intersect: false,
             callbacks: {
               label: (context) => {
-                const value = context.parsed.y;
+                const value = context.parsed.y ?? 0;
                 let hours = Math.floor(value);
                 let minutes = Math.round((value - hours) * 60);
                 if (minutes === 60) {

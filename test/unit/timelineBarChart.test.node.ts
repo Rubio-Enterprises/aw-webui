@@ -1,4 +1,4 @@
-jest.mock('vue-chartjs/legacy', () => ({ Bar: {} }));
+jest.mock('vue-chartjs', () => ({ Bar: {} }));
 
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
