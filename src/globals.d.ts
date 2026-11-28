@@ -23,5 +23,7 @@ declare module '*.vue' {
 declare module '*.css';
 declare module '*.scss';
 declare module 'typeface-varela-round';
+// Side-effect imports that register moment's locales; the files ship no types.
+declare module 'moment/locale/*';
 declare module 'vue-datetime';
 declare module 'vue-awesome/components/Icon.vue';
