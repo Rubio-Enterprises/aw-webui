@@ -7,15 +7,18 @@ type UnicodeAliases = Record<string, string[]>;
 
 let _unicodeNames: Map<number, string> | null = null;
 let _unicodeAliases: UnicodeAliases[] = [];
+// The package ships ES modules only; required through Jest's CommonJS
+// transform, each module's default export is on `.default`.
+const esmDefault = <T>(mod: { default: T }): T => mod.default;
 try {
-  _unicodeNames = require('@unicode/unicode-13.0.0/Names');
+  _unicodeNames = esmDefault(require('@unicode/unicode-13.0.0/Names'));
   _unicodeAliases = [
     // Python's \N{...} lookup accepts NameAliases.txt aliases too.
-    require('@unicode/unicode-13.0.0/Names/Abbreviation'),
-    require('@unicode/unicode-13.0.0/Names/Alternate'),
-    require('@unicode/unicode-13.0.0/Names/Control'),
-    require('@unicode/unicode-13.0.0/Names/Correction'),
-    require('@unicode/unicode-13.0.0/Names/Figment'),
+    esmDefault(require('@unicode/unicode-13.0.0/Names/Abbreviation')),
+    esmDefault(require('@unicode/unicode-13.0.0/Names/Alternate')),
+    esmDefault(require('@unicode/unicode-13.0.0/Names/Control')),
+    esmDefault(require('@unicode/unicode-13.0.0/Names/Correction')),
+    esmDefault(require('@unicode/unicode-13.0.0/Names/Figment')),
   ];
 } catch {
   // browser build: Unicode package excluded from bundle; \N{...} patterns will
