@@ -15,9 +15,6 @@ div.mx-3
 </template>
 
 <script lang="ts">
-// FullCalendar plugins throw unless its core library has loaded, so the Vue component loads
-// first. organizeImports leaves this bare import where it is.
-import '@fullcalendar/vue';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import FullCalendar from '@fullcalendar/vue';
 import _ from 'lodash';
