@@ -3,7 +3,7 @@ import TimelineBarChart from '~/visualizations/TimelineBarChart.vue';
 import { withVm } from '../helpers/vue';
 
 // Exercise the component's computed data, not the canvas renderer's ESM entrypoint.
-jest.mock('vue-chartjs/legacy', () => ({ Bar: { render: (h) => h('div') } }));
+jest.mock('vue-chartjs', () => ({ Bar: { render: (h) => h('div') } }));
 jest.mock('chart.js/auto', () => ({}));
 
 const HOUR = 3600000;
