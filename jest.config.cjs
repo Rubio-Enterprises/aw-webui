@@ -33,6 +33,7 @@ module.exports = {
       testMatch: ['**/test/**/*.test.{js,ts}?(x)'],
       moduleNameMapper: {
         '^~/(.+)$': '<rootDir>/src/$1',
+        '\\.css$': '<rootDir>/test/helpers/styleStub.js',
         '^d3$': '<rootDir>/node_modules/d3/dist/d3.min.js',
       },
       moduleFileExtensions: ['js', 'mjs', 'ts', 'vue', 'json'],
@@ -51,6 +52,7 @@ module.exports = {
       transformIgnorePatterns,
       moduleNameMapper: {
         '^~/(.+)$': '<rootDir>/src/$1',
+        '\\.css$': '<rootDir>/test/helpers/styleStub.js',
         '^d3$': '<rootDir>/node_modules/d3/dist/d3.min',
       },
     },
