@@ -110,7 +110,7 @@
     "typescript": "6.0.3",
     "url-loader": "4.1.1",
     "vite-plugin-pwa": "2.0.0",
-    "vue": "^2.7",
+    "vue": "^3.0.0",
     "vue-cli-plugin-pug": "2.0.0",
     "vue-hot-reload-api": "2.3.4",
     "vue-loader": "17.4.2",
